@@ -14,6 +14,7 @@
 		5A00001A2B8F4A0100C7D8E9 /* Subscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00001B2B8F4A0100C7D8E9 /* Subscription.swift */; };
 		5A00001C2B8F4A0100C7D8E9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00001D2B8F4A0100C7D8E9 /* SettingsView.swift */; };
 		5A00001E2B8F4A0100C7D8E9 /* SubscriptionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00001F2B8F4A0100C7D8E9 /* SubscriptionDetailView.swift */; };
+		5A0000282B8F4A0100C7D8E9 /* AddSubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000292B8F4A0100C7D8E9 /* AddSubscriptionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +26,7 @@
 		5A00001B2B8F4A0100C7D8E9 /* Subscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subscription.swift; sourceTree = "<group>"; };
 		5A00001D2B8F4A0100C7D8E9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5A00001F2B8F4A0100C7D8E9 /* SubscriptionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionDetailView.swift; sourceTree = "<group>"; };
+		5A0000292B8F4A0100C7D8E9 /* AddSubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSubscriptionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +74,7 @@
 				5A0000132B8F4A0100C7D8E9 /* HomeView.swift */,
 				5A00001D2B8F4A0100C7D8E9 /* SettingsView.swift */,
 				5A00001F2B8F4A0100C7D8E9 /* SubscriptionDetailView.swift */,
+				5A0000292B8F4A0100C7D8E9 /* AddSubscriptionView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -167,6 +170,7 @@
 				5A00001A2B8F4A0100C7D8E9 /* Subscription.swift in Sources */,
 				5A00001C2B8F4A0100C7D8E9 /* SettingsView.swift in Sources */,
 				5A00001E2B8F4A0100C7D8E9 /* SubscriptionDetailView.swift in Sources */,
+				5A0000282B8F4A0100C7D8E9 /* AddSubscriptionView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

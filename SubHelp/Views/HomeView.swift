@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
     @State private var selectedSubscription: Subscription?
+    @State private var showAddSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,6 +21,11 @@ struct HomeView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
+        .sheet(isPresented: $showAddSheet) {
+            AddSubscriptionView { newSub in
+                viewModel.addSubscription(newSub)
+            }
+        }
         .sheet(item: $selectedSubscription) { sub in
             SubscriptionDetailView(
                 subscription: Binding(
@@ -29,7 +35,10 @@ struct HomeView: View {
                     set: { updated in
                         viewModel.updateSubscription(updated)
                     }
-                )
+                ),
+                onUnsubscribe: { cancelled in
+                    viewModel.removeSubscription(cancelled)
+                }
             )
         }
     }
@@ -51,7 +60,7 @@ struct HomeView: View {
                     .font(.system(.subheadline, design: .default, weight: .medium))
                     .foregroundStyle(.secondary))
 
-                Button("+ Add Subscription") { }
+                Button("+ Add Subscription") { showAddSheet = true }
                     .font(.system(.subheadline, design: .default, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)

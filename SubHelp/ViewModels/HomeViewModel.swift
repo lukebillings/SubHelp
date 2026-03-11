@@ -123,10 +123,23 @@ final class HomeViewModel: ObservableObject {
         ]
     }
 
+    func addSubscription(_ sub: Subscription) {
+        subscriptions.append(sub)
+    }
+
     func updateSubscription(_ updated: Subscription) {
         if let index = subscriptions.firstIndex(where: { $0.id == updated.id }) {
             subscriptions[index] = updated
         }
+    }
+
+    func removeSubscription(_ sub: Subscription) {
+        switch sub.frequency {
+        case .weekly: savedAmount += (sub.price * 52 / 12)
+        case .monthly: savedAmount += sub.price
+        case .yearly: savedAmount += (sub.price / 12)
+        }
+        subscriptions.removeAll { $0.id == sub.id }
     }
 
     func applySorting() {
