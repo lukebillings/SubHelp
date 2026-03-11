@@ -41,16 +41,22 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(spacing: 2) {
-                Text(viewModel.savedAmount, format: .currency(code: "GBP"))
-                    .font(.system(.title2, design: .default, weight: .bold))
-                Text("Saved")
-                    .font(.system(.subheadline, design: .default, weight: .medium))
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+            ZStack(alignment: .bottom) {
+                Image("ShibaMascot")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 100, height: 100)
+                    .clipShape(Circle())
+
+                Text("Saved \(viewModel.savedAmount, format: .currency(code: "GBP"))")
+                    .font(.system(.caption2, design: .default, weight: .bold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color(red: 1.0, green: 0.84, blue: 0.0))
+                    .clipShape(Capsule())
+                    .padding(.bottom, 6)
             }
-            .frame(width: 80, height: 64)
-            .background(Color.yellow.opacity(0.9))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
