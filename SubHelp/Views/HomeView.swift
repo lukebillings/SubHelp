@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
+    @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     @State private var selectedSubscription: Subscription?
     @State private var showAddSheet = false
 
@@ -48,13 +49,13 @@ struct HomeView: View {
     private var summarySection: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                (Text("\(viewModel.totalPerMonth, format: .currency(code: "GBP")) ")
+                (Text("\(viewModel.totalPerMonth, format: .currency(code: currencyCode)) ")
                     .font(.system(.title, design: .default, weight: .bold))
                  + Text("/month")
                     .font(.system(.title3, design: .default, weight: .medium))
                     .foregroundStyle(.secondary))
 
-                (Text("\(viewModel.totalPerYear, format: .currency(code: "GBP")) ")
+                (Text("\(viewModel.totalPerYear, format: .currency(code: currencyCode)) ")
                     .font(.system(.title3, design: .default, weight: .bold))
                  + Text("/year")
                     .font(.system(.subheadline, design: .default, weight: .medium))
@@ -78,7 +79,7 @@ struct HomeView: View {
                     .frame(width: 100, height: 100)
                     .clipShape(Circle())
 
-                Text("Saved \(viewModel.savedAmount, format: .currency(code: "GBP"))")
+                Text("Saved \(viewModel.savedAmount, format: .currency(code: currencyCode))")
                     .font(.system(.caption2, design: .default, weight: .bold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, 8)
@@ -145,6 +146,7 @@ struct HomeView: View {
                 subscriptionCard(sub)
                     .onTapGesture { selectedSubscription = sub }
             }
+
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -163,7 +165,7 @@ struct HomeView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(sub.price, format: .currency(code: "GBP"))
+                Text(sub.price, format: .currency(code: currencyCode))
                     .font(.system(.headline, design: .default, weight: .bold))
                     .foregroundStyle(.white)
                 Text(sub.frequency.shortLabel)
@@ -298,7 +300,7 @@ struct HomeView: View {
                 .font(.system(.subheadline, design: .default, weight: .bold))
                 .foregroundStyle(.white)
                 .lineLimit(1)
-            Text(sub.price, format: .currency(code: "GBP"))
+            Text(sub.price, format: .currency(code: currencyCode))
                 .font(.system(.headline, design: .default, weight: .bold))
                 .foregroundStyle(.white)
             Text(sub.frequency.rawValue)

@@ -14,6 +14,7 @@ enum SortOption: String, CaseIterable {
 
 final class HomeViewModel: ObservableObject {
     @Published var subscriptions: [Subscription]
+    @Published var unsubscribed: [Subscription] = []
     @Published var viewMode: SubscriptionViewMode = .list
     @Published var savedAmount: Decimal = 23
     @Published var sortOption: SortOption = .nameAsc {
@@ -140,6 +141,9 @@ final class HomeViewModel: ObservableObject {
         case .yearly: savedAmount += (sub.price / 12)
         }
         subscriptions.removeAll { $0.id == sub.id }
+        if !unsubscribed.contains(where: { $0.id == sub.id }) {
+            unsubscribed.append(sub)
+        }
     }
 
     func applySorting() {

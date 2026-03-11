@@ -4,6 +4,7 @@ import AVFoundation
 struct SubscriptionDetailView: View {
     @Binding var subscription: Subscription
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     var onUnsubscribe: ((Subscription) -> Void)?
 
     @State private var showCelebration = false
@@ -38,7 +39,7 @@ struct SubscriptionDetailView: View {
 
     private var savingsText: String {
         let amount = subscription.price
-        let formatted = amount.formatted(.currency(code: "GBP"))
+        let formatted = amount.formatted(.currency(code: currencyCode))
         switch subscription.frequency {
         case .weekly: return "\(formatted) per week"
         case .monthly: return "\(formatted) per month"
@@ -84,7 +85,7 @@ struct SubscriptionDetailView: View {
             HStack {
                 Text("Amount")
                 Spacer()
-                TextField("Price", value: $subscription.price, format: .currency(code: "GBP"))
+                TextField("Price", value: $subscription.price, format: .currency(code: currencyCode))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
             }

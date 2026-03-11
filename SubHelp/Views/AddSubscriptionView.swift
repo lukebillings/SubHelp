@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AddSubscriptionView: View {
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     var onAdd: (Subscription) -> Void
 
     @State private var name = ""
@@ -39,7 +40,7 @@ struct AddSubscriptionView: View {
                     HStack {
                         Text("Amount")
                         Spacer()
-                        TextField("£0.00", value: $price, format: .currency(code: "GBP"))
+                        TextField("0.00", value: $price, format: .currency(code: currencyCode))
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                     }
@@ -87,7 +88,7 @@ struct AddSubscriptionView: View {
                             }
                             Spacer()
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text(price ?? 0, format: .currency(code: "GBP"))
+                                Text(price ?? 0, format: .currency(code: currencyCode))
                                     .font(.system(.headline, design: .default, weight: .bold))
                                     .foregroundStyle(.white)
                                 Text(frequency.shortLabel)

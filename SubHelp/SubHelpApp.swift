@@ -10,6 +10,9 @@ struct SubHelpApp: App {
                 Tab("Subscriptions", systemImage: "diamond.fill") {
                     HomeView(viewModel: homeViewModel)
                 }
+                Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
+                    HistoryView(viewModel: homeViewModel)
+                }
                 Tab("Settings", systemImage: "gearshape.fill") {
                     SettingsView()
                 }

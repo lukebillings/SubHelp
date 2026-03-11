@@ -3,10 +3,38 @@ import StoreKit
 
 struct SettingsView: View {
     @AppStorage("notificationDaysBefore") private var notificationDaysBefore: Int = 1
+    @AppStorage("currencyCode") private var currencyCode: String = "GBP"
+
+    private let currencies: [(code: String, label: String)] = [
+        ("GBP", "£ GBP – British Pound"),
+        ("USD", "$ USD – US Dollar"),
+        ("EUR", "€ EUR – Euro"),
+        ("CAD", "CA$ CAD – Canadian Dollar"),
+        ("AUD", "A$ AUD – Australian Dollar"),
+        ("JPY", "¥ JPY – Japanese Yen"),
+        ("CHF", "CHF – Swiss Franc"),
+        ("INR", "₹ INR – Indian Rupee"),
+        ("BRL", "R$ BRL – Brazilian Real"),
+        ("MXN", "MX$ MXN – Mexican Peso"),
+        ("SGD", "S$ SGD – Singapore Dollar"),
+        ("HKD", "HK$ HKD – Hong Kong Dollar"),
+        ("NOK", "kr NOK – Norwegian Krone"),
+        ("SEK", "kr SEK – Swedish Krona"),
+        ("DKK", "kr DKK – Danish Krone"),
+    ]
 
     var body: some View {
         NavigationStack {
             List {
+                Section("Currency") {
+                    Picker("Currency", selection: $currencyCode) {
+                        ForEach(currencies, id: \.code) { currency in
+                            Text(currency.label).tag(currency.code)
+                        }
+                    }
+                    .font(.system(.body, design: .default, weight: .regular))
+                }
+
                 Section("Notifications") {
                     Picker("Days before renewal", selection: $notificationDaysBefore) {
                         Text("Same day").tag(0)
