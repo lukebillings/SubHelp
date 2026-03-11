@@ -1,11 +1,13 @@
 import SwiftUI
 
-enum BillingFrequency: String {
+enum BillingFrequency: String, CaseIterable {
+    case weekly = "Weekly"
     case monthly = "Monthly"
     case yearly = "Yearly"
 
     var shortLabel: String {
         switch self {
+        case .weekly: return "/wk"
         case .monthly: return "/mo"
         case .yearly: return "/yr"
         }
@@ -14,11 +16,11 @@ enum BillingFrequency: String {
 
 struct Subscription: Identifiable {
     let id: UUID
-    let name: String
-    let nextPaymentDate: Date
-    let price: Decimal
-    let color: Color
-    let frequency: BillingFrequency
+    var name: String
+    var nextPaymentDate: Date
+    var price: Decimal
+    var color: Color
+    var frequency: BillingFrequency
 
     init(id: UUID = UUID(), name: String, nextPaymentDate: Date, price: Decimal, color: Color, frequency: BillingFrequency = .monthly) {
         self.id = id

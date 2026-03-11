@@ -29,6 +29,7 @@ final class HomeViewModel: ObservableObject {
     var totalPerMonth: Decimal {
         subscriptions.reduce(Decimal.zero) { total, sub in
             switch sub.frequency {
+            case .weekly: return total + (sub.price * 52 / 12)
             case .monthly: return total + sub.price
             case .yearly: return total + (sub.price / 12)
             }
@@ -38,6 +39,7 @@ final class HomeViewModel: ObservableObject {
     var totalPerYear: Decimal {
         subscriptions.reduce(Decimal.zero) { total, sub in
             switch sub.frequency {
+            case .weekly: return total + (sub.price * 52)
             case .monthly: return total + (sub.price * 12)
             case .yearly: return total + sub.price
             }
@@ -119,6 +121,12 @@ final class HomeViewModel: ObservableObject {
             Subscription(name: "ChatGPT Plus", nextPaymentDate: date(2025, 6, 24), price: 19.99, color: Color(red: 0.29, green: 0.65, blue: 0.55)),
             Subscription(name: "Xbox Game Pass", nextPaymentDate: date(2025, 6, 10), price: 14.99, color: Color(red: 0.07, green: 0.49, blue: 0.17))
         ]
+    }
+
+    func updateSubscription(_ updated: Subscription) {
+        if let index = subscriptions.firstIndex(where: { $0.id == updated.id }) {
+            subscriptions[index] = updated
+        }
     }
 
     func applySorting() {

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
+    @State private var selectedSubscription: Subscription?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,6 +20,18 @@ struct HomeView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
+        .sheet(item: $selectedSubscription) { sub in
+            SubscriptionDetailView(
+                subscription: Binding(
+                    get: {
+                        viewModel.subscriptions.first(where: { $0.id == sub.id }) ?? sub
+                    },
+                    set: { updated in
+                        viewModel.updateSubscription(updated)
+                    }
+                )
+            )
+        }
     }
 
     // MARK: - Summary
@@ -121,6 +134,7 @@ struct HomeView: View {
         LazyVStack(spacing: 12) {
             ForEach(viewModel.subscriptions) { sub in
                 subscriptionCard(sub)
+                    .onTapGesture { selectedSubscription = sub }
             }
         }
         .padding(.horizontal, 20)
@@ -259,6 +273,7 @@ struct HomeView: View {
                     ], spacing: 12) {
                         ForEach(subsForDate) { sub in
                             calendarCard(sub)
+                                .onTapGesture { selectedSubscription = sub }
                         }
                     }
                     .padding(.horizontal, 20)
