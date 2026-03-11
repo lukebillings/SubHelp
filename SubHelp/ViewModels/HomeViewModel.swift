@@ -27,29 +27,97 @@ final class HomeViewModel: ObservableObject {
     }()
 
     var totalPerMonth: Decimal {
-        subscriptions.reduce(0) { $0 + $1.price }
+        subscriptions.reduce(Decimal.zero) { total, sub in
+            switch sub.frequency {
+            case .monthly: return total + sub.price
+            case .yearly: return total + (sub.price / 12)
+            }
+        }
     }
 
     var totalPerYear: Decimal {
-        totalPerMonth * 12
+        subscriptions.reduce(Decimal.zero) { total, sub in
+            switch sub.frequency {
+            case .monthly: return total + (sub.price * 12)
+            case .yearly: return total + sub.price
+            }
+        }
+    }
+
+    @Published var selectedDate = Date()
+
+    func subscriptions(for date: Date) -> [Subscription] {
+        let cal = Calendar.current
+        return subscriptions.filter { sub in
+            let subDay = cal.component(.day, from: sub.nextPaymentDate)
+            let dateDay = cal.component(.day, from: date)
+            if sub.frequency == .monthly {
+                return subDay == dateDay
+            } else {
+                return cal.isDate(sub.nextPaymentDate, equalTo: date, toGranularity: .day)
+            }
+        }
+    }
+
+    func subscriptionColors(forDay day: Int, inMonth month: Date) -> [Color] {
+        let cal = Calendar.current
+        let monthComp = cal.component(.month, from: month)
+        let yearComp = cal.component(.year, from: month)
+
+        return subscriptions.compactMap { sub in
+            let subDay = cal.component(.day, from: sub.nextPaymentDate)
+            if sub.frequency == .monthly {
+                return subDay == day ? sub.color : nil
+            } else {
+                let subMonth = cal.component(.month, from: sub.nextPaymentDate)
+                let subYear = cal.component(.year, from: sub.nextPaymentDate)
+                return (subDay == day && subMonth == monthComp && subYear == yearComp) ? sub.color : nil
+            }
+        }
+    }
+
+    func daysInMonth(_ date: Date) -> Int {
+        Calendar.current.range(of: .day, in: .month, for: date)?.count ?? 30
+    }
+
+    func firstWeekdayOfMonth(_ date: Date) -> Int {
+        let cal = Calendar.current
+        let comps = cal.dateComponents([.year, .month], from: date)
+        let firstDay = cal.date(from: comps)!
+        return (cal.component(.weekday, from: firstDay) + 5) % 7 // Monday = 0
+    }
+
+    func changeMonth(by value: Int) {
+        if let newDate = Calendar.current.date(byAdding: .month, value: value, to: selectedDate) {
+            selectedDate = newDate
+        }
+    }
+
+    var monthYearString: String {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM yyyy"
+        return f.string(from: selectedDate)
     }
 
     init(subscriptions: [Subscription]? = nil) {
         self.subscriptions = subscriptions ?? HomeViewModel.sampleSubscriptions
     }
 
+    private static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
+        Calendar.current.date(from: DateComponents(year: year, month: month, day: day)) ?? Date()
+    }
+
     static var sampleSubscriptions: [Subscription] {
-        let june7 = Calendar.current.date(from: DateComponents(year: 2025, month: 6, day: 7)) ?? Date()
         return [
-            Subscription(name: "Spotify", nextPaymentDate: june7, price: 9.99, color: Color(red: 0.11, green: 0.84, blue: 0.38)),
-            Subscription(name: "Netflix", nextPaymentDate: june7, price: 9.99, color: Color(red: 0.89, green: 0.15, blue: 0.21)),
-            Subscription(name: "Disney+", nextPaymentDate: june7, price: 9.99, color: Color(red: 0.0, green: 0.48, blue: 0.9)),
-            Subscription(name: "Prime", nextPaymentDate: june7, price: 9.99, color: Color(red: 0.24, green: 0.6, blue: 0.87)),
-            Subscription(name: "YouTube Premium", nextPaymentDate: june7, price: 12.99, color: Color(red: 0.93, green: 0.11, blue: 0.14)),
-            Subscription(name: "iCloud+", nextPaymentDate: june7, price: 2.99, color: Color(red: 0.35, green: 0.78, blue: 0.98)),
-            Subscription(name: "Gym", nextPaymentDate: june7, price: 29.99, color: Color(red: 0.6, green: 0.35, blue: 0.71)),
-            Subscription(name: "ChatGPT Plus", nextPaymentDate: june7, price: 19.99, color: Color(red: 0.29, green: 0.65, blue: 0.55)),
-            Subscription(name: "Xbox Game Pass", nextPaymentDate: june7, price: 14.99, color: Color(red: 0.07, green: 0.49, blue: 0.17))
+            Subscription(name: "Spotify", nextPaymentDate: date(2025, 6, 3), price: 9.99, color: Color(red: 0.11, green: 0.84, blue: 0.38)),
+            Subscription(name: "Netflix", nextPaymentDate: date(2025, 6, 12), price: 15.99, color: Color(red: 0.89, green: 0.15, blue: 0.21)),
+            Subscription(name: "Disney+", nextPaymentDate: date(2025, 6, 18), price: 7.99, color: Color(red: 0.0, green: 0.48, blue: 0.9)),
+            Subscription(name: "Prime", nextPaymentDate: date(2025, 9, 22), price: 95.00, color: Color(red: 0.24, green: 0.6, blue: 0.87), frequency: .yearly),
+            Subscription(name: "YouTube Premium", nextPaymentDate: date(2025, 6, 7), price: 12.99, color: Color(red: 0.93, green: 0.11, blue: 0.14)),
+            Subscription(name: "iCloud+", nextPaymentDate: date(2025, 6, 1), price: 2.99, color: Color(red: 0.35, green: 0.78, blue: 0.98)),
+            Subscription(name: "Gym", nextPaymentDate: date(2025, 6, 15), price: 29.99, color: Color(red: 0.6, green: 0.35, blue: 0.71)),
+            Subscription(name: "ChatGPT Plus", nextPaymentDate: date(2025, 6, 24), price: 19.99, color: Color(red: 0.29, green: 0.65, blue: 0.55)),
+            Subscription(name: "Xbox Game Pass", nextPaymentDate: date(2025, 6, 10), price: 14.99, color: Color(red: 0.07, green: 0.49, blue: 0.17))
         ]
     }
 
