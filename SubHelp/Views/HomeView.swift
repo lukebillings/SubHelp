@@ -7,6 +7,7 @@ struct HomeView: View {
         VStack(spacing: 0) {
             summarySection
             segmentControl
+            sortBar
 
             ScrollView {
                 cardsList
@@ -72,6 +73,35 @@ struct HomeView: View {
         .pickerStyle(.segmented)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
+    }
+
+    private var sortBar: some View {
+        HStack {
+            Spacer()
+            Menu {
+                ForEach(SortOption.allCases, id: \.self) { option in
+                    Button {
+                        viewModel.sortOption = option
+                    } label: {
+                        HStack {
+                            Text(option.rawValue)
+                            if viewModel.sortOption == option {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.arrow.down")
+                    Text(viewModel.sortOption.rawValue)
+                }
+                .font(.system(.subheadline, design: .default, weight: .medium))
+                .foregroundStyle(.blue)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 6)
     }
 
     private var cardsList: some View {

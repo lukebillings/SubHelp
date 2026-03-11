@@ -5,10 +5,20 @@ enum SubscriptionViewMode: String, CaseIterable {
     case calendar = "Calendar"
 }
 
+enum SortOption: String, CaseIterable {
+    case nameAsc = "Name A–Z"
+    case nameDesc = "Name Z–A"
+    case priceAsc = "Price Low–High"
+    case priceDesc = "Price High–Low"
+}
+
 final class HomeViewModel: ObservableObject {
     @Published var subscriptions: [Subscription]
     @Published var viewMode: SubscriptionViewMode = .list
     @Published var savedAmount: Decimal = 23
+    @Published var sortOption: SortOption = .nameAsc {
+        didSet { applySorting() }
+    }
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -41,6 +51,19 @@ final class HomeViewModel: ObservableObject {
             Subscription(name: "ChatGPT Plus", nextPaymentDate: june7, price: 19.99, color: Color(red: 0.29, green: 0.65, blue: 0.55)),
             Subscription(name: "Xbox Game Pass", nextPaymentDate: june7, price: 14.99, color: Color(red: 0.07, green: 0.49, blue: 0.17))
         ]
+    }
+
+    func applySorting() {
+        switch sortOption {
+        case .nameAsc:
+            subscriptions.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .nameDesc:
+            subscriptions.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+        case .priceAsc:
+            subscriptions.sort { $0.price < $1.price }
+        case .priceDesc:
+            subscriptions.sort { $0.price > $1.price }
+        }
     }
 
     func nextPaymentString(for date: Date) -> String {
