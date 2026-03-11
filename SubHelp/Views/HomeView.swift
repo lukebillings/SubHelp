@@ -46,6 +46,7 @@ struct HomeView: View {
                     .font(.system(.title2, design: .default, weight: .bold))
                 Text("Saved")
                     .font(.system(.subheadline, design: .default, weight: .medium))
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .frame(width: 80, height: 64)
             .background(Color.yellow.opacity(0.9))
