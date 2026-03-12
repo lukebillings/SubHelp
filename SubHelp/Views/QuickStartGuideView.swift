@@ -35,34 +35,32 @@ struct QuickStartGuideView: View {
         ServiceCategory(name: "Streaming", icon: "play.tv", services: [
             PopularService(name: "Netflix", suggestedMonthlyPrice: 10.99, color: Color(red: 0.89, green: 0.15, blue: 0.21)),
             PopularService(name: "Disney+", suggestedMonthlyPrice: 7.99, color: Color(red: 0.0, green: 0.48, blue: 0.9)),
-            PopularService(name: "Now TV", suggestedMonthlyPrice: 9.99, color: Color(red: 0.2, green: 0.2, blue: 0.2)),
             PopularService(name: "Spotify", suggestedMonthlyPrice: 10.99, color: Color(red: 0.11, green: 0.84, blue: 0.38)),
             PopularService(name: "YouTube Premium", suggestedMonthlyPrice: 12.99, color: Color(red: 0.89, green: 0.15, blue: 0.21)),
+            PopularService(name: "Audible", suggestedMonthlyPrice: 7.99, color: Color(red: 0.98, green: 0.68, blue: 0.08)),
+            PopularService(name: "DAZN", suggestedMonthlyPrice: 19.99, color: Color(red: 0.0, green: 0.0, blue: 0.0)),
             PopularService(name: "Crunchyroll", suggestedMonthlyPrice: 7.99, color: Color(red: 0.96, green: 0.55, blue: 0.07)),
         ]),
         ServiceCategory(name: "AI", icon: "brain", services: [
             PopularService(name: "ChatGPT Plus", suggestedMonthlyPrice: 19.99, color: Color(red: 0.0, green: 0.68, blue: 0.58)),
-            PopularService(name: "Claude Pro", suggestedMonthlyPrice: 19.99, color: Color(red: 0.82, green: 0.57, blue: 0.35)),
         ]),
         ServiceCategory(name: "Gaming", icon: "gamecontroller", services: [
             PopularService(name: "Xbox Game Pass", suggestedMonthlyPrice: 12.99, color: Color(red: 0.13, green: 0.69, blue: 0.30)),
             PopularService(name: "PlayStation Plus", suggestedMonthlyPrice: 6.99, color: Color(red: 0.0, green: 0.32, blue: 0.65)),
             PopularService(name: "Nintendo Switch Online", suggestedMonthlyPrice: 3.49, color: Color(red: 0.89, green: 0.15, blue: 0.15)),
-            PopularService(name: "EA Play", suggestedMonthlyPrice: 3.99, color: Color(red: 0.1, green: 0.1, blue: 0.1)),
         ]),
         ServiceCategory(name: "Ecommerce", icon: "cart", services: [
             PopularService(name: "Amazon Prime", suggestedMonthlyPrice: 8.99, color: Color(red: 0.12, green: 0.53, blue: 0.9)),
-            PopularService(name: "eBay Plus", suggestedMonthlyPrice: 7.99, color: Color(red: 0.88, green: 0.2, blue: 0.2)),
+            PopularService(name: "Uber One", suggestedMonthlyPrice: 5.99, color: Color(red: 0.0, green: 0.0, blue: 0.0)),
         ]),
         ServiceCategory(name: "Productivity", icon: "briefcase", services: [
             PopularService(name: "Microsoft 365", suggestedMonthlyPrice: 5.99, color: Color(red: 0.0, green: 0.47, blue: 0.84)),
             PopularService(name: "Adobe Creative Cloud", suggestedMonthlyPrice: 54.99, color: Color(red: 0.95, green: 0.33, blue: 0.13)),
-            PopularService(name: "Notion", suggestedMonthlyPrice: 8.00, color: Color(red: 0.15, green: 0.15, blue: 0.15)),
-            PopularService(name: "Canva Pro", suggestedMonthlyPrice: 10.99, color: Color(red: 0.0, green: 0.72, blue: 0.83)),
         ]),
         ServiceCategory(name: "Health", icon: "heart", services: [
-            PopularService(name: "Gym", suggestedMonthlyPrice: 29.99, color: Color(red: 0.4, green: 0.2, blue: 0.6)),
             PopularService(name: "Headspace", suggestedMonthlyPrice: 9.99, color: Color(red: 0.96, green: 0.6, blue: 0.2)),
+            PopularService(name: "Calm (Premium)", suggestedMonthlyPrice: 9.99, color: Color(red: 0.15, green: 0.32, blue: 0.55)),
+            PopularService(name: "MyFitnessPal Premium", suggestedMonthlyPrice: 7.99, color: Color(red: 0.0, green: 0.6, blue: 0.4)),
             PopularService(name: "Strava", suggestedMonthlyPrice: 5.99, color: Color(red: 0.94, green: 0.33, blue: 0.13)),
         ]),
     ]
@@ -95,7 +93,7 @@ struct QuickStartGuideView: View {
                                 let nextMonth = cal.date(byAdding: .month, value: 1, to: Date()) ?? Date()
                                 let comps = cal.dateComponents([.year, .month], from: nextMonth)
                                 addNextPayment = cal.date(from: comps) ?? Date()
-                            } label: {
+                        } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(service.name)
@@ -113,9 +111,9 @@ struct QuickStartGuideView: View {
                                 .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(service.color)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             }
-                            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                            .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                         }
@@ -138,7 +136,7 @@ struct QuickStartGuideView: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 7)
                             .background(.blue)
-                            .clipShape(Capsule())
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .listRowBackground(Color.clear)
                 } header: {

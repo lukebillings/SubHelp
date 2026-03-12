@@ -156,7 +156,7 @@ struct HomeView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(.blue)
-                    .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -177,7 +177,7 @@ struct HomeView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Color(red: 1.0, green: 0.84, blue: 0.0))
-                        .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .padding(.bottom, 6)
                 }
             }
@@ -270,7 +270,7 @@ struct HomeView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(sub.color)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     // MARK: - Calendar
@@ -404,7 +404,7 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .background(sub.color)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -463,7 +463,7 @@ private struct SavingsHologramCardView: View {
                             .padding(.horizontal, 24)
                             .padding(.vertical, 14)
                             .background(.white.opacity(0.15))
-                            .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
             }

@@ -106,7 +106,7 @@ struct AddSubscriptionView: View {
                         }
                         .padding(16)
                         .background(selectedColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
                     }

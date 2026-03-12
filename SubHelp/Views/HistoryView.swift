@@ -114,6 +114,6 @@ struct HistoryView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(sub.color.opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
