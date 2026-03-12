@@ -125,6 +125,14 @@ struct SubscriptionDetailView: View {
 
     private var cancellationHelpSection: some View {
         Section("Cancellation help") {
+            // Intro
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Here you’ll find different ways to cancel this subscription.")
+                    .font(.system(.footnote, design: .default, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
+
             // Step 1: Apple subscriptions
             VStack(alignment: .leading, spacing: 10) {
                 Text("1. Apple subscriptions")
@@ -145,7 +153,7 @@ struct SubscriptionDetailView: View {
 
             // Step 2: Popular services guides
             VStack(alignment: .leading, spacing: 8) {
-                Text("2. If not, check guides for popular services")
+                Text("2. Popular services guide")
                     .font(.system(.subheadline, design: .default, weight: .semibold))
                 Text("Step-by-step how to unsubscribe or cancel for common services.")
                     .font(.system(.footnote, design: .default, weight: .regular))
@@ -161,7 +169,7 @@ struct SubscriptionDetailView: View {
 
             // Step 3: General advice
             VStack(alignment: .leading, spacing: 8) {
-                Text("3. General advice")
+                Text("3. General guide")
                     .font(.system(.subheadline, design: .default, weight: .semibold))
                 Text("General steps for cancelling via the service's website or Apple.")
                     .font(.system(.footnote, design: .default, weight: .regular))

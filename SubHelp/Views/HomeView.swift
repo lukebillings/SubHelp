@@ -113,17 +113,10 @@ struct HomeView: View {
                     Button {
                         showQuickStartGuide = true
                     } label: {
-                        Label("Use the quick start guide", systemImage: "book.fill")
+                        Text("Help Find Subscriptions")
                             .font(.system(.body, design: .default, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.blue)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color(.secondaryLabel).opacity(0.2))
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .strokeBorder(.blue.opacity(0.5), lineWidth: 1.5)
-                            )
                     }
                     .padding(.horizontal, 32)
                     .padding(.bottom, 40)
@@ -301,7 +294,7 @@ struct HomeView: View {
 
     private var calendarSection: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 // Month navigation
                 HStack {
                     Button { viewModel.changeMonth(by: -1) } label: {
@@ -336,10 +329,10 @@ struct HomeView: View {
                 let offset = viewModel.firstWeekdayOfMonth(viewModel.selectedDate)
                 let selectedDay = Calendar.current.component(.day, from: viewModel.selectedDate)
 
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 4) {
                     ForEach(0..<(offset + totalDays), id: \.self) { index in
                         if index < offset {
-                            Color.clear.frame(height: 52)
+                            Color.clear.frame(height: 40)
                         } else {
                             let day = index - offset + 1
                             let colors = viewModel.subscriptionColors(forDay: day, inMonth: viewModel.selectedDate)
@@ -353,25 +346,25 @@ struct HomeView: View {
                                     viewModel.selectedDate = newDate
                                 }
                             } label: {
-                                VStack(spacing: 3) {
+                                VStack(spacing: 2) {
                                     Text("\(day)")
                                         .font(.system(.body, design: .default, weight: isSelected ? .bold : .regular))
                                         .foregroundStyle(isSelected ? .white : .primary)
-                                        .frame(width: 32, height: 32)
+                                        .frame(width: 28, height: 28)
                                         .background(isSelected ? Color.blue : Color.clear)
                                         .clipShape(Circle())
 
                                     // Colored dots for subscriptions
-                                    HStack(spacing: 3) {
+                                    HStack(spacing: 2) {
                                         ForEach(Array(colors.prefix(3).enumerated()), id: \.offset) { _, color in
                                             Circle()
                                                 .fill(color)
-                                                .frame(width: 6, height: 6)
+                                                .frame(width: 5, height: 5)
                                         }
                                     }
-                                    .frame(height: 6)
+                                    .frame(height: 5)
                                 }
-                                .frame(height: 52)
+                                .frame(height: 40)
                             }
                             .buttonStyle(.plain)
                         }
