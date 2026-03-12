@@ -14,6 +14,9 @@ struct SubHelpApp: App {
                 Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
                     HistoryView(viewModel: homeViewModel)
                 }
+                Tab("Help", systemImage: "questionmark.circle.fill") {
+                    HelpView(viewModel: homeViewModel)
+                }
                 Tab("Settings", systemImage: "gearshape.fill") {
                     SettingsView()
                 }
