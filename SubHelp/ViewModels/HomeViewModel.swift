@@ -47,6 +47,17 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
+    /// Yearly amount saved from cancelled (unsubscribed) subscriptions.
+    var unsubscribedSavedPerYear: Decimal {
+        unsubscribed.reduce(Decimal.zero) { total, sub in
+            switch sub.frequency {
+            case .weekly: return total + (sub.price * 52)
+            case .monthly: return total + (sub.price * 12)
+            case .yearly: return total + sub.price
+            }
+        }
+    }
+
     @Published var selectedDate = Date()
 
     func subscriptions(for date: Date) -> [Subscription] {

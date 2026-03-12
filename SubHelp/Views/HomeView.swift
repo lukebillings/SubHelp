@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var selectedSubscription: Subscription?
     @State private var showAddSheet = false
     @State private var showQuickStartGuide = false
+    @State private var showSavingsCard = false
 
     var body: some View {
         Group {
@@ -38,6 +39,12 @@ struct HomeView: View {
             QuickStartGuideView { newSub in
                 viewModel.addSubscription(newSub)
             }
+        }
+        .sheet(isPresented: $showSavingsCard) {
+            SavingsHologramCardView(
+                savedAmountPerMonth: viewModel.savedAmount,
+                currencyCode: currencyCode
+            )
         }
         .sheet(item: $selectedSubscription) { sub in
             SubscriptionDetailView(
@@ -154,22 +161,27 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            ZStack(alignment: .bottom) {
-                Image("ShibaMascot")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 100, height: 100)
-                    .clipShape(Circle())
+            Button {
+                showSavingsCard = true
+            } label: {
+                ZStack(alignment: .bottom) {
+                    Image("ShibaMascot")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 100, height: 100)
+                        .clipShape(Circle())
 
-                Text("Saved \(viewModel.savedAmount, format: .currency(code: currencyCode))")
-                    .font(.system(.caption2, design: .default, weight: .bold))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color(red: 1.0, green: 0.84, blue: 0.0))
-                    .clipShape(Capsule())
-                    .padding(.bottom, 6)
+                    Text("\(viewModel.savedAmount, format: .currency(code: currencyCode)) Yearly Savings")
+                        .font(.system(.caption2, design: .default, weight: .bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color(red: 1.0, green: 0.84, blue: 0.0))
+                        .clipShape(Capsule())
+                        .padding(.bottom, 6)
+                }
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
@@ -393,6 +405,232 @@ struct HomeView: View {
         .padding(.vertical, 14)
         .background(sub.color)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+// MARK: - Savings Trading Card (holographic gold, 3D tilt with finger)
+
+private struct SavingsHologramCardView: View {
+    @Environment(\.dismiss) private var dismiss
+    let savedAmountPerMonth: Decimal
+    let currencyCode: String
+
+    /// Normalised tilt: -1…1 on each axis
+    @State private var tiltX: CGFloat = 0
+    @State private var tiltY: CGFloat = 0
+    @State private var isDragging = false
+
+    private var savedPerYear: Decimal { savedAmountPerMonth * 12 }
+    private var savedPerWeek: Decimal { savedAmountPerMonth * 12 / 52 }
+
+    private var shareMessage: String {
+        "I'm saving \(savedPerYear.formatted(.currency(code: currencyCode))) per year thanks to the subscriptions I cancelled! Using SubHelp to stay on top of my subs."
+    }
+
+    // Gold palette
+    private let goldLight = Color(red: 1.0, green: 0.92, blue: 0.55)
+    private let goldMid = Color(red: 0.95, green: 0.76, blue: 0.2)
+    private let goldDark = Color(red: 0.72, green: 0.55, blue: 0.05)
+    private let goldShine = Color(red: 1.0, green: 0.98, blue: 0.8)
+
+    // Holographic rainbow tints
+    private let holoBlue = Color(red: 0.4, green: 0.7, blue: 1.0)
+    private let holoPink = Color(red: 1.0, green: 0.5, blue: 0.7)
+    private let holoGreen = Color(red: 0.4, green: 0.95, blue: 0.6)
+    private let holoPurple = Color(red: 0.7, green: 0.4, blue: 1.0)
+
+    private let cardWidth: CGFloat = 300
+    private let cardHeight: CGFloat = 440
+    private let maxTiltDegrees: CGFloat = 30
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(white: 0.08).ignoresSafeArea()
+
+                VStack(spacing: 28) {
+                    tradingCard
+                        .frame(width: cardWidth, height: cardHeight)
+
+                    ShareLink(
+                        item: URL(string: "https://apps.apple.com/app/subhelp")!,
+                        subject: Text("My subscription savings"),
+                        message: Text(shareMessage)
+                    ) {
+                        Label("Share on social", systemImage: "square.and.arrow.up")
+                            .font(.system(.body, design: .default, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 14)
+                            .background(.white.opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                }
+            }
+        }
+    }
+
+    // MARK: - Trading Card
+
+    private var tradingCard: some View {
+        ZStack {
+            // Gold base
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [goldLight, goldMid, goldDark, goldMid],
+                        startPoint: UnitPoint(x: 0.5 + tiltX * 0.4, y: 0),
+                        endPoint: UnitPoint(x: 0.5 - tiltX * 0.4, y: 1)
+                    )
+                )
+
+            // Holographic rainbow overlay that shifts with tilt
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            holoBlue.opacity(0.3),
+                            holoPink.opacity(0.2),
+                            holoGreen.opacity(0.25),
+                            holoPurple.opacity(0.2),
+                            holoBlue.opacity(0.15)
+                        ],
+                        startPoint: UnitPoint(x: 0.5 + tiltX * 0.6, y: 0.5 + tiltY * 0.6),
+                        endPoint: UnitPoint(x: 0.5 - tiltX * 0.6, y: 0.5 - tiltY * 0.6)
+                    )
+                )
+
+            // Specular highlight that follows the tilt
+            RadialGradient(
+                colors: [goldShine.opacity(0.6), .clear],
+                center: UnitPoint(x: 0.5 + tiltX * 0.5, y: 0.5 + tiltY * 0.5),
+                startRadius: 10,
+                endRadius: 220
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            // Card content
+            VStack(spacing: 0) {
+                // Mascot at the top
+                Image("ShibaMascot")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 90, height: 90)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [goldShine, goldMid],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 3
+                            )
+                    )
+                    .shadow(color: goldDark.opacity(0.4), radius: 8, y: 4)
+                    .padding(.top, 28)
+
+                Text("I'm Saving")
+                    .font(.system(.caption, design: .default, weight: .bold))
+                    .tracking(2)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.black.opacity(0.5))
+                    .padding(.top, 14)
+
+                // Large yearly amount
+                Text(savedPerYear, format: .currency(code: currencyCode))
+                    .font(.system(size: 36, weight: .heavy, design: .default))
+                    .foregroundStyle(.black.opacity(0.9))
+                    .padding(.top, 4)
+
+                Text("per year")
+                    .font(.system(.subheadline, design: .default, weight: .medium))
+                    .foregroundStyle(.black.opacity(0.6))
+                    .padding(.top, 2)
+
+                Spacer()
+
+                // Monthly and weekly
+                HStack(spacing: 0) {
+                    VStack(spacing: 4) {
+                        Text(savedAmountPerMonth, format: .currency(code: currencyCode))
+                            .font(.system(.title3, design: .default, weight: .bold))
+                            .foregroundStyle(.black.opacity(0.85))
+                        Text("per month")
+                            .font(.system(.caption2, design: .default, weight: .medium))
+                            .foregroundStyle(.black.opacity(0.55))
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Rectangle()
+                        .fill(.black.opacity(0.12))
+                        .frame(width: 1, height: 36)
+
+                    VStack(spacing: 4) {
+                        Text(savedPerWeek, format: .currency(code: currencyCode))
+                            .font(.system(.title3, design: .default, weight: .bold))
+                            .foregroundStyle(.black.opacity(0.85))
+                        Text("per week")
+                            .font(.system(.caption2, design: .default, weight: .medium))
+                            .foregroundStyle(.black.opacity(0.55))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 28)
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [goldShine, goldMid.opacity(0.6), goldShine.opacity(0.8), goldDark.opacity(0.4)],
+                        startPoint: UnitPoint(x: tiltX * 0.5, y: 0),
+                        endPoint: UnitPoint(x: 1 - tiltX * 0.5, y: 1)
+                    ),
+                    lineWidth: 2
+                )
+        )
+        .shadow(color: goldMid.opacity(0.45), radius: 24, x: tiltX * 6, y: tiltY * 6 + 8)
+        .shadow(color: .black.opacity(0.35), radius: 12, x: 0, y: 4)
+        .rotation3DEffect(
+            .degrees(Double(tiltY) * maxTiltDegrees),
+            axis: (x: -1, y: 0, z: 0),
+            perspective: 0.6
+        )
+        .rotation3DEffect(
+            .degrees(Double(tiltX) * maxTiltDegrees),
+            axis: (x: 0, y: 1, z: 0),
+            perspective: 0.6
+        )
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    let normX = (value.location.x / cardWidth - 0.5) * 2
+                    let normY = (value.location.y / cardHeight - 0.5) * 2
+                    withAnimation(.interactiveSpring(response: 0.15, dampingFraction: 0.7)) {
+                        tiltX = min(max(normX, -1), 1)
+                        tiltY = min(max(normY, -1), 1)
+                        isDragging = true
+                    }
+                }
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                        tiltX = 0
+                        tiltY = 0
+                        isDragging = false
+                    }
+                }
+        )
     }
 }
 

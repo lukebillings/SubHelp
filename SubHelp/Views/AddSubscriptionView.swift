@@ -3,25 +3,34 @@ import SwiftUI
 struct AddSubscriptionView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
+
     var onAdd: (Subscription) -> Void
 
-    @State private var name = ""
-    @State private var price: Decimal?
+    @State private var name: String = ""
+    @State private var price: Decimal? = nil
     @State private var frequency: BillingFrequency = .monthly
     @State private var nextPaymentDate = Date()
     @State private var selectedColor = Color(red: 0.0, green: 0.48, blue: 0.9)
 
+    // 3 rows of colours (5 per row)
     private let colorOptions: [(String, Color)] = [
         ("Red", Color(red: 0.89, green: 0.15, blue: 0.21)),
-        ("Orange", Color(red: 0.24, green: 0.6, blue: 0.87)),
-        ("Yellow", Color(red: 0.9, green: 0.5, blue: 0.13)),
+        ("Coral", Color(red: 0.94, green: 0.33, blue: 0.31)),
+        ("Orange", Color(red: 0.95, green: 0.55, blue: 0.15)),
+        ("Amber", Color(red: 0.9, green: 0.7, blue: 0.1)),
+        ("Yellow", Color(red: 0.95, green: 0.85, blue: 0.15)),
+
+        ("Lime", Color(red: 0.55, green: 0.82, blue: 0.15)),
         ("Green", Color(red: 0.11, green: 0.84, blue: 0.38)),
         ("Dark Green", Color(red: 0.07, green: 0.49, blue: 0.17)),
-        ("Blue", Color(red: 0.0, green: 0.48, blue: 0.9)),
+        ("Teal", Color(red: 0.15, green: 0.68, blue: 0.62)),
+        ("Cyan", Color(red: 0.2, green: 0.75, blue: 0.85)),
+
         ("Light Blue", Color(red: 0.35, green: 0.78, blue: 0.98)),
+        ("Blue", Color(red: 0.0, green: 0.48, blue: 0.9)),
+        ("Indigo", Color(red: 0.24, green: 0.31, blue: 0.71)),
         ("Purple", Color(red: 0.6, green: 0.35, blue: 0.71)),
-        ("Teal", Color(red: 0.29, green: 0.65, blue: 0.55)),
-        ("Pink", Color(red: 0.9, green: 0.3, blue: 0.5))
+        ("Pink", Color(red: 0.9, green: 0.3, blue: 0.5)),
     ]
 
     private var canSave: Bool {
@@ -58,7 +67,7 @@ struct AddSubscriptionView: View {
 
                 Section("Colour") {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
-                        ForEach(colorOptions, id: \.0) { name, color in
+                        ForEach(colorOptions, id: \.0) { _, color in
                             Circle()
                                 .fill(color)
                                 .frame(width: 36, height: 36)
@@ -74,7 +83,6 @@ struct AddSubscriptionView: View {
                     }
                 }
 
-                // Preview card
                 if !name.isEmpty {
                     Section("Preview") {
                         HStack {
@@ -112,25 +120,23 @@ struct AddSubscriptionView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add") {
+                    Button("Save") {
+                        guard let price = price else { return }
                         let sub = Subscription(
-                            name: name.trimmingCharacters(in: .whitespaces),
+                            name: name,
                             nextPaymentDate: nextPaymentDate,
-                            price: price ?? 0,
+                            price: price,
                             color: selectedColor,
                             frequency: frequency
                         )
                         onAdd(sub)
                         dismiss()
                     }
-                    .font(.system(.body, design: .default, weight: .bold))
                     .disabled(!canSave)
+                    .fontWeight(.semibold)
                 }
             }
         }
     }
 }
 
-#Preview {
-    AddSubscriptionView { _ in }
-}

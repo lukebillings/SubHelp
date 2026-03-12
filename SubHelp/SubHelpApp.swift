@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct SubHelpApp: App {
     @StateObject private var homeViewModel = HomeViewModel()
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
 
     var body: some Scene {
         WindowGroup {
@@ -18,6 +19,7 @@ struct SubHelpApp: App {
                 }
             }
             .tint(.blue)
+            .preferredColorScheme(darkModeEnabled ? .dark : nil)
         }
     }
 }

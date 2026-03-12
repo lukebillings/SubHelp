@@ -11,17 +11,25 @@ struct SubscriptionDetailView: View {
     @State private var confettiParticles: [ConfettiParticle] = []
     @State private var audioPlayer: AVAudioPlayer?
 
+    // 3 rows of colours (5 per row)
     private let colorOptions: [(String, Color)] = [
         ("Red", Color(red: 0.89, green: 0.15, blue: 0.21)),
-        ("Orange", Color(red: 0.24, green: 0.6, blue: 0.87)),
-        ("Yellow", Color(red: 0.9, green: 0.5, blue: 0.13)),
+        ("Coral", Color(red: 0.94, green: 0.33, blue: 0.31)),
+        ("Orange", Color(red: 0.95, green: 0.55, blue: 0.15)),
+        ("Amber", Color(red: 0.9, green: 0.7, blue: 0.1)),
+        ("Yellow", Color(red: 0.95, green: 0.85, blue: 0.15)),
+
+        ("Lime", Color(red: 0.55, green: 0.82, blue: 0.15)),
         ("Green", Color(red: 0.11, green: 0.84, blue: 0.38)),
         ("Dark Green", Color(red: 0.07, green: 0.49, blue: 0.17)),
-        ("Blue", Color(red: 0.0, green: 0.48, blue: 0.9)),
+        ("Teal", Color(red: 0.15, green: 0.68, blue: 0.62)),
+        ("Cyan", Color(red: 0.2, green: 0.75, blue: 0.85)),
+
         ("Light Blue", Color(red: 0.35, green: 0.78, blue: 0.98)),
+        ("Blue", Color(red: 0.0, green: 0.48, blue: 0.9)),
+        ("Indigo", Color(red: 0.24, green: 0.31, blue: 0.71)),
         ("Purple", Color(red: 0.6, green: 0.35, blue: 0.71)),
-        ("Teal", Color(red: 0.29, green: 0.65, blue: 0.55)),
-        ("Pink", Color(red: 0.9, green: 0.3, blue: 0.5))
+        ("Pink", Color(red: 0.9, green: 0.3, blue: 0.5)),
     ]
 
     private let topCancelServices = [
@@ -178,14 +186,14 @@ struct SubscriptionDetailView: View {
             } label: {
                 HStack {
                     Spacer()
-                    Text("Mark as Unsubscribed")
+                    Label("Mark as Unsubscribed", systemImage: "checkmark.circle.fill")
                         .font(.system(.body, design: .default, weight: .bold))
                         .foregroundStyle(.white)
                     Spacer()
                 }
-                .padding(.vertical, 6)
-                .background(.red)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(.vertical, 16)
+                .background(.green)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
@@ -375,9 +383,6 @@ struct GeneralCancelGuideView: View {
                 Label("Confirm the cancellation", systemImage: "5.circle.fill")
             }
 
-            Section("Via the App Store (Apple)") {
-                Label("Settings → your name → Subscriptions", systemImage: "apple.logo")
-            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("General Guide")
