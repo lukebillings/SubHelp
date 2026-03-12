@@ -136,8 +136,12 @@ struct HomeView: View {
     // MARK: - Summary
 
     private var summarySection: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
+                Text("Subscription Spend")
+                    .font(.system(.title3, design: .default, weight: .bold))
+                    .foregroundStyle(.primary)
+
                 (Text("\(viewModel.totalPerMonth, format: .currency(code: currencyCode)) ")
                     .font(.system(.title, design: .default, weight: .bold))
                  + Text("/month")
@@ -145,9 +149,9 @@ struct HomeView: View {
                     .foregroundStyle(.secondary))
 
                 (Text("\(viewModel.totalPerYear, format: .currency(code: currencyCode)) ")
-                    .font(.system(.title3, design: .default, weight: .bold))
+                    .font(.system(.title, design: .default, weight: .bold))
                  + Text("/year")
-                    .font(.system(.subheadline, design: .default, weight: .medium))
+                    .font(.system(.title3, design: .default, weight: .medium))
                     .foregroundStyle(.secondary))
 
                 Button("+ Add Subscription") { showAddSheet = true }
@@ -158,6 +162,19 @@ struct HomeView: View {
                     .background(.blue)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .padding(.top, 4)
+
+                Button {
+                    showQuickStartGuide = true
+                } label: {
+                    Text("Help Find Subscriptions")
+                        .font(.system(.subheadline, design: .default, weight: .semibold))
+                        .foregroundStyle(.blue)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -171,14 +188,19 @@ struct HomeView: View {
                         .frame(width: 100, height: 100)
                         .clipShape(Circle())
 
-                    Text("\(viewModel.savedAmount, format: .currency(code: currencyCode)) Yearly Savings")
-                        .font(.system(.caption2, design: .default, weight: .bold))
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color(red: 1.0, green: 0.84, blue: 0.0))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .padding(.bottom, 6)
+                    VStack(spacing: 2) {
+                        Text(viewModel.savedAmount, format: .currency(code: currencyCode))
+                            .font(.system(.subheadline, design: .default, weight: .bold))
+                        Text("Yearly Savings")
+                            .font(.system(.caption2, design: .default, weight: .bold))
+                    }
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(red: 1.0, green: 0.84, blue: 0.0))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.bottom, 2)
+                    .offset(y: 20)
                 }
             }
             .buttonStyle(.plain)
