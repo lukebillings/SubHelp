@@ -36,6 +36,7 @@ struct QuickStartGuideView: View {
     @State private var showCopiedToast = false
     @State private var selectedTab: QuickStartTab = .popular
     @State private var selectedCategoryFilter: String? = nil
+    @State private var visibleCategory: String? = nil
 
     // Grouped categories for Step 1
     private let serviceCategories: [ServiceCategory] = [
@@ -66,6 +67,10 @@ struct QuickStartGuideView: View {
         ServiceCategory(name: "Ecommerce", icon: "cart", services: [
             PopularService(name: "Amazon Prime", suggestedMonthlyPrice: 8.99, color: Color(red: 0.12, green: 0.53, blue: 0.9)),
             PopularService(name: "Uber One", suggestedMonthlyPrice: 5.99, color: Color(red: 0.0, green: 0.0, blue: 0.0)),
+        ]),
+        ServiceCategory(name: "Home", icon: "house", services: [
+            PopularService(name: "Ring Protect", suggestedMonthlyPrice: 3.99, color: Color(red: 0.0, green: 0.48, blue: 0.9)),
+            PopularService(name: "Nest Aware", suggestedMonthlyPrice: 6.00, color: Color(red: 0.26, green: 0.52, blue: 0.96)),
         ]),
         ServiceCategory(name: "Cloud & storage", icon: "externaldrive", services: [
             PopularService(name: "Google One", suggestedMonthlyPrice: 1.99, color: Color(red: 0.26, green: 0.52, blue: 0.96)),
@@ -116,17 +121,7 @@ struct QuickStartGuideView: View {
                 .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
 
                 if selectedTab == .popular {
-                    // Intro paragraph – reduced vertical margin
-                    Section {
-                        Text("Here are some common subscriptions you might already have. Just tap any you use to quickly add it.")
-                            .font(.system(.footnote, design: .default, weight: .regular))
-                            .foregroundStyle(.secondary)
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                    }
-                    .listRowInsets(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16))
-
-                    // Category filter pills
+                    // Category filter pills – first, so cards sit underneath
                     Section {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -135,10 +130,10 @@ struct QuickStartGuideView: View {
                                 } label: {
                                     Text("All")
                                         .font(.system(.subheadline, design: .default, weight: .medium))
-                                        .foregroundStyle(selectedCategoryFilter == nil ? .white : .primary)
+                                        .foregroundStyle((selectedCategoryFilter ?? visibleCategory) == nil ? .white : .primary)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
-                                        .background(selectedCategoryFilter == nil ? Color.blue : Color(.secondarySystemGroupedBackground))
+                                        .background((selectedCategoryFilter ?? visibleCategory) == nil ? Color.blue : Color(.secondarySystemGroupedBackground))
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -149,10 +144,10 @@ struct QuickStartGuideView: View {
                                     } label: {
                                         Text(category.name)
                                             .font(.system(.subheadline, design: .default, weight: .medium))
-                                            .foregroundStyle(selectedCategoryFilter == category.name ? .white : .primary)
+                                            .foregroundStyle((selectedCategoryFilter ?? visibleCategory) == category.name ? .white : .primary)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 8)
-                                            .background(selectedCategoryFilter == category.name ? Color.blue : Color(.secondarySystemGroupedBackground))
+                                            .background((selectedCategoryFilter ?? visibleCategory) == category.name ? Color.blue : Color(.secondarySystemGroupedBackground))
                                             .clipShape(Capsule())
                                     }
                                     .buttonStyle(.plain)
@@ -165,9 +160,20 @@ struct QuickStartGuideView: View {
                         .listRowBackground(Color.clear)
                     }
 
+                    // Intro paragraph – under pills, above cards
+                    Section {
+                        Text("Here are some common subscriptions you might already have. Just tap any you use to quickly add it.")
+                            .font(.system(.footnote, design: .default, weight: .regular))
+                            .foregroundStyle(.secondary)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                    .listRowInsets(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16))
+
+                    // Popular services cards – underneath pills
                     ForEach(filteredCategories) { category in
                         Section {
-                            ForEach(category.services) { service in
+                            ForEach(Array(category.services.enumerated()), id: \.element.id) { index, service in
                                 Button {
                                     serviceToAdd = service
                                     addPrice = service.suggestedMonthlyPrice
@@ -196,6 +202,11 @@ struct QuickStartGuideView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .background(service.color)
                                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                }
+                                .onAppear {
+                                    if index == 0 && selectedCategoryFilter == nil {
+                                        visibleCategory = category.name
+                                    }
                                 }
                                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                                 .listRowBackground(Color.clear)
