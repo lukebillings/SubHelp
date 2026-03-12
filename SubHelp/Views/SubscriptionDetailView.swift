@@ -117,17 +117,49 @@ struct SubscriptionDetailView: View {
 
     private var cancellationHelpSection: some View {
         Section("Cancellation help") {
-            NavigationLink {
-                AppleSubscriptionView()
-            } label: {
-                Label("Auto cancel (Apple Subs)", systemImage: "apple.logo")
+            // Step 1: Apple subscriptions
+            VStack(alignment: .leading, spacing: 10) {
+                Text("1. Apple subscriptions")
+                    .font(.system(.subheadline, design: .default, weight: .semibold))
+                Text("Click below to see if this subscription is being paid for with your Apple account. You can cancel there.")
+                    .font(.system(.footnote, design: .default, weight: .regular))
+                    .foregroundStyle(.secondary)
+                Button {
+                    if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label("Check Apple subscriptions", systemImage: "arrow.up.right.square")
+                        .font(.system(.subheadline, design: .default, weight: .medium))
+                }
             }
+            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+
+            // Step 2: Popular services guides
+            VStack(alignment: .leading, spacing: 8) {
+                Text("2. If not, check guides for popular services")
+                    .font(.system(.subheadline, design: .default, weight: .semibold))
+                Text("Step-by-step how to unsubscribe or cancel for common services.")
+                    .font(.system(.footnote, design: .default, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
 
             NavigationLink {
                 topCancelGuideList
             } label: {
-                Label("Cancel guide (top services)", systemImage: "list.number")
+                Label("Cancel guide (popular services)", systemImage: "list.number")
             }
+
+            // Step 3: General advice
+            VStack(alignment: .leading, spacing: 8) {
+                Text("3. General advice")
+                    .font(.system(.subheadline, design: .default, weight: .semibold))
+                Text("General steps for cancelling via the service's website or Apple.")
+                    .font(.system(.footnote, design: .default, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
 
             NavigationLink {
                 GeneralCancelGuideView()
@@ -161,6 +193,10 @@ struct SubscriptionDetailView: View {
     }
 
     private func triggerCelebration() {
+        // Fire the callback immediately so the subscription moves to History
+        // before the sheet is dismissed or the binding is invalidated.
+        onUnsubscribe?(subscription)
+
         playSuccessSound()
         spawnConfetti()
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
@@ -202,7 +238,6 @@ struct SubscriptionDetailView: View {
                     withAnimation {
                         showCelebration = false
                     }
-                    onUnsubscribe?(subscription)
                     dismiss()
                 }
 
@@ -342,22 +377,6 @@ struct GeneralCancelGuideView: View {
 
             Section("Via the App Store (Apple)") {
                 Label("Settings → your name → Subscriptions", systemImage: "apple.logo")
-            }
-
-            Section("Via Google Play") {
-                Label("Play Store → Menu → Subscriptions", systemImage: "play.fill")
-            }
-
-            Section("Via your bank") {
-                Text("As a last resort, contact your bank to block future payments. Note: this may cause issues with the service provider.")
-                    .font(.system(.body, design: .default, weight: .regular))
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("Tips") {
-                Label("Screenshot confirmation emails", systemImage: "camera")
-                Label("Check for a final billing date", systemImage: "calendar")
-                Label("Look out for retention offers", systemImage: "tag")
             }
         }
         .listStyle(.insetGrouped)

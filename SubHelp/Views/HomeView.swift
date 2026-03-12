@@ -5,25 +5,37 @@ struct HomeView: View {
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     @State private var selectedSubscription: Subscription?
     @State private var showAddSheet = false
+    @State private var showQuickStartGuide = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            summarySection
-            segmentControl
+        Group {
+            if viewModel.subscriptions.isEmpty {
+                welcomeState
+            } else {
+                VStack(spacing: 0) {
+                    summarySection
+                    segmentControl
 
-            switch viewModel.viewMode {
-            case .list:
-                sortBar
-                ScrollView {
-                    cardsList
+                    switch viewModel.viewMode {
+                    case .list:
+                        sortBar
+                        ScrollView {
+                            cardsList
+                        }
+                    case .calendar:
+                        calendarSection
+                    }
                 }
-            case .calendar:
-                calendarSection
+                .background(Color(.systemGroupedBackground))
             }
         }
-        .background(Color(.systemGroupedBackground))
         .sheet(isPresented: $showAddSheet) {
             AddSubscriptionView { newSub in
+                viewModel.addSubscription(newSub)
+            }
+        }
+        .sheet(isPresented: $showQuickStartGuide) {
+            QuickStartGuideView { newSub in
                 viewModel.addSubscription(newSub)
             }
         }
@@ -41,6 +53,76 @@ struct HomeView: View {
                     viewModel.removeSubscription(cancelled)
                 }
             )
+        }
+    }
+
+    // MARK: - Welcome / Empty State
+
+    private var welcomeState: some View {
+        ZStack {
+            Color(.systemGroupedBackground).ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Mascot
+                    Image("ShibaMascot")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 120, height: 120)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.1), radius: 12, y: 6)
+                        .padding(.bottom, 20)
+
+                    Text("Know what subscriptions you have?")
+                        .font(.system(.title2, design: .default, weight: .bold))
+                        .multilineTextAlignment(.center)
+                        .padding(.bottom, 8)
+
+                    Text("Get started by manually adding a subscription.")
+                        .font(.system(.subheadline, design: .default, weight: .regular))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.bottom, 20)
+
+                    Button {
+                        showAddSheet = true
+                    } label: {
+                        Label("Add Subscription", systemImage: "plus")
+                            .font(.system(.body, design: .default, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(.blue)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 28)
+
+                    Text("Not sure where to start?")
+                        .font(.system(.subheadline, design: .default, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 10)
+
+                    Button {
+                        showQuickStartGuide = true
+                    } label: {
+                        Label("Use the quick start guide", systemImage: "book.fill")
+                            .font(.system(.body, design: .default, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color(.secondaryLabel).opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(.blue.opacity(0.5), lineWidth: 1.5)
+                            )
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 40)
+                }
+                .padding(.top, 40)
+            }
         }
     }
 
@@ -317,7 +399,7 @@ struct HomeView: View {
 #Preview {
     TabView {
         Tab("Subscriptions", systemImage: "diamond.fill") {
-            HomeView(viewModel: HomeViewModel())
+            HomeView(viewModel: HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions))
         }
         Tab("Settings", systemImage: "gearshape.fill") {
             SettingsView()

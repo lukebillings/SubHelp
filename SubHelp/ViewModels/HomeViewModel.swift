@@ -103,7 +103,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     init(subscriptions: [Subscription]? = nil) {
-        self.subscriptions = subscriptions ?? HomeViewModel.sampleSubscriptions
+        self.subscriptions = subscriptions ?? []
     }
 
     private static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
