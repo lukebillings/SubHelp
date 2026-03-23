@@ -227,7 +227,7 @@ struct HomeView: View {
                         .clipShape(Circle())
 
                     VStack(spacing: 2) {
-                        Text(viewModel.savedAmount, format: .currency(code: currencyCode))
+                        Text(viewModel.savedAmount * 12, format: .currency(code: currencyCode))
                             .font(.system(.subheadline, design: .default, weight: .bold))
                         Text("Yearly Savings")
                             .font(.system(.caption2, design: .default, weight: .bold))
@@ -483,10 +483,6 @@ private struct SavingsHologramCardView: View {
     private var savedPerYear: Decimal { savedAmountPerMonth * 12 }
     private var savedPerWeek: Decimal { savedAmountPerMonth * 12 / 52 }
 
-    private var shareMessage: String {
-        "I'm saving \(savedPerYear.formatted(.currency(code: currencyCode))) per year thanks to the subscriptions I cancelled! Using SubHelp to stay on top of my subs."
-    }
-
     // Gold palette
     private let goldLight = Color(red: 1.0, green: 0.92, blue: 0.55)
     private let goldMid = Color(red: 0.95, green: 0.76, blue: 0.2)
@@ -511,20 +507,6 @@ private struct SavingsHologramCardView: View {
                 VStack(spacing: 28) {
                     tradingCard
                         .frame(width: cardWidth, height: cardHeight)
-
-                    ShareLink(
-                        item: URL(string: "https://apps.apple.com/app/subhelp")!,
-                        subject: Text("My subscription savings"),
-                        message: Text(shareMessage)
-                    ) {
-                        Label("Share on social", systemImage: "square.and.arrow.up")
-                            .font(.system(.body, design: .default, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 14)
-                            .background(.white.opacity(0.15))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -696,7 +678,7 @@ private struct SavingsHologramCardView: View {
 
 #Preview {
     TabView {
-        Tab("Subscriptions", systemImage: "diamond.fill") {
+        Tab("Subscriptions", systemImage: "creditcard.fill") {
             HomeView(
                 viewModel: HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions),
                 subscriptionTier: .free,

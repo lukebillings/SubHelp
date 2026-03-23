@@ -117,6 +117,20 @@ struct SubscriptionDetailView: View {
 
     private var subDetailsSection: some View {
         Section("Sub details") {
+            Picker("Category", selection: Binding(
+                get: { subscription.category ?? "" },
+                set: { newVal in
+                    var s = subscription
+                    s.category = newVal.isEmpty ? nil : newVal
+                    subscription = s
+                }
+            )) {
+                Text("None").tag("")
+                ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
+                    Text(cat).tag(cat)
+                }
+            }
+
             Picker("Frequency", selection: $subscription.frequency) {
                 ForEach(BillingFrequency.allCases, id: \.self) { freq in
                     Text(freq.rawValue).tag(freq)

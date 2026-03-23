@@ -20,6 +20,8 @@
 		5A00003F2B8F4A0100C7D8E9 /* QuickStartGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00003E2B8F4A0100C7D8E9 /* QuickStartGuideView.swift */; };
 		5A0000412B8F4A0100C7D8E9 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000402B8F4A0100C7D8E9 /* HelpView.swift */; };
 		5A0000422B8F4A0100C7D8E9 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */; };
+		5A0000442B8F4A0100C7D8E9 /* SubscriptionPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */; };
+		5A0000462B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +39,8 @@
 		5A00003E2B8F4A0100C7D8E9 /* QuickStartGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickStartGuideView.swift; sourceTree = "<group>"; };
 		5A0000402B8F4A0100C7D8E9 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPersistence.swift; sourceTree = "<group>"; };
+		5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenewalNotificationScheduler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +110,8 @@
 			isa = PBXGroup;
 			children = (
 				5A00001B2B8F4A0100C7D8E9 /* Subscription.swift */,
+				5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */,
+				5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -191,6 +197,8 @@
 				5A00003F2B8F4A0100C7D8E9 /* QuickStartGuideView.swift in Sources */,
 				5A0000412B8F4A0100C7D8E9 /* HelpView.swift in Sources */,
 				5A0000422B8F4A0100C7D8E9 /* PaywallView.swift in Sources */,
+				5A0000442B8F4A0100C7D8E9 /* SubscriptionPersistence.swift in Sources */,
+				5A0000462B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

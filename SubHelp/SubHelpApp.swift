@@ -16,7 +16,7 @@ struct SubHelpApp: App {
         WindowGroup {
             ZStack {
                 TabView {
-                    Tab("Subscriptions", systemImage: "diamond.fill") {
+                    Tab("Subscriptions", systemImage: "creditcard.fill") {
                         HomeView(
                             viewModel: homeViewModel,
                             subscriptionTier: subscriptionTier,
@@ -37,6 +37,9 @@ struct SubHelpApp: App {
                 }
                 .tint(.blue)
                 .preferredColorScheme(darkModeEnabled ? .dark : nil)
+                .onAppear {
+                    RenewalNotificationScheduler.scheduleRenewalReminders()
+                }
 
                 // Paywall on first launch – blocks until user selects a plan
                 if !hasCompletedPaywall {

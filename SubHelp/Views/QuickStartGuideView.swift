@@ -30,6 +30,7 @@ struct QuickStartGuideView: View {
     var onAdd: (Subscription) -> Void
 
     @State private var serviceToAdd: PopularService?
+    @State private var addCategory: String? = nil
     @State private var addPrice: Decimal = 0
     @State private var addFrequency: BillingFrequency = .monthly
     @State private var addNextPayment = Date()
@@ -175,6 +176,7 @@ struct QuickStartGuideView: View {
                             ForEach(Array(category.services.enumerated()), id: \.element.id) { index, service in
                                 Button {
                                     serviceToAdd = service
+                                    addCategory = category.name
                                     addPrice = service.suggestedMonthlyPrice
                                     addFrequency = .monthly
 
@@ -370,6 +372,16 @@ struct QuickStartGuideView: View {
                             .foregroundStyle(.secondary)
                     }
 
+                    Picker("Category", selection: Binding(
+                        get: { addCategory ?? "" },
+                        set: { addCategory = $0.isEmpty ? nil : $0 }
+                    )) {
+                        Text("None").tag("")
+                        ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
+                            Text(cat).tag(cat)
+                        }
+                    }
+
                     Picker("How do you pay?", selection: $addFrequency) {
                         ForEach(BillingFrequency.allCases, id: \.self) { freq in
                             Text(freq.rawValue).tag(freq)
@@ -411,7 +423,8 @@ struct QuickStartGuideView: View {
                             nextPaymentDate: addNextPayment,
                             price: addPrice,
                             color: service.color,
-                            frequency: addFrequency
+                            frequency: addFrequency,
+                            category: addCategory
                         )
                         onAdd(sub)
                         serviceToAdd = nil

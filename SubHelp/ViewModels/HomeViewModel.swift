@@ -114,7 +114,31 @@ final class HomeViewModel: ObservableObject {
     }
 
     init(subscriptions: [Subscription]? = nil) {
-        self.subscriptions = subscriptions ?? []
+        if let subs = subscriptions {
+            self.subscriptions = subs
+            self.unsubscribed = []
+            self.savedAmount = 0
+        } else {
+            self.subscriptions = SubscriptionStorage.loadSubscriptions()
+            self.unsubscribed = SubscriptionStorage.loadUnsubscribed()
+            self.savedAmount = Self.calculateSavedAmount(from: self.unsubscribed)
+        }
+    }
+
+    private static func calculateSavedAmount(from unsubscribed: [Subscription]) -> Decimal {
+        unsubscribed.reduce(Decimal.zero) { total, sub in
+            switch sub.frequency {
+            case .weekly: return total + (sub.price * 52 / 12)
+            case .monthly: return total + sub.price
+            case .yearly: return total + (sub.price / 12)
+            }
+        }
+    }
+
+    private func persist() {
+        SubscriptionStorage.save(subscriptions: subscriptions)
+        SubscriptionStorage.save(unsubscribed: unsubscribed)
+        RenewalNotificationScheduler.scheduleRenewalReminders()
     }
 
     private static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
@@ -137,11 +161,13 @@ final class HomeViewModel: ObservableObject {
 
     func addSubscription(_ sub: Subscription) {
         subscriptions.append(sub)
+        persist()
     }
 
     func updateSubscription(_ updated: Subscription) {
         if let index = subscriptions.firstIndex(where: { $0.id == updated.id }) {
             subscriptions[index] = updated
+            persist()
         }
     }
 
@@ -155,6 +181,7 @@ final class HomeViewModel: ObservableObject {
         if !unsubscribed.contains(where: { $0.id == sub.id }) {
             unsubscribed.append(sub)
         }
+        persist()
     }
 
     func applySorting() {

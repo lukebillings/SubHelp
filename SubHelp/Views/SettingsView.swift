@@ -88,6 +88,9 @@ struct SettingsView: View {
                         Text("1 week before").tag(7)
                     }
                     .font(.system(.body, design: .default, weight: .regular))
+                    .onChange(of: notificationDaysBefore) { _, _ in
+                        RenewalNotificationScheduler.scheduleRenewalReminders()
+                    }
                 }
 
                 Section("Other") {
@@ -114,6 +117,10 @@ struct SettingsView: View {
                 Section("Legal") {
                     Link(destination: URL(string: "https://example.com/terms")!) {
                         Label("Terms and Conditions", systemImage: "doc.text")
+                    }
+
+                    Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
+                        Label("Terms of Service", systemImage: "doc.text")
                     }
 
                     Link(destination: URL(string: "https://example.com/privacy")!) {

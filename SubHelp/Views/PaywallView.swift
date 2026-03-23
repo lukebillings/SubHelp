@@ -26,12 +26,18 @@ struct PaywallView: View {
                     .clipShape(Circle())
                     .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
 
-                Text("SubHelp")
+                Text("SubHelp Premium")
                     .font(.system(.title, design: .default, weight: .bold))
 
-                Text("Add unlimited subscriptions")
-                    .font(.system(.subheadline, design: .default, weight: .medium))
-                    .foregroundStyle(.secondary)
+                VStack(spacing: 4) {
+                    Text("Want to add all your subscriptions? With a small subscription you can do just that!")
+                        .font(.system(.subheadline, design: .default, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    Text("Add more than 3 subscriptions")
+                        .font(.system(.caption, design: .default, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(.top, 48)
             .padding(.bottom, 32)
@@ -40,7 +46,7 @@ struct PaywallView: View {
             VStack(spacing: 12) {
                 planButton(
                     title: "£29.99 per year",
-                    subtitle: "Add unlimited subscriptions",
+                    subtitle: "Add more than 3 subscriptions",
                     isRecommended: true
                 ) {
                     selectedTier = .yearly
@@ -50,7 +56,7 @@ struct PaywallView: View {
 
                 planButton(
                     title: "£9.99 per month",
-                    subtitle: "Add unlimited subscriptions",
+                    subtitle: "Add more than 3 subscriptions",
                     isRecommended: false
                 ) {
                     selectedTier = .monthly
@@ -71,7 +77,14 @@ struct PaywallView: View {
             }
             .padding(.horizontal, 24)
 
-            Spacer()
+            Spacer(minLength: 0)
+
+            subscriptionLegalSection(includeRestoreButton: true)
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 24)
+
+            Spacer(minLength: 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
@@ -118,6 +131,43 @@ struct PaywallView: View {
         }
         .buttonStyle(.plain)
     }
+
+    private func subscriptionLegalSection(includeRestoreButton: Bool = false) -> some View {
+        SubscriptionLegalFooterView(includeRestoreButton: includeRestoreButton)
+    }
+}
+
+// MARK: - Subscription Legal Footer (shared)
+
+private struct SubscriptionLegalFooterView: View {
+    var includeRestoreButton: Bool = false
+
+    var body: some View {
+        VStack(spacing: 16) {
+            if includeRestoreButton {
+                Button("Restore Purchases") {
+                    // StoreKit restore - to be implemented
+                }
+                .font(.system(.caption, design: .default, weight: .regular))
+                .foregroundStyle(.blue)
+                .padding(.bottom, 8)
+            }
+
+            Text("Payment will be charged to your Apple Account at confirmation of purchase.\n\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.\n\nCancel anytime in App Store settings.")
+                .font(.system(.caption2, design: .default, weight: .regular))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 4) {
+                Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
+                Text("·")
+                Link("Terms and Conditions", destination: URL(string: "https://example.com/terms")!)
+                Text("·")
+                Link("Terms of Use (EULA)", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+            }
+            .font(.system(.caption2, design: .default, weight: .regular))
+        }
+    }
 }
 
 // MARK: - Upgrade Paywall (shown when free user tries to add 4th sub)
@@ -130,17 +180,22 @@ struct UpgradePaywallView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 VStack(spacing: 16) {
-                    Image(systemName: "square.stack.3d.up.slash")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.blue)
+                    Image("ShibaMascot")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 80, height: 80)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
 
                     Text("Subscription limit reached")
                         .font(.system(.title2, design: .default, weight: .bold))
 
-                    Text("You can add up to 3 subscriptions on the free plan. Upgrade to add unlimited subscriptions.")
+                    Text("Subscribe to SubHelp Premium to add more than 3 subscriptions.")
                         .font(.system(.body, design: .default, weight: .regular))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
                 }
                 .padding(32)
 
@@ -153,7 +208,7 @@ struct UpgradePaywallView: View {
                             Text("£29.99 per year")
                                 .font(.system(.headline, design: .default, weight: .semibold))
                             Spacer()
-                            Text("Add unlimited subscriptions")
+                            Text("Add more than 3 subscriptions")
                                 .font(.system(.subheadline, design: .default, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
@@ -171,7 +226,7 @@ struct UpgradePaywallView: View {
                             Text("£9.99 per month")
                                 .font(.system(.headline, design: .default, weight: .semibold))
                             Spacer()
-                            Text("Add unlimited subscriptions")
+                            Text("Add more than 3 subscriptions")
                                 .font(.system(.subheadline, design: .default, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
@@ -183,7 +238,14 @@ struct UpgradePaywallView: View {
                 }
                 .padding(.horizontal, 24)
 
-                Spacer()
+                Spacer(minLength: 0)
+
+                SubscriptionLegalFooterView(includeRestoreButton: true)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    .padding(.bottom, 24)
+
+                Spacer(minLength: 16)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Upgrade")

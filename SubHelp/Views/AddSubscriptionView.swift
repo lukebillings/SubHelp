@@ -7,6 +7,7 @@ struct AddSubscriptionView: View {
     var onAdd: (Subscription) -> Void
 
     @State private var name: String = ""
+    @State private var category: String? = nil
     @State private var price: Decimal? = nil
     @State private var frequency: BillingFrequency = .monthly
     @State private var nextPaymentDate = Date()
@@ -43,6 +44,18 @@ struct AddSubscriptionView: View {
                 Section("Name") {
                     TextField("e.g. Netflix, Spotify", text: $name)
                         .font(.system(.body, design: .default, weight: .regular))
+                }
+
+                Section("Category") {
+                    Picker("Category", selection: Binding(
+                        get: { category ?? "" },
+                        set: { category = $0.isEmpty ? nil : $0 }
+                    )) {
+                        Text("None").tag("")
+                        ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
+                            Text(cat).tag(cat)
+                        }
+                    }
                 }
 
                 Section("Price") {
@@ -127,7 +140,8 @@ struct AddSubscriptionView: View {
                             nextPaymentDate: nextPaymentDate,
                             price: price,
                             color: selectedColor,
-                            frequency: frequency
+                            frequency: frequency,
+                            category: category
                         )
                         onAdd(sub)
                         dismiss()
