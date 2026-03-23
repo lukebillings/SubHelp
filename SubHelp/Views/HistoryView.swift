@@ -51,7 +51,7 @@ struct HistoryView: View {
                     Text(viewModel.unsubscribedSavedPerYear, format: .currency(code: currencyCode))
                         .font(.system(size: 42, weight: .bold, design: .default))
                         .foregroundStyle(.primary)
-                    Text("That’s how much you’re saving per year thanks to the subscriptions you’ve cancelled.")
+                    Text("That's how much you're saving per year thanks to the subscriptions you've cancelled.")
                         .font(.system(.subheadline, design: .default, weight: .regular))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

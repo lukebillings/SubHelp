@@ -19,6 +19,7 @@
 		5A00003D2B8F4A0100C7D8E9 /* AppleImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00003C2B8F4A0100C7D8E9 /* AppleImportView.swift */; };
 		5A00003F2B8F4A0100C7D8E9 /* QuickStartGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00003E2B8F4A0100C7D8E9 /* QuickStartGuideView.swift */; };
 		5A0000412B8F4A0100C7D8E9 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000402B8F4A0100C7D8E9 /* HelpView.swift */; };
+		5A0000422B8F4A0100C7D8E9 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		5A00003C2B8F4A0100C7D8E9 /* AppleImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleImportView.swift; sourceTree = "<group>"; };
 		5A00003E2B8F4A0100C7D8E9 /* QuickStartGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickStartGuideView.swift; sourceTree = "<group>"; };
 		5A0000402B8F4A0100C7D8E9 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +89,7 @@
 				5A0000292B8F4A0100C7D8E9 /* AddSubscriptionView.swift */,
 				5A00003E2B8F4A0100C7D8E9 /* QuickStartGuideView.swift */,
 				5A0000402B8F4A0100C7D8E9 /* HelpView.swift */,
+				5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -187,6 +190,7 @@
 				5A00003D2B8F4A0100C7D8E9 /* AppleImportView.swift in Sources */,
 				5A00003F2B8F4A0100C7D8E9 /* QuickStartGuideView.swift in Sources */,
 				5A0000412B8F4A0100C7D8E9 /* HelpView.swift in Sources */,
+				5A0000422B8F4A0100C7D8E9 /* PaywallView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

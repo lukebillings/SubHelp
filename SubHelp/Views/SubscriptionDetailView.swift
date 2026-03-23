@@ -32,18 +32,51 @@ struct SubscriptionDetailView: View {
         ("Pink", Color(red: 0.9, green: 0.3, blue: 0.5)),
     ]
 
-    private let topCancelServices = [
-        ("Netflix", "https://help.netflix.com/en/node/407"),
-        ("Spotify", "https://support.spotify.com/us/article/how-to-cancel/"),
-        ("Disney+", "https://help.disneyplus.com/article/disneyplus-cancel-subscription"),
-        ("Amazon Prime", "https://www.amazon.co.uk/gp/help/customer/display.html?nodeId=G6LDPN7YJHYKH2J6"),
-        ("YouTube Premium", "https://support.google.com/youtube/answer/6308278"),
-        ("Apple One", "https://support.apple.com/en-gb/108043"),
-        ("Xbox Game Pass", "https://support.xbox.com/en-GB/help/subscriptions-billing/manage-subscriptions/cancel-subscription"),
-        ("PlayStation Plus", "https://www.playstation.com/en-gb/support/store/cancel-ps-store-subscription/"),
-        ("Adobe CC", "https://helpx.adobe.com/uk/manage-account/using/cancel-subscription.html"),
-        ("Microsoft 365", "https://support.microsoft.com/en-gb/office/cancel-a-microsoft-365-subscription-46e2634c-c64b-4c65-94b9-2cc9c960e91b")
-    ]
+    private let topCancelServices: [(String, String)] = {
+        let services: [(String, String)] = [
+            ("Adobe Creative Cloud", "https://helpx.adobe.com/uk/manage-account/using/cancel-subscription.html"),
+            ("Amazon Prime", "https://www.amazon.co.uk/gp/help/customer/display.html?nodeId=G6LDPN7YJHYKH2J6"),
+            ("Apple One", "https://support.apple.com/en-gb/108043"),
+            ("Audible", "https://www.audible.co.uk/cancel"),
+            ("Calm (Premium)", "https://www.calm.com/account/cancel"),
+            ("Canva Pro", "https://www.canva.com/help/article/cancel-subscription"),
+            ("ChatGPT Plus", "https://help.openai.com/en/articles/8553578-how-do-i-cancel-my-subscription"),
+            ("Claude Pro", "https://support.anthropic.com/en/articles/9154643-how-do-i-cancel-my-claude-pro-subscription"),
+            ("Copilot Pro", "https://support.microsoft.com/en-gb/topic/how-to-cancel-your-microsoft-copilot-pro-subscription-ae14e0ac-e8b5-4bdc-9a47-81ff4fc97adc"),
+            ("Coursera", "https://support.coursera.org/hc/en-us/articles/208280056-How-do-I-cancel-my-subscription-"),
+            ("Crunchyroll", "https://help.crunchyroll.com/hc/en-us/articles/360048429352-How-do-I-cancel-my-subscription-"),
+            ("DAZN", "https://www.dazn.com/help/articles/how-do-i-cancel-my-subscription"),
+            ("Discord Nitro", "https://discord.com/support/article/how-do-i-cancel-my-subscription"),
+            ("Disney+", "https://help.disneyplus.com/article/disneyplus-cancel-subscription"),
+            ("Dropbox", "https://help.dropbox.com/accounts-billing/cancel-subscription"),
+            ("Duolingo Plus", "https://support.duolingo.com/hc/en-us/articles/115002331208-How-do-I-cancel-my-subscription-"),
+            ("EA Play", "https://www.ea.com/help/ea-play/cancel-membership"),
+            ("Evernote", "https://help.evernote.com/hc/en-us/articles/209005257-How-to-cancel-your-Evernote-subscription"),
+            ("Gemini Advanced", "https://support.google.com/gemini/answer/13257891"),
+            ("Google One", "https://support.google.com/one/answer/6304836"),
+            ("Grammarly Premium", "https://support.grammarly.com/hc/en-us/articles/115000090792-How-do-I-cancel-my-Grammarly-subscription-"),
+            ("Headspace", "https://help.headspace.com/hc/en-us/articles/360018462231-How-do-I-cancel-my-subscription-"),
+            ("Kindle Unlimited", "https://www.amazon.co.uk/gp/help/customer/display.html?nodeId=201555520"),
+            ("LinkedIn Premium", "https://www.linkedin.com/help/linkedin/answer/133"),
+            ("Max (HBO)", "https://help.max.com/questions/cancel-subscription"),
+            ("Microsoft 365", "https://support.microsoft.com/en-gb/office/cancel-a-microsoft-365-subscription-46e2634c-c64b-4c65-94b9-2cc9c960e91b"),
+            ("MyFitnessPal Premium", "https://www.myfitnesspal.com/account/cancel_subscription"),
+            ("Nest Aware", "https://support.google.com/googlenest/answer/7073613"),
+            ("Netflix", "https://help.netflix.com/en/node/407"),
+            ("Nintendo Switch Online", "https://en-americas-support.nintendo.com/app/answers/detail/a_id/52090"),
+            ("Notion", "https://www.notion.so/help/cancel-your-subscription"),
+            ("Perplexity Pro", "https://www.perplexity.ai/settings"),
+            ("PlayStation Plus", "https://www.playstation.com/en-gb/support/store/cancel-ps-store-subscription/"),
+            ("Ring Protect", "https://support.ring.com/hc/en-us/articles/360060445191-How-to-cancel-your-Ring-Protect-subscription"),
+            ("Spotify", "https://support.spotify.com/us/article/how-to-cancel/"),
+            ("Strava", "https://support.strava.com/hc/en-us/articles/216918437-How-do-I-cancel-my-Strava-Subscription-"),
+            ("Uber One", "https://www.uber.com/help/article/cancel-uber-one"),
+            ("Xbox Game Pass", "https://support.xbox.com/en-GB/help/subscriptions-billing/manage-subscriptions/cancel-subscription"),
+            ("YouTube Premium", "https://support.google.com/youtube/answer/6308278"),
+            ("Zoom", "https://support.zoom.us/hc/en-us/articles/201363083-How-do-I-cancel-my-subscription-"),
+        ]
+        return services.sorted { $0.0.localizedCaseInsensitiveCompare($1.0) == .orderedAscending }
+    }()
 
     private var savingsText: String {
         let amount = subscription.price

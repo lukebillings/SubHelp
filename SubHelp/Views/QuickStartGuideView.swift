@@ -36,7 +36,6 @@ struct QuickStartGuideView: View {
     @State private var showCopiedToast = false
     @State private var selectedTab: QuickStartTab = .popular
     @State private var selectedCategoryFilter: String? = nil
-    @State private var visibleCategory: String? = nil
 
     // Grouped categories for Step 1
     private let serviceCategories: [ServiceCategory] = [
@@ -130,10 +129,10 @@ struct QuickStartGuideView: View {
                                 } label: {
                                     Text("All")
                                         .font(.system(.subheadline, design: .default, weight: .medium))
-                                        .foregroundStyle((selectedCategoryFilter ?? visibleCategory) == nil ? .white : .primary)
+                                        .foregroundStyle(selectedCategoryFilter == nil ? .white : .primary)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
-                                        .background((selectedCategoryFilter ?? visibleCategory) == nil ? Color.blue : Color(.secondarySystemGroupedBackground))
+                                        .background(selectedCategoryFilter == nil ? Color.blue : Color(.secondarySystemGroupedBackground))
                                         .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -144,10 +143,10 @@ struct QuickStartGuideView: View {
                                     } label: {
                                         Text(category.name)
                                             .font(.system(.subheadline, design: .default, weight: .medium))
-                                            .foregroundStyle((selectedCategoryFilter ?? visibleCategory) == category.name ? .white : .primary)
+                                            .foregroundStyle(selectedCategoryFilter == category.name ? .white : .primary)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 8)
-                                            .background((selectedCategoryFilter ?? visibleCategory) == category.name ? Color.blue : Color(.secondarySystemGroupedBackground))
+                                            .background(selectedCategoryFilter == category.name ? Color.blue : Color(.secondarySystemGroupedBackground))
                                             .clipShape(Capsule())
                                     }
                                     .buttonStyle(.plain)
@@ -202,11 +201,6 @@ struct QuickStartGuideView: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .background(service.color)
                                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                }
-                                .onAppear {
-                                    if index == 0 && selectedCategoryFilter == nil {
-                                        visibleCategory = category.name
-                                    }
                                 }
                                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                                 .listRowBackground(Color.clear)

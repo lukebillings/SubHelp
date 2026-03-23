@@ -2,11 +2,23 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
+    var subscriptionTier: SubscriptionTier
+    var onTierChange: (SubscriptionTier) -> Void
+
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     @State private var selectedSubscription: Subscription?
     @State private var showAddSheet = false
     @State private var showQuickStartGuide = false
     @State private var showSavingsCard = false
+    @State private var showUpgradePaywall = false
+
+    private var subscriptionLimit: Int {
+        subscriptionTier == .free ? 3 : .max
+    }
+
+    private var canAddMore: Bool {
+        viewModel.subscriptions.count < subscriptionLimit
+    }
 
     var body: some View {
         Group {
@@ -32,12 +44,27 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showAddSheet) {
             AddSubscriptionView { newSub in
-                viewModel.addSubscription(newSub)
+                if canAddMore {
+                    viewModel.addSubscription(newSub)
+                } else {
+                    showAddSheet = false
+                    showUpgradePaywall = true
+                }
             }
         }
         .sheet(isPresented: $showQuickStartGuide) {
             QuickStartGuideView { newSub in
-                viewModel.addSubscription(newSub)
+                if canAddMore {
+                    viewModel.addSubscription(newSub)
+                } else {
+                    showQuickStartGuide = false
+                    showUpgradePaywall = true
+                }
+            }
+        }
+        .sheet(isPresented: $showUpgradePaywall) {
+            UpgradePaywallView { tier in
+                onTierChange(tier)
             }
         }
         .sheet(isPresented: $showSavingsCard) {
@@ -92,7 +119,11 @@ struct HomeView: View {
                         .padding(.bottom, 20)
 
                     Button {
-                        showAddSheet = true
+                        if canAddMore {
+                            showAddSheet = true
+                        } else {
+                            showUpgradePaywall = true
+                        }
                     } label: {
                         Label("Add Subscription", systemImage: "plus")
                             .font(.system(.body, design: .default, weight: .semibold))
@@ -111,7 +142,11 @@ struct HomeView: View {
                         .padding(.bottom, 10)
 
                     Button {
-                        showQuickStartGuide = true
+                        if canAddMore {
+                            showQuickStartGuide = true
+                        } else {
+                            showUpgradePaywall = true
+                        }
                     } label: {
                         Text("Help Find Subscriptions")
                             .font(.system(.body, design: .default, weight: .semibold))
@@ -147,7 +182,13 @@ struct HomeView: View {
                     .font(.system(.title3, design: .default, weight: .medium))
                     .foregroundStyle(.secondary))
 
-                Button("+ Add Subscription") { showAddSheet = true }
+                Button("+ Add Subscription") {
+                    if canAddMore {
+                        showAddSheet = true
+                    } else {
+                        showUpgradePaywall = true
+                    }
+                }
                     .font(.system(.subheadline, design: .default, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
@@ -157,7 +198,11 @@ struct HomeView: View {
                     .padding(.top, 4)
 
                 Button {
-                    showQuickStartGuide = true
+                    if canAddMore {
+                        showQuickStartGuide = true
+                    } else {
+                        showUpgradePaywall = true
+                    }
                 } label: {
                     Text("Help Find Subscriptions")
                         .font(.system(.subheadline, design: .default, weight: .semibold))
@@ -652,7 +697,11 @@ private struct SavingsHologramCardView: View {
 #Preview {
     TabView {
         Tab("Subscriptions", systemImage: "diamond.fill") {
-            HomeView(viewModel: HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions))
+            HomeView(
+                viewModel: HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions),
+                subscriptionTier: .free,
+                onTierChange: { _ in }
+            )
         }
         Tab("Settings", systemImage: "gearshape.fill") {
             SettingsView()
