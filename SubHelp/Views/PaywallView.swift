@@ -34,10 +34,16 @@ struct PaywallView: View {
                         .font(.system(.subheadline, design: .default, weight: .medium))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
                     Text("Add more than 3 subscriptions")
                         .font(.system(.caption, design: .default, weight: .medium))
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
                 }
+                .padding(.horizontal, 24)
             }
             .padding(.top, 48)
             .padding(.bottom, 32)
@@ -115,8 +121,10 @@ struct PaywallView: View {
                     Text(subtitle)
                         .font(.system(.subheadline, design: .default, weight: .regular))
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)

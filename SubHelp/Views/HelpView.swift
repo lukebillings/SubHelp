@@ -287,6 +287,7 @@ struct HelpView: View {
                 Text(sub.name)
                     .font(.system(.headline, design: .default, weight: .bold))
                     .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text("Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))

@@ -274,7 +274,7 @@ struct QuickStartGuideView: View {
                                     Text(emailSearchCopyText)
                                         .font(.system(.subheadline, design: .default, weight: .regular))
                                         .foregroundStyle(.primary)
-                                        .lineLimit(1)
+                                        .fixedSize(horizontal: false, vertical: true)
                                     Spacer()
                                     if showCopiedToast {
                                         Label("Copied", systemImage: "checkmark.circle.fill")
