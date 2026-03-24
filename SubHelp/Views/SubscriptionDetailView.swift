@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import UIKit
 
 struct SubscriptionDetailView: View {
     @Binding var subscription: Subscription
@@ -37,7 +38,7 @@ struct SubscriptionDetailView: View {
             ("Adobe Creative Cloud", "https://helpx.adobe.com/uk/manage-account/using/cancel-subscription.html"),
             ("Amazon Prime", "https://www.amazon.co.uk/gp/help/customer/display.html?nodeId=G6LDPN7YJHYKH2J6"),
             ("Apple One", "https://support.apple.com/en-gb/108043"),
-            ("Audible", "https://www.audible.co.uk/cancel"),
+            ("Audible", "https://help.audible.co.uk/s/article/cancel-membership"),
             ("Calm (Premium)", "https://www.calm.com/account/cancel"),
             ("Canva Pro", "https://www.canva.com/help/article/cancel-subscription"),
             ("ChatGPT Plus", "https://help.openai.com/en/articles/8553578-how-do-i-cancel-my-subscription"),
@@ -47,7 +48,7 @@ struct SubscriptionDetailView: View {
             ("Crunchyroll", "https://help.crunchyroll.com/hc/en-us/articles/360048429352-How-do-I-cancel-my-subscription-"),
             ("DAZN", "https://www.dazn.com/help/articles/how-do-i-cancel-my-subscription"),
             ("Discord Nitro", "https://discord.com/support/article/how-do-i-cancel-my-subscription"),
-            ("Disney+", "https://help.disneyplus.com/article/disneyplus-cancel-subscription"),
+            ("Disney+", "https://help.disneyplus.com/article/disneyplus-manage-subscription"),
             ("Dropbox", "https://help.dropbox.com/accounts-billing/cancel-subscription"),
             ("Duolingo Plus", "https://support.duolingo.com/hc/en-us/articles/115002331208-How-do-I-cancel-my-subscription-"),
             ("EA Play", "https://www.ea.com/help/ea-play/cancel-membership"),
@@ -68,7 +69,7 @@ struct SubscriptionDetailView: View {
             ("Perplexity Pro", "https://www.perplexity.ai/settings"),
             ("PlayStation Plus", "https://www.playstation.com/en-gb/support/store/cancel-ps-store-subscription/"),
             ("Ring Protect", "https://support.ring.com/hc/en-us/articles/360060445191-How-to-cancel-your-Ring-Protect-subscription"),
-            ("Spotify", "https://support.spotify.com/us/article/how-to-cancel/"),
+            ("Spotify", "https://support.spotify.com/article/cancel-premium/"),
             ("Strava", "https://support.strava.com/hc/en-us/articles/216918437-How-do-I-cancel-my-Strava-Subscription-"),
             ("Uber One", "https://www.uber.com/help/article/cancel-uber-one"),
             ("Xbox Game Pass", "https://support.xbox.com/en-GB/help/subscriptions-billing/manage-subscriptions/cancel-subscription"),
@@ -89,26 +90,24 @@ struct SubscriptionDetailView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                List {
-                    subDetailsSection
-                    cancellationHelpSection
-                    unsubscribeSection
+        ZStack {
+            List {
+                subDetailsSection
+                cancellationHelpSection
+                unsubscribeSection
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle(subscription.name)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(.system(.body, design: .default, weight: .semibold))
                 }
-                .listStyle(.insetGrouped)
-                .navigationTitle(subscription.name)
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { dismiss() }
-                            .font(.system(.body, design: .default, weight: .semibold))
-                    }
-                }
+            }
 
-                if showCelebration {
-                    celebrationOverlay
-                }
+            if showCelebration {
+                celebrationOverlay
             }
         }
     }
@@ -213,6 +212,7 @@ struct SubscriptionDetailView: View {
             } label: {
                 Label("Cancel guide (popular services)", systemImage: "list.number")
             }
+            .buttonStyle(.borderless)
 
             // Step 3: General advice
             VStack(alignment: .leading, spacing: 8) {
@@ -229,6 +229,7 @@ struct SubscriptionDetailView: View {
             } label: {
                 Label("General cancel guide", systemImage: "questionmark.circle")
             }
+            .buttonStyle(.borderless)
         }
     }
 
@@ -341,16 +342,19 @@ struct SubscriptionDetailView: View {
     private var topCancelGuideList: some View {
         List {
             ForEach(topCancelServices, id: \.0) { name, urlString in
-                if let url = URL(string: urlString) {
-                    Link(destination: url) {
-                        HStack {
-                            Text(name)
-                                .font(.system(.body, design: .default, weight: .regular))
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                Button {
+                    if let url = URL(string: urlString) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    HStack {
+                        Text(name)
+                            .font(.system(.body, design: .default, weight: .regular))
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }

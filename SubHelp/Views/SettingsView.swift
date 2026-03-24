@@ -1,10 +1,13 @@
 import SwiftUI
 import StoreKit
+import UserNotifications
 
 struct SettingsView: View {
     @AppStorage("notificationDaysBefore") private var notificationDaysBefore: Int = 1
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+
+    @State private var showResetConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -35,8 +38,18 @@ struct SettingsView: View {
                         Text("1 week before").tag(7)
                     }
                     .font(.system(.body, design: .default, weight: .regular))
-                    .onChange(of: notificationDaysBefore) { _, _ in
-                        RenewalNotificationScheduler.scheduleRenewalReminders()
+                    .onChange(of: notificationDaysBefore) { _, newVal in
+                        UserDefaults.standard.set(true, forKey: "subhelp.didCompleteNotificationSetup")
+                        if newVal >= 0 {
+                            Task {
+                                _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+                                await MainActor.run {
+                                    RenewalNotificationScheduler.scheduleRenewalReminders()
+                                }
+                            }
+                        } else {
+                            RenewalNotificationScheduler.scheduleRenewalReminders()
+                        }
                     }
                 }
 
@@ -51,8 +64,10 @@ struct SettingsView: View {
                         Label("Rate", systemImage: "star.fill")
                     }
 
-                    ShareLink(item: URL(string: "https://apps.apple.com/app/subhelp")!) {
-                        Label("Share", systemImage: "square.and.arrow.up")
+                    Button(role: .destructive) {
+                        showResetConfirmation = true
+                    } label: {
+                        Label("Reset all data", systemImage: "trash")
                     }
                 }
                 .font(.system(.body, design: .default, weight: .regular))
@@ -74,6 +89,14 @@ struct SettingsView: View {
             }
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
+            .alert("Reset all data?", isPresented: $showResetConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    NotificationCenter.default.post(name: .subhelpResetAllData, object: nil)
+                }
+            } message: {
+                Text("This removes all subscriptions, history, and settings. The app will start as if you just downloaded it.")
+            }
         }
     }
 

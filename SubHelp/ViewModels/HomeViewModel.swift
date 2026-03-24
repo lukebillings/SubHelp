@@ -12,6 +12,25 @@ enum SortOption: String, CaseIterable {
     case priceDesc = "Price High–Low"
 }
 
+/// Shown in the subscriptions list filter menu (`All`, `Uncategorized`, or a category name).
+enum SubscriptionListCategoryFilter: Equatable, Hashable {
+    case all
+    case uncategorized
+    case category(String)
+
+    var displayTitle: String {
+        switch self {
+        case .all: return "All"
+        case .uncategorized: return "Uncategorized"
+        case .category(let name): return name
+        }
+    }
+
+    static var menuOptions: [SubscriptionListCategoryFilter] {
+        [.all, .uncategorized] + SubscriptionCategory.allCases.map { .category($0.rawValue) }
+    }
+}
+
 final class HomeViewModel: ObservableObject {
     @Published var subscriptions: [Subscription]
     @Published var unsubscribed: [Subscription] = []
@@ -20,6 +39,10 @@ final class HomeViewModel: ObservableObject {
     @Published var sortOption: SortOption = .nameAsc {
         didSet { applySorting() }
     }
+
+    @Published var categoryFilter: SubscriptionListCategoryFilter = .all
+
+    private var externalDataObserver: NSObjectProtocol?
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -60,9 +83,21 @@ final class HomeViewModel: ObservableObject {
 
     @Published var selectedDate = Date()
 
+    /// Subscriptions included in the current category filter (same order as `subscriptions`).
+    var subscriptionsForDisplay: [Subscription] {
+        switch categoryFilter {
+        case .all:
+            return subscriptions
+        case .uncategorized:
+            return subscriptions.filter { ($0.category ?? "").isEmpty }
+        case .category(let name):
+            return subscriptions.filter { $0.category == name }
+        }
+    }
+
     func subscriptions(for date: Date) -> [Subscription] {
         let cal = Calendar.current
-        return subscriptions.filter { sub in
+        return subscriptionsForDisplay.filter { sub in
             let subDay = cal.component(.day, from: sub.nextPaymentDate)
             let dateDay = cal.component(.day, from: date)
             if sub.frequency == .monthly {
@@ -78,7 +113,7 @@ final class HomeViewModel: ObservableObject {
         let monthComp = cal.component(.month, from: month)
         let yearComp = cal.component(.year, from: month)
 
-        return subscriptions.compactMap { sub in
+        return subscriptionsForDisplay.compactMap { sub in
             let subDay = cal.component(.day, from: sub.nextPaymentDate)
             if sub.frequency == .monthly {
                 return subDay == day ? sub.color : nil
@@ -123,6 +158,37 @@ final class HomeViewModel: ObservableObject {
             self.unsubscribed = SubscriptionStorage.loadUnsubscribed()
             self.savedAmount = Self.calculateSavedAmount(from: self.unsubscribed)
         }
+
+        externalDataObserver = NotificationCenter.default.addObserver(
+            forName: .subhelpSubscriptionsDidChangeExternally,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.reloadFromPersistentStorage()
+        }
+    }
+
+    deinit {
+        if let externalDataObserver {
+            NotificationCenter.default.removeObserver(externalDataObserver)
+        }
+    }
+
+    func reloadFromPersistentStorage() {
+        subscriptions = SubscriptionStorage.loadSubscriptions()
+        unsubscribed = SubscriptionStorage.loadUnsubscribed()
+        savedAmount = Self.calculateSavedAmount(from: unsubscribed)
+        applySorting()
+        syncCategoryFilterWithSubscriptions()
+    }
+
+    func resetToFreshInstallState() {
+        subscriptions = []
+        unsubscribed = []
+        savedAmount = 0
+        categoryFilter = .all
+        sortOption = .nameAsc
+        viewMode = .list
     }
 
     private static func calculateSavedAmount(from unsubscribed: [Subscription]) -> Decimal {
@@ -136,8 +202,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func persist() {
-        SubscriptionStorage.save(subscriptions: subscriptions)
-        SubscriptionStorage.save(unsubscribed: unsubscribed)
+        SubscriptionStorage.saveAll(subscriptions: subscriptions, unsubscribed: unsubscribed)
         RenewalNotificationScheduler.scheduleRenewalReminders()
     }
 
@@ -162,12 +227,14 @@ final class HomeViewModel: ObservableObject {
     func addSubscription(_ sub: Subscription) {
         subscriptions.append(sub)
         persist()
+        syncCategoryFilterWithSubscriptions()
     }
 
     func updateSubscription(_ updated: Subscription) {
         if let index = subscriptions.firstIndex(where: { $0.id == updated.id }) {
             subscriptions[index] = updated
             persist()
+            syncCategoryFilterWithSubscriptions()
         }
     }
 
@@ -182,6 +249,7 @@ final class HomeViewModel: ObservableObject {
             unsubscribed.append(sub)
         }
         persist()
+        syncCategoryFilterWithSubscriptions()
     }
 
     func applySorting() {
@@ -209,5 +277,31 @@ final class HomeViewModel: ObservableObject {
         let formatted = Self.dateFormatter.string(from: date) // "7 June"
         let month = formatted.replacingOccurrences(of: "^[0-9]+ ", with: "", options: .regularExpression)
         return "\(day)\(suffix) \(month)"
+    }
+}
+
+extension HomeViewModel {
+    /// Category filter choices that match at least one subscription (plus All / Uncategorized when relevant).
+    var categoryFilterMenuOptions: [SubscriptionListCategoryFilter] {
+        var options: [SubscriptionListCategoryFilter] = [.all]
+        if subscriptions.contains(where: { ($0.category ?? "").isEmpty }) {
+            options.append(.uncategorized)
+        }
+        let usedNames = Set(subscriptions.compactMap { $0.category }.filter { !$0.isEmpty })
+        let canonicalOrdered = SubscriptionCategory.allCases.map(\.rawValue).filter { usedNames.contains($0) }
+        options.append(contentsOf: canonicalOrdered.map { SubscriptionListCategoryFilter.category($0) })
+        let known = Set(SubscriptionCategory.allCases.map(\.rawValue))
+        for name in usedNames.subtracting(known).sorted() {
+            options.append(.category(name))
+        }
+        return options
+    }
+
+    /// Resets the filter to All if the current selection no longer matches any subscription.
+    func syncCategoryFilterWithSubscriptions() {
+        let valid = Set(categoryFilterMenuOptions)
+        if !valid.contains(categoryFilter) {
+            categoryFilter = .all
+        }
     }
 }

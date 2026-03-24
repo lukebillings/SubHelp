@@ -2,6 +2,12 @@ import SwiftUI
 
 // MARK: - Goal type
 
+private enum Save100Phase {
+    case enterTarget
+    case thinking
+    case results
+}
+
 private enum HelpGoal: CaseIterable {
     case save100
     case discount
@@ -23,7 +29,12 @@ struct HelpView: View {
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     @State private var selectedGoal: HelpGoal?
     @State private var isThinking = false
-    @State private var saveTargetAmount: Decimal = 100
+    /// Amount in the text field (draft); results do not update until OK.
+    @State private var saveTargetInput: Decimal = 100
+    /// Amount used for combination math after the last OK / thinking step.
+    @State private var saveTargetApplied: Decimal = 100
+    @State private var save100Phase: Save100Phase = .enterTarget
+    @State private var helpSelectedSubscription: Subscription?
 
     private static let streamingServiceNames: Set<String> = [
         "netflix", "disney+", "spotify", "youtube premium", "max", "hbo", "audible",
@@ -67,9 +78,14 @@ struct HelpView: View {
                             ForEach(HelpGoal.allCases, id: \.self) { goal in
                                 Button {
                                     selectedGoal = goal
-                                    isThinking = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                                    if goal == .save100 {
+                                        save100Phase = .enterTarget
                                         isThinking = false
+                                    } else {
+                                        isThinking = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                                            isThinking = false
+                                        }
                                     }
                                 } label: {
                                     HStack {
@@ -106,6 +122,20 @@ struct HelpView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Help")
+            .sheet(item: $helpSelectedSubscription) { sub in
+                NavigationStack {
+                    SubscriptionDetailView(
+                        subscription: Binding(
+                            get: { viewModel.subscriptions.first(where: { $0.id == sub.id }) ?? sub },
+                            set: { viewModel.updateSubscription($0) }
+                        ),
+                        onUnsubscribe: { cancelled in
+                            helpSelectedSubscription = nil
+                            viewModel.removeSubscription(cancelled)
+                        }
+                    )
+                }
+            }
         }
     }
 
@@ -148,6 +178,7 @@ struct HelpView: View {
         VStack(alignment: .leading, spacing: 16) {
             Button {
                 selectedGoal = nil
+                save100Phase = .enterTarget
             } label: {
                 Text("Choose another goal")
                     .font(.system(.subheadline, design: .default, weight: .medium))
@@ -157,12 +188,62 @@ struct HelpView: View {
 
             switch goal {
             case .save100:
-                save100Content
+                switch save100Phase {
+                case .enterTarget:
+                    save100TargetPrompt
+                case .thinking:
+                    thinkingView
+                        .padding(.vertical, 24)
+                case .results:
+                    save100Content
+                }
             case .discount:
                 discountContent
             case .removeEntertainment:
                 removeEntertainmentContent
             }
+        }
+    }
+
+    // MARK: - Save target amount (confirm before thinking)
+
+    private func runSave100Calculation() {
+        save100Phase = .thinking
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+            saveTargetApplied = saveTargetInput
+            save100Phase = .results
+        }
+    }
+
+    private var save100TargetPrompt: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("How much do you want to save over the next year?")
+                .font(.system(.title3, design: .default, weight: .bold))
+                .padding(.horizontal, 20)
+
+            HStack {
+                Text("Target amount")
+                    .font(.system(.subheadline, design: .default, weight: .medium))
+                Spacer()
+                TextField("Amount", value: $saveTargetInput, format: .currency(code: currencyCode))
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 120)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.horizontal, 20)
+
+            Button(action: runSave100Calculation) {
+                Text("OK")
+                    .font(.system(.body, design: .default, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal, 20)
         }
     }
 
@@ -178,7 +259,7 @@ struct HelpView: View {
                 Text("Target amount")
                     .font(.system(.subheadline, design: .default, weight: .medium))
                 Spacer()
-                TextField("Amount", value: $saveTargetAmount, format: .currency(code: currencyCode))
+                TextField("Amount", value: $saveTargetInput, format: .currency(code: currencyCode))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 120)
@@ -189,26 +270,48 @@ struct HelpView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .padding(.horizontal, 20)
 
-            let targetYearly = max(saveTargetAmount, 1)
-            let combinations = combinationsToSave(yearlyTarget: targetYearly, from: viewModel.subscriptions)
+            Button(action: runSave100Calculation) {
+                Text("OK")
+                    .font(.system(.body, design: .default, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.horizontal, 20)
 
-            if combinations.isEmpty {
-                Text("Add subscriptions on the Subscriptions tab, then come back. I’ll show you combinations that add up to \(targetYearly.formatted(.currency(code: currencyCode)))/year or more.")
-                    .font(.system(.footnote, design: .default, weight: .regular))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 20)
-            } else {
-                ForEach(Array(combinations.prefix(3).enumerated()), id: \.offset) { index, subs in
-                    let total = yearlyTotal(for: subs)
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Option \(index + 1): Cancel these to save \(total.formatted(.currency(code: currencyCode)))/year")
-                            .font(.system(.subheadline, design: .default, weight: .semibold))
-                        ForEach(subs) { sub in
+            // Only `saveTargetApplied` drives options below — editing the field does not recalculate until OK.
+            save100AppliedResults
+                .id(saveTargetApplied)
+                .animation(nil, value: saveTargetApplied)
+        }
+    }
+
+    @ViewBuilder
+    private var save100AppliedResults: some View {
+        let targetYearly = max(saveTargetApplied, 1)
+        let combinations = combinationsToSave(yearlyTarget: targetYearly, from: viewModel.subscriptions)
+
+        if combinations.isEmpty {
+            Text("Add subscriptions on the Subscriptions tab, then come back. I’ll show you combinations that add up to \(targetYearly.formatted(.currency(code: currencyCode)))/year or more.")
+                .font(.system(.footnote, design: .default, weight: .regular))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 20)
+        } else {
+            ForEach(Array(combinations.prefix(3).enumerated()), id: \.offset) { index, subs in
+                let total = yearlyTotal(for: subs)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Option \(index + 1): Cancel these to save \(total.formatted(.currency(code: currencyCode)))/year")
+                        .font(.system(.subheadline, design: .default, weight: .semibold))
+                    ForEach(subs) { sub in
+                        Button {
+                            helpSelectedSubscription = sub
+                        } label: {
                             subscriptionCard(sub)
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 20)
                 }
+                .padding(.horizontal, 20)
             }
         }
     }
@@ -271,7 +374,12 @@ struct HelpView: View {
 
                 VStack(spacing: 12) {
                     ForEach(streaming) { sub in
-                        subscriptionCard(sub)
+                        Button {
+                            helpSelectedSubscription = sub
+                        } label: {
+                            subscriptionCard(sub)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 20)

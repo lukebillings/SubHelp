@@ -3,9 +3,12 @@ import UserNotifications
 
 enum RenewalNotificationScheduler {
     private static let renewalCategoryIdentifier = "subhelp.renewal"
+    private static let notificationSetupKey = "subhelp.didCompleteNotificationSetup"
 
     /// Schedules local notifications for subscription renewals based on stored subscriptions and notificationDaysBefore setting.
     static func scheduleRenewalReminders() {
+        guard UserDefaults.standard.bool(forKey: notificationSetupKey) else { return }
+
         let daysBefore = UserDefaults.standard.object(forKey: "notificationDaysBefore") as? Int ?? 1
 
         guard daysBefore >= 0 else {
@@ -21,7 +24,7 @@ enum RenewalNotificationScheduler {
 
         Task {
             let center = UNUserNotificationCenter.current()
-            let granted = await requestPermissionIfNeeded(center: center)
+            let granted = await authorizationAllowsScheduling(center: center)
             guard granted else { return }
 
             await removeAllRenewalNotificationsAsync(center: center)
@@ -59,27 +62,23 @@ enum RenewalNotificationScheduler {
         }
     }
 
-    private static func requestPermissionIfNeeded(center: UNUserNotificationCenter) async -> Bool {
-        let settings = await center.notificationSettings()
-        switch settings.authorizationStatus {
-        case .authorized:
-            return true
-        case .provisional, .ephemeral:
-            // Already allowed to deliver (quietly or in limited contexts); do not call request again.
-            return true
-        case .denied:
-            return false
-        case .notDetermined:
-            let granted = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
-            return granted ?? false
-        @unknown default:
-            return false
-        }
-    }
-
+    /// Used after onboarding when the user opts out of reminders.
     private static func removeAllRenewalNotifications() {
         Task {
             await removeAllRenewalNotificationsAsync(center: UNUserNotificationCenter.current())
+        }
+    }
+
+    /// Does not call `requestAuthorization`; onboarding or Settings handles the system prompt.
+    private static func authorizationAllowsScheduling(center: UNUserNotificationCenter) async -> Bool {
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return true
+        case .denied, .notDetermined:
+            return false
+        @unknown default:
+            return false
         }
     }
 

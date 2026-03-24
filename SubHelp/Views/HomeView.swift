@@ -32,13 +32,26 @@ struct HomeView: View {
                     switch viewModel.viewMode {
                     case .list:
                         sortBar
+                        // Always keep a ScrollView here so this region fills remaining height; a bare Text
+                        // made the VStack shrink and the tab vertically centered content (huge gap on top).
                         ScrollView {
-                            cardsList
+                            if viewModel.subscriptionsForDisplay.isEmpty, !viewModel.subscriptions.isEmpty {
+                                Text("No subscriptions in this category.")
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.top, 24)
+                            } else {
+                                cardsList
+                            }
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     case .calendar:
+                        calendarFilterBar
                         calendarSection
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .background(Color(.systemGroupedBackground))
             }
         }
@@ -74,19 +87,21 @@ struct HomeView: View {
             )
         }
         .sheet(item: $selectedSubscription) { sub in
-            SubscriptionDetailView(
-                subscription: Binding(
-                    get: {
-                        viewModel.subscriptions.first(where: { $0.id == sub.id }) ?? sub
-                    },
-                    set: { updated in
-                        viewModel.updateSubscription(updated)
+            NavigationStack {
+                SubscriptionDetailView(
+                    subscription: Binding(
+                        get: {
+                            viewModel.subscriptions.first(where: { $0.id == sub.id }) ?? sub
+                        },
+                        set: { updated in
+                            viewModel.updateSubscription(updated)
+                        }
+                    ),
+                    onUnsubscribe: { cancelled in
+                        viewModel.removeSubscription(cancelled)
                     }
-                ),
-                onUnsubscribe: { cancelled in
-                    viewModel.removeSubscription(cancelled)
-                }
-            )
+                )
+            }
         }
     }
 
@@ -261,32 +276,83 @@ struct HomeView: View {
         .padding(.vertical, 12)
     }
 
-    // MARK: - Sort
+    // MARK: - Category filter (same row as sort in list; calendar uses filter only)
 
-    private var sortBar: some View {
-        HStack {
-            Spacer()
-            Menu {
-                ForEach(SortOption.allCases, id: \.self) { option in
-                    Button {
-                        viewModel.sortOption = option
-                    } label: {
-                        HStack {
-                            Text(option.rawValue)
-                            if viewModel.sortOption == option {
-                                Image(systemName: "checkmark")
-                            }
+    private var categoryFilterMenu: some View {
+        Menu {
+            ForEach(viewModel.categoryFilterMenuOptions, id: \.self) { option in
+                Button {
+                    viewModel.categoryFilter = option
+                } label: {
+                    HStack {
+                        Text(option.displayTitle)
+                        if viewModel.categoryFilter == option {
+                            Image(systemName: "checkmark")
                         }
                     }
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.arrow.down")
-                    Text(viewModel.sortOption.rawValue)
-                }
-                .font(.system(.subheadline, design: .default, weight: .medium))
-                .foregroundStyle(.blue)
             }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                Text(viewModel.categoryFilter.displayTitle)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .animation(nil, value: viewModel.categoryFilter)
+            }
+            .font(.system(.subheadline, design: .default, weight: .medium))
+            .foregroundStyle(.blue)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            ForEach(SortOption.allCases, id: \.self) { option in
+                Button {
+                    viewModel.sortOption = option
+                } label: {
+                    HStack {
+                        Text(option.rawValue)
+                        if viewModel.sortOption == option {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.up.arrow.down")
+                Text(viewModel.sortOption.rawValue)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .animation(nil, value: viewModel.sortOption)
+            }
+            .font(.system(.subheadline, design: .default, weight: .medium))
+            .foregroundStyle(.blue)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .contentShape(Rectangle())
+        }
+    }
+
+    private var calendarFilterBar: some View {
+        HStack {
+            categoryFilterMenu
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Sort
+
+    private var sortBar: some View {
+        HStack(alignment: .center, spacing: 12) {
+            categoryFilterMenu
+                .frame(maxWidth: .infinity, alignment: .leading)
+            sortMenu
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 6)
@@ -296,7 +362,7 @@ struct HomeView: View {
 
     private var cardsList: some View {
         LazyVStack(spacing: 12) {
-            ForEach(viewModel.subscriptions) { sub in
+            ForEach(viewModel.subscriptionsForDisplay) { sub in
                 subscriptionCard(sub)
                     .onTapGesture { selectedSubscription = sub }
             }

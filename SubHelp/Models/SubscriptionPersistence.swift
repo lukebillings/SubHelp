@@ -2,6 +2,11 @@ import Foundation
 import SwiftUI
 import UIKit
 
+extension Notification.Name {
+    static let subhelpSubscriptionsDidChangeExternally = Notification.Name("subhelpSubscriptionsDidChangeExternally")
+    static let subhelpResetAllData = Notification.Name("subhelpResetAllData")
+}
+
 // MARK: - Persisted subscription (Codable)
 
 private struct PersistedSubscription: Codable {
@@ -54,18 +59,37 @@ private extension Color {
     }
 }
 
-// MARK: - Persistence container
-
-private struct PersistedData: Codable {
-    var subscriptions: [PersistedSubscription]
-    var unsubscribed: [PersistedSubscription]
-}
-
-// MARK: - Subscription storage
+// MARK: - Subscription storage (local + iCloud Key-Value)
 
 enum SubscriptionStorage {
-    private static let subscriptionsKey = "subhelp.subscriptions"
-    private static let unsubscribedKey = "subhelp.unsubscribed"
+    static let subscriptionsKey = "subhelp.subscriptions"
+    static let unsubscribedKey = "subhelp.unsubscribed"
+    private static let revisionKey = "subhelp.dataRevision"
+
+    private static var ubiquitous: NSUbiquitousKeyValueStore { NSUbiquitousKeyValueStore.default }
+
+    static func registerForCloudUpdates() {
+        NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: ubiquitous,
+            queue: .main
+        ) { _ in
+            applyIncomingCloudChangesIfNeeded()
+        }
+        ubiquitous.synchronize()
+    }
+
+    /// Call once at launch after local `HomeViewModel` is ready to observe `subhelpSubscriptionsDidChangeExternally`.
+    static func mergeFromCloudOnLaunch() {
+        ubiquitous.synchronize()
+        applyIncomingCloudChangesIfNeeded()
+    }
+
+    private static func bumpRevision() {
+        let next = max(Date().timeIntervalSince1970, UserDefaults.standard.double(forKey: revisionKey) + 1)
+        UserDefaults.standard.set(next, forKey: revisionKey)
+        ubiquitous.set(next, forKey: revisionKey)
+    }
 
     static func loadSubscriptions() -> [Subscription] {
         guard let data = UserDefaults.standard.data(forKey: subscriptionsKey),
@@ -83,17 +107,64 @@ enum SubscriptionStorage {
         return decoded.map { $0.toSubscription() }
     }
 
-    static func save(subscriptions: [Subscription]) {
-        let persisted = subscriptions.map { PersistedSubscription(from: $0) }
-        if let data = try? JSONEncoder().encode(persisted) {
-            UserDefaults.standard.set(data, forKey: subscriptionsKey)
+    static func saveAll(subscriptions: [Subscription], unsubscribed: [Subscription]) {
+        let subData = try? JSONEncoder().encode(subscriptions.map { PersistedSubscription(from: $0) })
+        let unsubData = try? JSONEncoder().encode(unsubscribed.map { PersistedSubscription(from: $0) })
+        if let subData {
+            UserDefaults.standard.set(subData, forKey: subscriptionsKey)
+            ubiquitous.set(subData, forKey: subscriptionsKey)
         }
+        if let unsubData {
+            UserDefaults.standard.set(unsubData, forKey: unsubscribedKey)
+            ubiquitous.set(unsubData, forKey: unsubscribedKey)
+        }
+        bumpRevision()
+        ubiquitous.synchronize()
     }
 
-    static func save(unsubscribed: [Subscription]) {
-        let persisted = unsubscribed.map { PersistedSubscription(from: $0) }
-        if let data = try? JSONEncoder().encode(persisted) {
+    private static func applyIncomingCloudChangesIfNeeded() {
+        ubiquitous.synchronize()
+
+        let remoteRev = ubiquitous.double(forKey: revisionKey)
+        let localRev = UserDefaults.standard.double(forKey: revisionKey)
+        let localSubData = UserDefaults.standard.data(forKey: subscriptionsKey)
+        let cloudSubData = ubiquitous.data(forKey: subscriptionsKey)
+
+        let shouldApply = remoteRev > localRev
+            || (localSubData == nil && cloudSubData != nil)
+
+        guard shouldApply else { return }
+
+        if let data = cloudSubData {
+            UserDefaults.standard.set(data, forKey: subscriptionsKey)
+        }
+        if let data = ubiquitous.data(forKey: unsubscribedKey) {
             UserDefaults.standard.set(data, forKey: unsubscribedKey)
         }
+        if remoteRev > 0 {
+            UserDefaults.standard.set(remoteRev, forKey: revisionKey)
+        }
+
+        NotificationCenter.default.post(name: .subhelpSubscriptionsDidChangeExternally, object: nil)
+    }
+
+    /// Clears subscription data, iCloud copies, and common user defaults (full reset from Settings).
+    static func resetAllAppDataToFreshInstall() {
+        UserDefaults.standard.removeObject(forKey: subscriptionsKey)
+        UserDefaults.standard.removeObject(forKey: unsubscribedKey)
+        UserDefaults.standard.removeObject(forKey: revisionKey)
+
+        ubiquitous.removeObject(forKey: subscriptionsKey)
+        ubiquitous.removeObject(forKey: unsubscribedKey)
+        ubiquitous.removeObject(forKey: revisionKey)
+        ubiquitous.synchronize()
+
+        UserDefaults.standard.set(false, forKey: "hasCompletedPaywall")
+        UserDefaults.standard.set(false, forKey: "hasCompletedCurrencyOnboarding")
+        UserDefaults.standard.set(false, forKey: "subhelp.didCompleteNotificationSetup")
+        UserDefaults.standard.set("GBP", forKey: "currencyCode")
+        UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
+        UserDefaults.standard.set(true, forKey: "hapticsEnabled")
+        UserDefaults.standard.set(SubscriptionTier.free.rawValue, forKey: "subscriptionTier")
     }
 }
