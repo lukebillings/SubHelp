@@ -23,6 +23,8 @@
 		5A0000442B8F4A0100C7D8E9 /* SubscriptionPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */; };
 		5A0000462B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */; };
 		5A0000492B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */; };
+		5A00004C2B8F4A0100C7D8E9 /* CurrencyOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00004A2B8F4A0100C7D8E9 /* CurrencyOptions.swift */; };
+		5A00004D2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +45,8 @@
 		5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPersistence.swift; sourceTree = "<group>"; };
 		5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenewalNotificationScheduler.swift; sourceTree = "<group>"; };
 		5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumSubscriptionProducts.swift; sourceTree = "<group>"; };
+		5A00004A2B8F4A0100C7D8E9 /* CurrencyOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyOptions.swift; sourceTree = "<group>"; };
+		5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyOnboardingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +100,7 @@
 				5A00003E2B8F4A0100C7D8E9 /* QuickStartGuideView.swift */,
 				5A0000402B8F4A0100C7D8E9 /* HelpView.swift */,
 				5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */,
+				5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -115,6 +120,7 @@
 				5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */,
 				5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */,
 				5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */,
+				5A00004A2B8F4A0100C7D8E9 /* CurrencyOptions.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -203,6 +209,8 @@
 				5A0000442B8F4A0100C7D8E9 /* SubscriptionPersistence.swift in Sources */,
 				5A0000462B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift in Sources */,
 				5A0000492B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift in Sources */,
+				5A00004C2B8F4A0100C7D8E9 /* CurrencyOptions.swift in Sources */,
+				5A00004D2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

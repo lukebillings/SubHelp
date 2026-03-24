@@ -1,12 +1,22 @@
 import SwiftUI
+import UIKit
 
 @main
 struct SubHelpApp: App {
     @StateObject private var homeViewModel = HomeViewModel()
     @StateObject private var premiumSubscriptionProducts = PremiumSubscriptionProducts()
-    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("hasCompletedPaywall") private var hasCompletedPaywall = false
+    @AppStorage("hasCompletedCurrencyOnboarding") private var hasCompletedCurrencyOnboarding = false
     @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
+    @State private var showCurrencyOnboarding = false
+
+    init() {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: "hasCompletedCurrencyOnboarding") == nil,
+           defaults.bool(forKey: "hasCompletedPaywall") {
+            defaults.set(true, forKey: "hasCompletedCurrencyOnboarding")
+        }
+    }
 
     private var subscriptionTier: SubscriptionTier {
         get { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free }
@@ -37,8 +47,10 @@ struct SubHelpApp: App {
                     }
                 }
                 .tint(.blue)
-                .preferredColorScheme(darkModeEnabled ? .dark : nil)
                 .onAppear {
+                    RenewalNotificationScheduler.scheduleRenewalReminders()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     RenewalNotificationScheduler.scheduleRenewalReminders()
                 }
 
@@ -63,6 +75,21 @@ struct SubHelpApp: App {
                 }
             }
             .environmentObject(premiumSubscriptionProducts)
+            .sheet(isPresented: $showCurrencyOnboarding) {
+                CurrencyOnboardingView(isPresented: $showCurrencyOnboarding)
+                    .interactiveDismissDisabled()
+            }
+            .onChange(of: hasCompletedPaywall) { _, completed in
+                guard completed, !hasCompletedCurrencyOnboarding else { return }
+                DispatchQueue.main.async {
+                    showCurrencyOnboarding = true
+                }
+            }
+            .onAppear {
+                if hasCompletedPaywall, !hasCompletedCurrencyOnboarding {
+                    showCurrencyOnboarding = true
+                }
+            }
         }
     }
 }

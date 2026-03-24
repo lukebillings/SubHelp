@@ -42,7 +42,8 @@ enum RenewalNotificationScheduler {
                 let content = UNMutableNotificationContent()
                 content.title = "Subscription renewal"
                 let currency = UserDefaults.standard.string(forKey: "currencyCode") ?? "GBP"
-                content.body = "\(sub.name) renews \(sub.price.formatted(.currency(code: currency))) on \(formatDate(sub.nextPaymentDate))"
+                let priceText = sub.price.formatted(.currency(code: currency).locale(.autoupdatingCurrent))
+                content.body = "\(sub.name) renews \(priceText) on \(formatDate(sub.nextPaymentDate))"
                 content.sound = .default
                 content.categoryIdentifier = Self.renewalCategoryIdentifier
 
@@ -63,10 +64,13 @@ enum RenewalNotificationScheduler {
         switch settings.authorizationStatus {
         case .authorized:
             return true
+        case .provisional, .ephemeral:
+            // Already allowed to deliver (quietly or in limited contexts); do not call request again.
+            return true
         case .denied:
             return false
-        case .notDetermined, .provisional, .ephemeral:
-            let granted = try? await center.requestAuthorization(options: [.alert, .sound])
+        case .notDetermined:
+            let granted = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
             return granted ?? false
         @unknown default:
             return false
