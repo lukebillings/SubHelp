@@ -678,17 +678,32 @@ private struct SavingsHologramCardView: View {
     }
 }
 
-#Preview {
-    TabView {
-        Tab("Subscriptions", systemImage: "creditcard.fill") {
-            HomeView(
-                viewModel: HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions),
-                subscriptionTier: .free,
-                onTierChange: { _ in }
-            )
+private struct MainTabsPreview: View {
+    @StateObject private var homeViewModel = HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions)
+
+    var body: some View {
+        TabView {
+            Tab("Subscriptions", systemImage: "creditcard.fill") {
+                HomeView(
+                    viewModel: homeViewModel,
+                    subscriptionTier: .free,
+                    onTierChange: { _ in }
+                )
+            }
+            Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
+                HistoryView(viewModel: homeViewModel)
+            }
+            Tab("Help", systemImage: "questionmark.circle.fill") {
+                HelpView(viewModel: homeViewModel)
+            }
+            Tab("Settings", systemImage: "gearshape.fill") {
+                SettingsView()
+            }
         }
-        Tab("Settings", systemImage: "gearshape.fill") {
-            SettingsView()
-        }
+        .tint(.blue)
     }
+}
+
+#Preview {
+    MainTabsPreview()
 }
