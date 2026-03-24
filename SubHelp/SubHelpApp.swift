@@ -49,9 +49,16 @@ struct SubHelpApp: App {
                 .tint(.blue)
                 .onAppear {
                     RenewalNotificationScheduler.scheduleRenewalReminders()
+                    Task {
+                        await premiumSubscriptionProducts.syncEntitlementsFromStore()
+                        await premiumSubscriptionProducts.refresh()
+                    }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     RenewalNotificationScheduler.scheduleRenewalReminders()
+                    Task {
+                        await premiumSubscriptionProducts.syncEntitlementsFromStore()
+                    }
                 }
 
                 // Paywall on first launch – blocks until user selects a plan

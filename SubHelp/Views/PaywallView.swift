@@ -16,6 +16,8 @@ struct PaywallView: View {
     @Binding var selectedTier: SubscriptionTier
     var onSelect: (SubscriptionTier) -> Void
 
+    @State private var purchaseInfoMessage: String?
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -54,21 +56,19 @@ struct PaywallView: View {
                 planButton(
                     title: premiumProducts.yearlyPlanTitle(),
                     subtitle: "Add more than 3 subscriptions",
-                    isRecommended: true
+                    isRecommended: true,
+                    disabled: premiumProducts.isPurchasing
                 ) {
-                    selectedTier = .yearly
-                    hasCompletedPaywall = true
-                    onSelect(.yearly)
+                    Task { await purchasePremium(tier: .yearly) }
                 }
 
                 planButton(
                     title: premiumProducts.monthlyPlanTitle(),
                     subtitle: "Add more than 3 subscriptions",
-                    isRecommended: false
+                    isRecommended: false,
+                    disabled: premiumProducts.isPurchasing
                 ) {
-                    selectedTier = .monthly
-                    hasCompletedPaywall = true
-                    onSelect(.monthly)
+                    Task { await purchasePremium(tier: .monthly) }
                 }
 
                 Button {
@@ -95,8 +95,40 @@ struct PaywallView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
+        .overlay {
+            if premiumProducts.isPurchasing {
+                Color.black.opacity(0.15)
+                    .ignoresSafeArea()
+                ProgressView()
+                    .scaleEffect(1.2)
+            }
+        }
+        .alert("SubHelp Premium", isPresented: Binding(
+            get: { purchaseInfoMessage != nil },
+            set: { if !$0 { purchaseInfoMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(purchaseInfoMessage ?? "")
+        }
         .task {
             await premiumProducts.refresh()
+        }
+    }
+
+    private func purchasePremium(tier: SubscriptionTier) async {
+        let result = await premiumProducts.purchase(tier)
+        switch result {
+        case .success:
+            selectedTier = tier
+            hasCompletedPaywall = true
+            onSelect(tier)
+        case .cancelled:
+            break
+        case .pending:
+            purchaseInfoMessage = String(localized: "Your purchase is waiting for approval. SubHelp Premium will unlock when it completes.")
+        case .failed(let message):
+            purchaseInfoMessage = message
         }
     }
 
@@ -104,6 +136,7 @@ struct PaywallView: View {
         title: String,
         subtitle: String,
         isRecommended: Bool,
+        disabled: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -142,6 +175,7 @@ struct PaywallView: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(disabled)
     }
 
     private func subscriptionLegalSection(includeRestoreButton: Bool = false) -> some View {
@@ -152,16 +186,25 @@ struct PaywallView: View {
 // MARK: - Subscription Legal Footer (shared)
 
 private struct SubscriptionLegalFooterView: View {
+    @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
     var includeRestoreButton: Bool = false
+    @State private var restoreAlertMessage: String?
 
     var body: some View {
         VStack(spacing: 16) {
             if includeRestoreButton {
                 Button("Restore Purchases") {
-                    // StoreKit restore - to be implemented
+                    Task {
+                        if let error = await premiumProducts.restorePurchases() {
+                            restoreAlertMessage = error
+                        } else {
+                            restoreAlertMessage = String(localized: "Your purchases were synced with the App Store.")
+                        }
+                    }
                 }
                 .font(.system(.caption, design: .default, weight: .regular))
                 .foregroundStyle(.blue)
+                .disabled(premiumProducts.isPurchasing)
                 .padding(.bottom, 8)
             }
 
@@ -179,6 +222,14 @@ private struct SubscriptionLegalFooterView: View {
             }
             .font(.system(.caption2, design: .default, weight: .regular))
         }
+        .alert("Restore", isPresented: Binding(
+            get: { restoreAlertMessage != nil },
+            set: { if !$0 { restoreAlertMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(restoreAlertMessage ?? "")
+        }
     }
 }
 
@@ -188,6 +239,8 @@ struct UpgradePaywallView: View {
     @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
     @Environment(\.dismiss) private var dismiss
     var onSelectPlan: (SubscriptionTier) -> Void
+
+    @State private var purchaseInfoMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -214,8 +267,7 @@ struct UpgradePaywallView: View {
 
                 VStack(spacing: 12) {
                     Button {
-                        onSelectPlan(.yearly)
-                        dismiss()
+                        Task { await purchasePlan(.yearly) }
                     } label: {
                         HStack {
                             Text(premiumProducts.yearlyPlanTitle())
@@ -230,10 +282,10 @@ struct UpgradePaywallView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .disabled(premiumProducts.isPurchasing)
 
                     Button {
-                        onSelectPlan(.monthly)
-                        dismiss()
+                        Task { await purchasePlan(.monthly) }
                     } label: {
                         HStack {
                             Text(premiumProducts.monthlyPlanTitle())
@@ -248,6 +300,7 @@ struct UpgradePaywallView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .disabled(premiumProducts.isPurchasing)
                 }
                 .padding(.horizontal, 24)
 
@@ -263,16 +316,48 @@ struct UpgradePaywallView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Upgrade")
             .navigationBarTitleDisplayMode(.inline)
+            .overlay {
+                if premiumProducts.isPurchasing {
+                    Color.black.opacity(0.12)
+                        .ignoresSafeArea()
+                    ProgressView()
+                        .scaleEffect(1.2)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Not now") {
                         dismiss()
                     }
+                    .disabled(premiumProducts.isPurchasing)
                 }
+            }
+            .alert("SubHelp Premium", isPresented: Binding(
+                get: { purchaseInfoMessage != nil },
+                set: { if !$0 { purchaseInfoMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(purchaseInfoMessage ?? "")
             }
             .task {
                 await premiumProducts.refresh()
             }
+        }
+    }
+
+    private func purchasePlan(_ tier: SubscriptionTier) async {
+        let result = await premiumProducts.purchase(tier)
+        switch result {
+        case .success:
+            onSelectPlan(tier)
+            dismiss()
+        case .cancelled:
+            break
+        case .pending:
+            purchaseInfoMessage = String(localized: "Your purchase is waiting for approval. SubHelp Premium will unlock when it completes.")
+        case .failed(let message):
+            purchaseInfoMessage = message
         }
     }
 }
