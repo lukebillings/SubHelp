@@ -11,6 +11,7 @@ enum SubscriptionTier: String, CaseIterable {
 // MARK: - Paywall View
 
 struct PaywallView: View {
+    @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
     @Binding var hasCompletedPaywall: Bool
     @Binding var selectedTier: SubscriptionTier
     var onSelect: (SubscriptionTier) -> Void
@@ -51,7 +52,7 @@ struct PaywallView: View {
             // Plans
             VStack(spacing: 12) {
                 planButton(
-                    title: "£29.99 per year",
+                    title: premiumProducts.yearlyPlanTitle(),
                     subtitle: "Add more than 3 subscriptions",
                     isRecommended: true
                 ) {
@@ -61,7 +62,7 @@ struct PaywallView: View {
                 }
 
                 planButton(
-                    title: "£9.99 per month",
+                    title: premiumProducts.monthlyPlanTitle(),
                     subtitle: "Add more than 3 subscriptions",
                     isRecommended: false
                 ) {
@@ -94,6 +95,9 @@ struct PaywallView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
+        .task {
+            await premiumProducts.refresh()
+        }
     }
 
     private func planButton(
@@ -181,6 +185,7 @@ private struct SubscriptionLegalFooterView: View {
 // MARK: - Upgrade Paywall (shown when free user tries to add 4th sub)
 
 struct UpgradePaywallView: View {
+    @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
     @Environment(\.dismiss) private var dismiss
     var onSelectPlan: (SubscriptionTier) -> Void
 
@@ -213,7 +218,7 @@ struct UpgradePaywallView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            Text("£29.99 per year")
+                            Text(premiumProducts.yearlyPlanTitle())
                                 .font(.system(.headline, design: .default, weight: .semibold))
                             Spacer()
                             Text("Add more than 3 subscriptions")
@@ -231,7 +236,7 @@ struct UpgradePaywallView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            Text("£9.99 per month")
+                            Text(premiumProducts.monthlyPlanTitle())
                                 .font(.system(.headline, design: .default, weight: .semibold))
                             Spacer()
                             Text("Add more than 3 subscriptions")
@@ -265,6 +270,9 @@ struct UpgradePaywallView: View {
                     }
                 }
             }
+            .task {
+                await premiumProducts.refresh()
+            }
         }
     }
 }
@@ -275,8 +283,10 @@ struct UpgradePaywallView: View {
         selectedTier: .constant(.free),
         onSelect: { _ in }
     )
+    .environmentObject(PremiumSubscriptionProducts())
 }
 
 #Preview("Upgrade Paywall") {
     UpgradePaywallView(onSelectPlan: { _ in })
+        .environmentObject(PremiumSubscriptionProducts())
 }

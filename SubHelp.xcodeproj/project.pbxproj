@@ -22,6 +22,7 @@
 		5A0000422B8F4A0100C7D8E9 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */; };
 		5A0000442B8F4A0100C7D8E9 /* SubscriptionPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */; };
 		5A0000462B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */; };
+		5A0000492B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 		5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionPersistence.swift; sourceTree = "<group>"; };
 		5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenewalNotificationScheduler.swift; sourceTree = "<group>"; };
+		5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumSubscriptionProducts.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +114,7 @@
 				5A00001B2B8F4A0100C7D8E9 /* Subscription.swift */,
 				5A0000452B8F4A0100C7D8E9 /* SubscriptionPersistence.swift */,
 				5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */,
+				5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -199,6 +202,7 @@
 				5A0000422B8F4A0100C7D8E9 /* PaywallView.swift in Sources */,
 				5A0000442B8F4A0100C7D8E9 /* SubscriptionPersistence.swift in Sources */,
 				5A0000462B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift in Sources */,
+				5A0000492B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -334,6 +338,7 @@
 				DEVELOPMENT_TEAM = 66VA8628J7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SubHelp;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -362,6 +367,7 @@
 				DEVELOPMENT_TEAM = 66VA8628J7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SubHelp;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

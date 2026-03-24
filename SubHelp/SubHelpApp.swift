@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct SubHelpApp: App {
     @StateObject private var homeViewModel = HomeViewModel()
+    @StateObject private var premiumSubscriptionProducts = PremiumSubscriptionProducts()
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @AppStorage("hasCompletedPaywall") private var hasCompletedPaywall = false
     @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
@@ -61,6 +62,7 @@ struct SubHelpApp: App {
                     .zIndex(1)
                 }
             }
+            .environmentObject(premiumSubscriptionProducts)
         }
     }
 }
