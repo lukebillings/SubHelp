@@ -115,7 +115,7 @@ struct SettingsView: View {
                 .font(.system(.body, design: .default, weight: .regular))
 
                 Section("Legal") {
-                    Link(destination: URL(string: "https://example.com/terms")!) {
+                    Link(destination: URL(string: "https://lukebillings.github.io/SubHelp/termsandconditions/index.html")!) {
                         Label("Terms and Conditions", systemImage: "doc.text")
                     }
 
@@ -123,7 +123,7 @@ struct SettingsView: View {
                         Label("Terms of Service", systemImage: "doc.text")
                     }
 
-                    Link(destination: URL(string: "https://example.com/privacy")!) {
+                    Link(destination: URL(string: "https://lukebillings.github.io/SubHelp/privacypolicy/index.html")!) {
                         Label("Privacy Policy", systemImage: "lock.shield")
                     }
                 }

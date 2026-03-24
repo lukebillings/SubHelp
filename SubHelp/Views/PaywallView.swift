@@ -171,9 +171,9 @@ private struct SubscriptionLegalFooterView: View {
                 .multilineTextAlignment(.center)
 
             HStack(spacing: 4) {
-                Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
+                Link("Privacy Policy", destination: URL(string: "https://lukebillings.github.io/SubHelp/privacypolicy/index.html")!)
                 Text("·")
-                Link("Terms and Conditions", destination: URL(string: "https://example.com/terms")!)
+                Link("Terms and Conditions", destination: URL(string: "https://lukebillings.github.io/SubHelp/termsandconditions/index.html")!)
                 Text("·")
                 Link("Terms of Use (EULA)", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
             }
