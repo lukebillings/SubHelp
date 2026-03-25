@@ -5,7 +5,6 @@ import UserNotifications
 struct SettingsView: View {
     @AppStorage("notificationDaysBefore") private var notificationDaysBefore: Int = 1
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
-    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
 
     @State private var showResetConfirmation = false
 
@@ -54,10 +53,6 @@ struct SettingsView: View {
                 }
 
                 Section("Other") {
-                    Toggle(isOn: $hapticsEnabled) {
-                        Label("Haptics", systemImage: "hand.tap")
-                    }
-
                     Button {
                         requestAppStoreRating()
                     } label: {

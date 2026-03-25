@@ -3,7 +3,10 @@ import SwiftUI
 // MARK: - Popular service (suggested monthly price for display)
 
 private struct PopularService: Identifiable {
-    let id = UUID()
+    /// Stable id so `sheet(item:)` and list cells don’t treat the same service as a new item on each view refresh (which cleared the category binding).
+    var id: String { name }
+    /// Matches `SubscriptionCategory` raw values (e.g. `"Streaming"` for Netflix).
+    let category: String
     let name: String
     let suggestedMonthlyPrice: Decimal
     let color: Color
@@ -30,72 +33,77 @@ struct QuickStartGuideView: View {
     var onAdd: (Subscription) -> Void
 
     @State private var serviceToAdd: PopularService?
-    @State private var addCategory: String? = nil
-    @State private var addPrice: Decimal = 0
-    @State private var addFrequency: BillingFrequency = .monthly
-    @State private var addNextPayment = Date()
     @State private var showCopiedToast = false
     @State private var selectedTab: QuickStartTab = .popular
     @State private var selectedCategoryFilter: String? = nil
 
+    /// Builds services so each item carries the canonical category string (matches `SubscriptionCategory.rawValue`).
+    private static func makeCategory(_ name: String, icon: String, _ rows: [(String, Double, Color)]) -> ServiceCategory {
+        ServiceCategory(
+            name: name,
+            icon: icon,
+            services: rows.map { PopularService(category: name, name: $0.0, suggestedMonthlyPrice: Decimal($0.1), color: $0.2) }
+        )
+    }
+
     // Grouped categories for Step 1
     private let serviceCategories: [ServiceCategory] = [
-        ServiceCategory(name: "Streaming", icon: "play.tv", services: [
-            PopularService(name: "Netflix", suggestedMonthlyPrice: 10.99, color: Color(red: 0.89, green: 0.15, blue: 0.21)),
-            PopularService(name: "Disney+", suggestedMonthlyPrice: 7.99, color: Color(red: 0.0, green: 0.48, blue: 0.9)),
-            PopularService(name: "Spotify", suggestedMonthlyPrice: 10.99, color: Color(red: 0.11, green: 0.84, blue: 0.38)),
-            PopularService(name: "YouTube Premium", suggestedMonthlyPrice: 12.99, color: Color(red: 0.89, green: 0.15, blue: 0.21)),
-            PopularService(name: "Max (HBO)", suggestedMonthlyPrice: 9.99, color: Color(red: 0.0, green: 0.47, blue: 0.84)),
-            PopularService(name: "Audible", suggestedMonthlyPrice: 7.99, color: Color(red: 0.98, green: 0.68, blue: 0.08)),
-            PopularService(name: "DAZN", suggestedMonthlyPrice: 19.99, color: Color(red: 0.0, green: 0.0, blue: 0.0)),
-            PopularService(name: "Crunchyroll", suggestedMonthlyPrice: 7.99, color: Color(red: 0.96, green: 0.55, blue: 0.07)),
+        Self.makeCategory("Streaming", icon: "play.tv", [
+            ("Netflix", 10.99, Color(red: 0.89, green: 0.15, blue: 0.21)),
+            ("Disney+", 7.99, Color(red: 0.0, green: 0.48, blue: 0.9)),
+            ("Spotify", 10.99, Color(red: 0.11, green: 0.84, blue: 0.38)),
+            ("YouTube Premium", 12.99, Color(red: 0.89, green: 0.15, blue: 0.21)),
+            ("Max (HBO)", 9.99, Color(red: 0.0, green: 0.47, blue: 0.84)),
+            ("Audible", 7.99, Color(red: 0.98, green: 0.68, blue: 0.08)),
+            ("DAZN", 19.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
+            ("Crunchyroll", 7.99, Color(red: 0.96, green: 0.55, blue: 0.07)),
         ]),
-        ServiceCategory(name: "AI", icon: "brain", services: [
-            PopularService(name: "ChatGPT Plus", suggestedMonthlyPrice: 19.99, color: Color(red: 0.0, green: 0.68, blue: 0.58)),
-            PopularService(name: "Claude Pro", suggestedMonthlyPrice: 19.99, color: Color(red: 0.4, green: 0.2, blue: 0.6)),
-            PopularService(name: "Copilot Pro", suggestedMonthlyPrice: 19.99, color: Color(red: 0.0, green: 0.47, blue: 0.84)),
-            PopularService(name: "Gemini Advanced", suggestedMonthlyPrice: 19.99, color: Color(red: 0.26, green: 0.52, blue: 0.96)),
-            PopularService(name: "Perplexity Pro", suggestedMonthlyPrice: 19.99, color: Color(red: 0.0, green: 0.0, blue: 0.0)),
+        Self.makeCategory("AI", icon: "brain", [
+            ("ChatGPT Plus", 19.99, Color(red: 0.0, green: 0.68, blue: 0.58)),
+            ("Claude Pro", 19.99, Color(red: 0.4, green: 0.2, blue: 0.6)),
+            ("Copilot Pro", 19.99, Color(red: 0.0, green: 0.47, blue: 0.84)),
+            ("Gemini Advanced", 19.99, Color(red: 0.26, green: 0.52, blue: 0.96)),
+            ("Perplexity Pro", 19.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
         ]),
-        ServiceCategory(name: "Gaming", icon: "gamecontroller", services: [
-            PopularService(name: "Xbox Game Pass", suggestedMonthlyPrice: 12.99, color: Color(red: 0.13, green: 0.69, blue: 0.30)),
-            PopularService(name: "PlayStation Plus", suggestedMonthlyPrice: 6.99, color: Color(red: 0.0, green: 0.32, blue: 0.65)),
-            PopularService(name: "Nintendo Switch Online", suggestedMonthlyPrice: 3.49, color: Color(red: 0.89, green: 0.15, blue: 0.15)),
-            PopularService(name: "EA Play", suggestedMonthlyPrice: 4.99, color: Color(red: 0.0, green: 0.0, blue: 0.0)),
-            PopularService(name: "Discord Nitro", suggestedMonthlyPrice: 8.99, color: Color(red: 0.4, green: 0.45, blue: 0.98)),
+        Self.makeCategory("Gaming", icon: "gamecontroller", [
+            ("Xbox Game Pass", 12.99, Color(red: 0.13, green: 0.69, blue: 0.30)),
+            ("PlayStation Plus", 6.99, Color(red: 0.0, green: 0.32, blue: 0.65)),
+            ("Nintendo Switch Online", 3.49, Color(red: 0.89, green: 0.15, blue: 0.15)),
+            ("EA Play", 4.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
+            ("Discord Nitro", 8.99, Color(red: 0.4, green: 0.45, blue: 0.98)),
         ]),
-        ServiceCategory(name: "Ecommerce", icon: "cart", services: [
-            PopularService(name: "Amazon Prime", suggestedMonthlyPrice: 8.99, color: Color(red: 0.12, green: 0.53, blue: 0.9)),
-            PopularService(name: "Uber One", suggestedMonthlyPrice: 5.99, color: Color(red: 0.0, green: 0.0, blue: 0.0)),
+        Self.makeCategory("Ecommerce", icon: "cart", [
+            ("Amazon Prime", 8.99, Color(red: 0.12, green: 0.53, blue: 0.9)),
+            ("Uber One", 5.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
         ]),
-        ServiceCategory(name: "Home", icon: "house", services: [
-            PopularService(name: "Ring Protect", suggestedMonthlyPrice: 3.99, color: Color(red: 0.0, green: 0.48, blue: 0.9)),
-            PopularService(name: "Nest Aware", suggestedMonthlyPrice: 6.00, color: Color(red: 0.26, green: 0.52, blue: 0.96)),
+        Self.makeCategory("Home", icon: "house", [
+            ("Ring Protect", 3.99, Color(red: 0.0, green: 0.48, blue: 0.9)),
+            ("Nest Aware", 6.00, Color(red: 0.26, green: 0.52, blue: 0.96)),
         ]),
-        ServiceCategory(name: "Cloud & storage", icon: "externaldrive", services: [
-            PopularService(name: "Google One", suggestedMonthlyPrice: 1.99, color: Color(red: 0.26, green: 0.52, blue: 0.96)),
-            PopularService(name: "Dropbox", suggestedMonthlyPrice: 9.99, color: Color(red: 0.0, green: 0.47, blue: 0.95)),
+        Self.makeCategory("Cloud & storage", icon: "externaldrive", [
+            ("Google One", 1.99, Color(red: 0.26, green: 0.52, blue: 0.96)),
+            ("Dropbox", 9.99, Color(red: 0.0, green: 0.47, blue: 0.95)),
         ]),
-        ServiceCategory(name: "Productivity", icon: "briefcase", services: [
-            PopularService(name: "Microsoft 365", suggestedMonthlyPrice: 5.99, color: Color(red: 0.0, green: 0.47, blue: 0.84)),
-            PopularService(name: "Adobe Creative Cloud", suggestedMonthlyPrice: 54.99, color: Color(red: 0.95, green: 0.33, blue: 0.13)),
-            PopularService(name: "Notion", suggestedMonthlyPrice: 8.99, color: Color(red: 0.0, green: 0.0, blue: 0.0)),
-            PopularService(name: "Grammarly Premium", suggestedMonthlyPrice: 12.99, color: Color(red: 0.27, green: 0.69, blue: 0.56)),
-            PopularService(name: "Canva Pro", suggestedMonthlyPrice: 10.99, color: Color(red: 0.2, green: 0.35, blue: 0.98)),
-            PopularService(name: "Zoom", suggestedMonthlyPrice: 12.99, color: Color(red: 0.27, green: 0.56, blue: 0.98)),
-            PopularService(name: "Evernote", suggestedMonthlyPrice: 7.99, color: Color(red: 0.13, green: 0.59, blue: 0.95)),
+        Self.makeCategory("Productivity", icon: "briefcase", [
+            ("Microsoft 365", 5.99, Color(red: 0.0, green: 0.47, blue: 0.84)),
+            ("Adobe Creative Cloud", 54.99, Color(red: 0.95, green: 0.33, blue: 0.13)),
+            ("Notion", 8.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
+            ("Grammarly Premium", 12.99, Color(red: 0.27, green: 0.69, blue: 0.56)),
+            ("Canva Pro", 10.99, Color(red: 0.2, green: 0.35, blue: 0.98)),
+            ("Zoom", 12.99, Color(red: 0.27, green: 0.56, blue: 0.98)),
+            ("Evernote", 7.99, Color(red: 0.13, green: 0.59, blue: 0.95)),
         ]),
-        ServiceCategory(name: "Health", icon: "heart", services: [
-            PopularService(name: "Headspace", suggestedMonthlyPrice: 9.99, color: Color(red: 0.96, green: 0.6, blue: 0.2)),
-            PopularService(name: "Calm (Premium)", suggestedMonthlyPrice: 9.99, color: Color(red: 0.15, green: 0.32, blue: 0.55)),
-            PopularService(name: "MyFitnessPal Premium", suggestedMonthlyPrice: 7.99, color: Color(red: 0.0, green: 0.6, blue: 0.4)),
-            PopularService(name: "Strava", suggestedMonthlyPrice: 5.99, color: Color(red: 0.94, green: 0.33, blue: 0.13)),
+        Self.makeCategory("Health", icon: "heart", [
+            ("Headspace", 9.99, Color(red: 0.96, green: 0.6, blue: 0.2)),
+            ("Calm (Premium)", 9.99, Color(red: 0.15, green: 0.32, blue: 0.55)),
+            ("MyFitnessPal Premium", 7.99, Color(red: 0.0, green: 0.6, blue: 0.4)),
+            ("Strava", 5.99, Color(red: 0.94, green: 0.33, blue: 0.13)),
         ]),
-        ServiceCategory(name: "Learning", icon: "book", services: [
-            PopularService(name: "Duolingo Plus", suggestedMonthlyPrice: 6.99, color: Color(red: 0.0, green: 0.82, blue: 0.52)),
-            PopularService(name: "LinkedIn Premium", suggestedMonthlyPrice: 29.99, color: Color(red: 0.0, green: 0.47, blue: 0.71)),
-            PopularService(name: "Kindle Unlimited", suggestedMonthlyPrice: 9.99, color: Color(red: 0.0, green: 0.48, blue: 0.0)),
-            PopularService(name: "Coursera", suggestedMonthlyPrice: 49.00, color: Color(red: 0.0, green: 0.45, blue: 0.74)),
+        Self.makeCategory("Learning", icon: "book", [
+            ("Duolingo Plus", 6.99, Color(red: 0.0, green: 0.82, blue: 0.52)),
+            ("LinkedIn Premium", 29.99, Color(red: 0.0, green: 0.47, blue: 0.71)),
+            ("Kindle Unlimited", 9.99, Color(red: 0.0, green: 0.48, blue: 0.0)),
+            ("Coursera", 49.00, Color(red: 0.0, green: 0.45, blue: 0.74)),
         ]),
     ]
 
@@ -176,14 +184,6 @@ struct QuickStartGuideView: View {
                             ForEach(Array(category.services.enumerated()), id: \.element.id) { index, service in
                                 Button {
                                     serviceToAdd = service
-                                    addCategory = category.name
-                                    addPrice = service.suggestedMonthlyPrice
-                                    addFrequency = .monthly
-
-                                    let cal = Calendar.current
-                                    let nextMonth = cal.date(byAdding: .month, value: 1, to: Date()) ?? Date()
-                                    let comps = cal.dateComponents([.year, .month], from: nextMonth)
-                                    addNextPayment = cal.date(from: comps) ?? Date()
                                 } label: {
                                     HStack {
                                         VStack(alignment: .leading, spacing: 4) {
@@ -355,13 +355,50 @@ struct QuickStartGuideView: View {
                 }
             }
             .sheet(item: $serviceToAdd) { service in
-                addPopularServiceSheet(service)
+                AddPopularServiceSheetContent(
+                    service: service,
+                    currencyCode: currencyCode,
+                    onAdd: { sub in
+                        onAdd(sub)
+                        serviceToAdd = nil
+                    },
+                    onDismiss: { serviceToAdd = nil }
+                )
+                .id(service.id)
             }
         }
     }
+}
 
-    @ViewBuilder
-    private func addPopularServiceSheet(_ service: PopularService) -> some View {
+// MARK: - Add popular service sheet (local @State so category matches on first frame)
+
+private struct AddPopularServiceSheetContent: View {
+    let service: PopularService
+    let currencyCode: String
+    let onAdd: (Subscription) -> Void
+    let onDismiss: () -> Void
+
+    @State private var category: String
+    @State private var addPrice: Decimal
+    @State private var addFrequency: BillingFrequency
+    @State private var addNextPayment: Date
+
+    init(service: PopularService, currencyCode: String, onAdd: @escaping (Subscription) -> Void, onDismiss: @escaping () -> Void) {
+        self.service = service
+        self.currencyCode = currencyCode
+        self.onAdd = onAdd
+        self.onDismiss = onDismiss
+        let cal = Calendar.current
+        let nextMonth = cal.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+        let comps = cal.dateComponents([.year, .month], from: nextMonth)
+        let defaultNext = cal.date(from: comps) ?? Date()
+        _category = State(initialValue: service.category)
+        _addPrice = State(initialValue: service.suggestedMonthlyPrice)
+        _addFrequency = State(initialValue: .monthly)
+        _addNextPayment = State(initialValue: defaultNext)
+    }
+
+    var body: some View {
         NavigationStack {
             List {
                 Section {
@@ -372,10 +409,7 @@ struct QuickStartGuideView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Picker("Category", selection: Binding(
-                        get: { addCategory ?? "" },
-                        set: { addCategory = $0.isEmpty ? nil : $0 }
-                    )) {
+                    Picker("Category", selection: $category) {
                         Text("None").tag("")
                         ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
                             Text(cat).tag(cat)
@@ -414,7 +448,7 @@ struct QuickStartGuideView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { serviceToAdd = nil }
+                    Button("Cancel", action: onDismiss)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add") {
@@ -424,10 +458,9 @@ struct QuickStartGuideView: View {
                             price: addPrice,
                             color: service.color,
                             frequency: addFrequency,
-                            category: addCategory
+                            category: category.isEmpty ? nil : category
                         )
                         onAdd(sub)
-                        serviceToAdd = nil
                     }
                     .fontWeight(.semibold)
                 }

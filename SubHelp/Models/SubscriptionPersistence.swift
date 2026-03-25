@@ -164,7 +164,7 @@ enum SubscriptionStorage {
         UserDefaults.standard.set(false, forKey: "subhelp.didCompleteNotificationSetup")
         UserDefaults.standard.set("GBP", forKey: "currencyCode")
         UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
-        UserDefaults.standard.set(true, forKey: "hapticsEnabled")
+        UserDefaults.standard.removeObject(forKey: "hapticsEnabled")
         UserDefaults.standard.set(SubscriptionTier.free.rawValue, forKey: "subscriptionTier")
     }
 }
