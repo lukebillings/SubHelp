@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		5A0000122B8F4A0100C7D8E9 /* SubHelpApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000112B8F4A0100C7D8E9 /* SubHelpApp.swift */; };
+		5A0000522B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */; };
 		5A0000142B8F4A0100C7D8E9 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000132B8F4A0100C7D8E9 /* HomeView.swift */; };
 		5A0000162B8F4A0100C7D8E9 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000152B8F4A0100C7D8E9 /* HomeViewModel.swift */; };
 		5A0000182B8F4A0100C7D8E9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A0000172B8F4A0100C7D8E9 /* Assets.xcassets */; };
@@ -29,6 +30,7 @@
 
 /* Begin PBXFileReference section */
 		5A0000112B8F4A0100C7D8E9 /* SubHelpApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpApp.swift; sourceTree = "<group>"; };
+		5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpAppDelegate.swift; sourceTree = "<group>"; };
 		5A0000132B8F4A0100C7D8E9 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		5A0000152B8F4A0100C7D8E9 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
 		5A0000172B8F4A0100C7D8E9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -73,6 +75,7 @@
 			isa = PBXGroup;
 			children = (
 				5A0000112B8F4A0100C7D8E9 /* SubHelpApp.swift */,
+				5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */,
 				5A0000052B8F4A0100C7D8E9 /* Views */,
 				5A0000062B8F4A0100C7D8E9 /* ViewModels */,
 				5A0000072B8F4A0100C7D8E9 /* Models */,
@@ -197,6 +200,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5A0000122B8F4A0100C7D8E9 /* SubHelpApp.swift in Sources */,
+				5A0000522B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift in Sources */,
 				5A0000142B8F4A0100C7D8E9 /* HomeView.swift in Sources */,
 				5A0000162B8F4A0100C7D8E9 /* HomeViewModel.swift in Sources */,
 				5A00001A2B8F4A0100C7D8E9 /* Subscription.swift in Sources */,
@@ -349,7 +353,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = SubHelp/SubHelp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -379,7 +383,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = SubHelp/SubHelp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

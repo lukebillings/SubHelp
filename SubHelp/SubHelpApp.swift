@@ -7,6 +7,7 @@ private enum MainTab: Hashable {
 
 @main
 struct SubHelpApp: App {
+    @UIApplicationDelegateAdaptor(SubHelpAppDelegate.self) private var appDelegate
     @StateObject private var homeViewModel: HomeViewModel
     @StateObject private var premiumSubscriptionProducts = PremiumSubscriptionProducts()
     @AppStorage("hasCompletedPaywall") private var hasCompletedPaywall = false
