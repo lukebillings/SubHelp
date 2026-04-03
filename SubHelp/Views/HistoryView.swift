@@ -3,15 +3,38 @@ import SwiftUI
 struct HistoryView: View {
     @ObservedObject var viewModel: HomeViewModel
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
+    @AppStorage("subscriptionTier") private var subscriptionTierRaw: String = SubscriptionTier.free.rawValue
+    @State private var showUpgradePaywall = false
+
+    private var subscriptionTier: SubscriptionTier {
+        SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
+    }
 
     var body: some View {
         NavigationStack {
             Group {
                 if viewModel.unsubscribed.isEmpty {
-                    emptyState
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            if subscriptionTier == .free {
+                                PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 8)
+                                    .padding(.bottom, 8)
+                            }
+                            emptyState
+                        }
+                    }
+                    .background(Color(.systemGroupedBackground))
                 } else {
                     ScrollView {
                         VStack(spacing: 0) {
+                            if subscriptionTier == .free {
+                                PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 8)
+                                    .padding(.bottom, 8)
+                            }
                             savedHeroSection
                                 .padding(.horizontal, 20)
                                 .padding(.top, 16)
@@ -39,6 +62,11 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
+            .sheet(isPresented: $showUpgradePaywall) {
+                UpgradePaywallView { tier in
+                    subscriptionTierRaw = tier.rawValue
+                }
+            }
         }
     }
 

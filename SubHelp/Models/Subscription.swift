@@ -37,8 +37,19 @@ struct Subscription: Identifiable {
     var color: Color
     var frequency: BillingFrequency
     var category: String?
+    /// Creation time; preserved when the user edits a subscription so “date added” order stays stable.
+    var addedAt: Date
 
-    init(id: UUID = UUID(), name: String, nextPaymentDate: Date, price: Decimal, color: Color, frequency: BillingFrequency = .monthly, category: String? = nil) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        nextPaymentDate: Date,
+        price: Decimal,
+        color: Color,
+        frequency: BillingFrequency = .monthly,
+        category: String? = nil,
+        addedAt: Date = Date()
+    ) {
         self.id = id
         self.name = name
         self.nextPaymentDate = nextPaymentDate
@@ -46,5 +57,6 @@ struct Subscription: Identifiable {
         self.color = color
         self.frequency = frequency
         self.category = category
+        self.addedAt = addedAt
     }
 }

@@ -6,6 +6,9 @@ enum SubscriptionViewMode: String, CaseIterable {
 }
 
 enum SortOption: String, CaseIterable {
+    case dateAdded = "Date added"
+    case renewalAsc = "Renewal date"
+    case renewalDesc = "Renewal latest"
     case nameAsc = "Name A–Z"
     case nameDesc = "Name Z–A"
     case priceAsc = "Price Low–High"
@@ -36,7 +39,7 @@ final class HomeViewModel: ObservableObject {
     @Published var unsubscribed: [Subscription] = []
     @Published var viewMode: SubscriptionViewMode = .list
     @Published var savedAmount: Decimal = 23
-    @Published var sortOption: SortOption = .nameAsc {
+    @Published var sortOption: SortOption = .dateAdded {
         didSet { applySorting() }
     }
 
@@ -166,6 +169,8 @@ final class HomeViewModel: ObservableObject {
         ) { [weak self] _ in
             self?.reloadFromPersistentStorage()
         }
+
+        applySorting()
     }
 
     deinit {
@@ -187,7 +192,7 @@ final class HomeViewModel: ObservableObject {
         unsubscribed = []
         savedAmount = 0
         categoryFilter = .all
-        sortOption = .nameAsc
+        sortOption = .dateAdded
         viewMode = .list
     }
 
@@ -211,28 +216,42 @@ final class HomeViewModel: ObservableObject {
     }
 
     static var sampleSubscriptions: [Subscription] {
-        return [
-            Subscription(name: "Spotify", nextPaymentDate: date(2025, 6, 3), price: 9.99, color: Color(red: 0.11, green: 0.84, blue: 0.38)),
-            Subscription(name: "Netflix", nextPaymentDate: date(2025, 6, 12), price: 15.99, color: Color(red: 0.89, green: 0.15, blue: 0.21)),
-            Subscription(name: "Disney+", nextPaymentDate: date(2025, 6, 18), price: 7.99, color: Color(red: 0.0, green: 0.48, blue: 0.9)),
-            Subscription(name: "Prime", nextPaymentDate: date(2025, 9, 22), price: 95.00, color: Color(red: 0.24, green: 0.6, blue: 0.87), frequency: .yearly),
-            Subscription(name: "YouTube Premium", nextPaymentDate: date(2025, 6, 7), price: 12.99, color: Color(red: 0.93, green: 0.11, blue: 0.14)),
-            Subscription(name: "iCloud+", nextPaymentDate: date(2025, 6, 1), price: 2.99, color: Color(red: 0.35, green: 0.78, blue: 0.98)),
-            Subscription(name: "Gym", nextPaymentDate: date(2025, 6, 15), price: 29.99, color: Color(red: 0.6, green: 0.35, blue: 0.71)),
-            Subscription(name: "ChatGPT Plus", nextPaymentDate: date(2025, 6, 24), price: 19.99, color: Color(red: 0.29, green: 0.65, blue: 0.55)),
-            Subscription(name: "Xbox Game Pass", nextPaymentDate: date(2025, 6, 10), price: 14.99, color: Color(red: 0.07, green: 0.49, blue: 0.17))
+        let rows: [(String, Date, Decimal, Color, BillingFrequency?)] = [
+            ("Spotify", date(2025, 6, 3), 9.99, Color(red: 0.11, green: 0.84, blue: 0.38), nil),
+            ("Netflix", date(2025, 6, 12), 15.99, Color(red: 0.89, green: 0.15, blue: 0.21), nil),
+            ("Disney+", date(2025, 6, 18), 7.99, Color(red: 0.0, green: 0.48, blue: 0.9), nil),
+            ("Prime", date(2025, 9, 22), 95.00, Color(red: 0.24, green: 0.6, blue: 0.87), .yearly),
+            ("YouTube Premium", date(2025, 6, 7), 12.99, Color(red: 0.93, green: 0.11, blue: 0.14), nil),
+            ("iCloud+", date(2025, 6, 1), 2.99, Color(red: 0.35, green: 0.78, blue: 0.98), nil),
+            ("Gym", date(2025, 6, 15), 29.99, Color(red: 0.6, green: 0.35, blue: 0.71), nil),
+            ("ChatGPT Plus", date(2025, 6, 24), 19.99, Color(red: 0.29, green: 0.65, blue: 0.55), nil),
+            ("Xbox Game Pass", date(2025, 6, 10), 14.99, Color(red: 0.07, green: 0.49, blue: 0.17), nil)
         ]
+        return rows.enumerated().map { index, row in
+            Subscription(
+                name: row.0,
+                nextPaymentDate: row.1,
+                price: row.2,
+                color: row.3,
+                frequency: row.4 ?? .monthly,
+                addedAt: Date(timeIntervalSince1970: TimeInterval(index))
+            )
+        }
     }
 
     func addSubscription(_ sub: Subscription) {
         subscriptions.append(sub)
+        applySorting()
         persist()
         syncCategoryFilterWithSubscriptions()
     }
 
     func updateSubscription(_ updated: Subscription) {
         if let index = subscriptions.firstIndex(where: { $0.id == updated.id }) {
-            subscriptions[index] = updated
+            var merged = updated
+            merged.addedAt = subscriptions[index].addedAt
+            subscriptions[index] = merged
+            applySorting()
             persist()
             syncCategoryFilterWithSubscriptions()
         }
@@ -248,12 +267,19 @@ final class HomeViewModel: ObservableObject {
         if !unsubscribed.contains(where: { $0.id == sub.id }) {
             unsubscribed.append(sub)
         }
+        applySorting()
         persist()
         syncCategoryFilterWithSubscriptions()
     }
 
     func applySorting() {
         switch sortOption {
+        case .dateAdded:
+            subscriptions.sort { $0.addedAt < $1.addedAt }
+        case .renewalAsc:
+            subscriptions.sort { $0.nextPaymentDate < $1.nextPaymentDate }
+        case .renewalDesc:
+            subscriptions.sort { $0.nextPaymentDate > $1.nextPaymentDate }
         case .nameAsc:
             subscriptions.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .nameDesc:

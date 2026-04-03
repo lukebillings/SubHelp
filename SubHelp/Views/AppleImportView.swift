@@ -96,13 +96,15 @@ struct AppleImportView: View {
                     Button {
                         let subs = services
                             .filter { selected.contains($0.id) }
-                            .map { service in
+                            .enumerated()
+                            .map { index, service in
                                 Subscription(
                                     name: service.tier.isEmpty ? service.name : "\(service.name) \(service.tier)",
                                     nextPaymentDate: renewalDates[service.id] ?? Date(),
                                     price: service.price,
                                     color: service.color,
-                                    frequency: service.frequency
+                                    frequency: service.frequency,
+                                    addedAt: Date().addingTimeInterval(TimeInterval(index) * 0.001)
                                 )
                             }
                         onImport(subs)

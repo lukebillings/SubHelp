@@ -5,15 +5,22 @@ private enum MainTab: Hashable {
     case subscriptions, history, help, settings
 }
 
+private enum SubHelpLaunchStorageKey {
+    /// After onboarding, increments on each `didBecomeActive`; paywall shows when count ≥ 2 while still on free tier.
+    static let sessionPaywallActivateCount = "subhelp.sessionPaywallActivateCount"
+}
+
 @main
 struct SubHelpApp: App {
     @UIApplicationDelegateAdaptor(SubHelpAppDelegate.self) private var appDelegate
     @StateObject private var homeViewModel: HomeViewModel
     @StateObject private var premiumSubscriptionProducts = PremiumSubscriptionProducts()
-    @AppStorage("hasCompletedPaywall") private var hasCompletedPaywall = false
     @AppStorage("hasCompletedCurrencyOnboarding") private var hasCompletedCurrencyOnboarding = false
     @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
     @State private var showCurrencyOnboarding = false
+    @State private var showSessionPaywall = false
+    /// Skips one `didBecomeActive` bump so finishing onboarding doesn’t immediately show the session paywall.
+    @State private var skipNextSessionPaywallActivateBump = false
     @State private var selectedTab: MainTab = .subscriptions
 
     init() {
@@ -27,6 +34,10 @@ struct SubHelpApp: App {
         if defaults.bool(forKey: "hasCompletedCurrencyOnboarding"),
            defaults.object(forKey: "subhelp.didCompleteNotificationSetup") == nil {
             defaults.set(true, forKey: "subhelp.didCompleteNotificationSetup")
+        }
+        if defaults.bool(forKey: "hasCompletedCurrencyOnboarding"),
+           defaults.object(forKey: SubHelpLaunchStorageKey.sessionPaywallActivateCount) == nil {
+            defaults.set(1, forKey: SubHelpLaunchStorageKey.sessionPaywallActivateCount)
         }
         _homeViewModel = StateObject(wrappedValue: HomeViewModel())
     }
@@ -74,27 +85,47 @@ struct SubHelpApp: App {
                         await premiumSubscriptionProducts.syncEntitlementsFromStore()
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    guard hasCompletedCurrencyOnboarding else { return }
+                    guard subscriptionTier == .free else {
+                        showSessionPaywall = false
+                        return
+                    }
+                    guard !showCurrencyOnboarding else { return }
+                    if skipNextSessionPaywallActivateBump {
+                        skipNextSessionPaywallActivateBump = false
+                        return
+                    }
+                    let key = SubHelpLaunchStorageKey.sessionPaywallActivateCount
+                    var n = UserDefaults.standard.integer(forKey: key)
+                    n += 1
+                    UserDefaults.standard.set(n, forKey: key)
+                    if n >= 2 {
+                        showSessionPaywall = true
+                    }
+                }
                 .onReceive(NotificationCenter.default.publisher(for: .subhelpResetAllData)) { _ in
                     SubscriptionStorage.resetAllAppDataToFreshInstall()
                     homeViewModel.resetToFreshInstallState()
                     selectedTab = .subscriptions
+                    showSessionPaywall = false
+                    showCurrencyOnboarding = true
                 }
 
-                // Paywall on first launch – blocks until user selects a plan
-                if !hasCompletedPaywall {
+                if showSessionPaywall, subscriptionTier == .free {
                     PaywallView(
                         hasCompletedPaywall: Binding(
-                            get: { hasCompletedPaywall },
-                            set: { UserDefaults.standard.set($0, forKey: "hasCompletedPaywall") }
+                            get: { !showSessionPaywall },
+                            set: { if $0 { showSessionPaywall = false } }
                         ),
                         selectedTier: Binding(
-                            get: { subscriptionTier },
-                            set: { UserDefaults.standard.set($0.rawValue, forKey: "subscriptionTier") }
+                            get: { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free },
+                            set: { subscriptionTierRaw = $0.rawValue }
                         ),
                         onSelect: { tier in
                             UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
-                            UserDefaults.standard.set(true, forKey: "hasCompletedPaywall")
-                        }
+                        },
+                        freeDismissCountdownSeconds: 5
                     )
                     .transition(.opacity)
                     .zIndex(1)
@@ -107,15 +138,28 @@ struct SubHelpApp: App {
                 }
                 .interactiveDismissDisabled()
             }
-            .onChange(of: hasCompletedPaywall) { _, completed in
-                guard completed, !hasCompletedCurrencyOnboarding else { return }
-                DispatchQueue.main.async {
+            .onAppear {
+                if !hasCompletedCurrencyOnboarding {
                     showCurrencyOnboarding = true
                 }
             }
-            .onAppear {
-                if hasCompletedPaywall, !hasCompletedCurrencyOnboarding {
-                    showCurrencyOnboarding = true
+            .onChange(of: hasCompletedCurrencyOnboarding) { _, done in
+                guard done else { return }
+                let key = SubHelpLaunchStorageKey.sessionPaywallActivateCount
+                let n = UserDefaults.standard.integer(forKey: key)
+                if n < 1 {
+                    UserDefaults.standard.set(1, forKey: key)
+                }
+                skipNextSessionPaywallActivateBump = true
+            }
+            .onChange(of: subscriptionTierRaw) { _, _ in
+                if subscriptionTier != .free {
+                    showSessionPaywall = false
+                }
+            }
+            .onChange(of: showCurrencyOnboarding) { _, showing in
+                if showing {
+                    showSessionPaywall = false
                 }
             }
         }
