@@ -3,14 +3,51 @@ import StoreKit
 import UserNotifications
 
 struct SettingsView: View {
+    @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
     @AppStorage("notificationDaysBefore") private var notificationDaysBefore: Int = 1
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
+    @AppStorage("subscriptionTier") private var subscriptionTierRaw: String = SubscriptionTier.free.rawValue
 
     @State private var showResetConfirmation = false
+    @State private var showUpgradePaywall = false
+    @State private var isRestoringPurchases = false
+    @State private var restoreAlertMessage: String?
+
+    private var subscriptionTier: SubscriptionTier {
+        SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
+    }
 
     var body: some View {
         NavigationStack {
             List {
+                if subscriptionTier == .free {
+                    Section {
+                        PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
+                    }
+                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                }
+
+                Section("SubHelp Premium") {
+                    Button {
+                        Task { await restorePurchases() }
+                    } label: {
+                        HStack {
+                            Label("Restore Purchases", systemImage: "arrow.clockwise")
+                            Spacer()
+                            if isRestoringPurchases {
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(isRestoringPurchases)
+
+                    Text("If you subscribed before—on this iPhone or another—you can restore access here.")
+                        .font(.system(.caption, design: .default, weight: .regular))
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Currency") {
                     Picker("Currency", selection: $currencyCode) {
                         ForEach(CurrencyOptions.topCurrencies, id: \.code) { currency in
@@ -92,6 +129,29 @@ struct SettingsView: View {
             } message: {
                 Text("This removes all subscriptions, history, and settings. The app will start as if you just downloaded it.")
             }
+            .sheet(isPresented: $showUpgradePaywall) {
+                UpgradePaywallView { tier in
+                    subscriptionTierRaw = tier.rawValue
+                }
+            }
+            .alert("Restore Purchases", isPresented: Binding(
+                get: { restoreAlertMessage != nil },
+                set: { if !$0 { restoreAlertMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(restoreAlertMessage ?? "")
+            }
+        }
+    }
+
+    private func restorePurchases() async {
+        isRestoringPurchases = true
+        defer { isRestoringPurchases = false }
+        if let error = await premiumProducts.restorePurchases() {
+            restoreAlertMessage = error
+        } else {
+            restoreAlertMessage = String(localized: "Your purchases were synced with the App Store.")
         }
     }
 
@@ -103,4 +163,5 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
+        .environmentObject(PremiumSubscriptionProducts())
 }

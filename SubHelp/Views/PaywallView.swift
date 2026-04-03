@@ -15,8 +15,25 @@ struct PaywallView: View {
     @Binding var hasCompletedPaywall: Bool
     @Binding var selectedTier: SubscriptionTier
     var onSelect: (SubscriptionTier) -> Void
+    /// When > 0, choosing free is disabled until this many seconds elapse; label shows a countdown.
+    var freeDismissCountdownSeconds: Int = 0
 
     @State private var purchaseInfoMessage: String?
+    @State private var freeDismissSecondsLeft: Int
+
+    init(
+        hasCompletedPaywall: Binding<Bool>,
+        selectedTier: Binding<SubscriptionTier>,
+        onSelect: @escaping (SubscriptionTier) -> Void,
+        freeDismissCountdownSeconds: Int = 0
+    ) {
+        self._hasCompletedPaywall = hasCompletedPaywall
+        self._selectedTier = selectedTier
+        self.onSelect = onSelect
+        self.freeDismissCountdownSeconds = freeDismissCountdownSeconds
+        self._freeDismissSecondsLeft = State(initialValue: max(0, freeDismissCountdownSeconds))
+        self._purchaseInfoMessage = State(initialValue: nil)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -71,16 +88,8 @@ struct PaywallView: View {
                     Task { await purchasePremium(tier: .monthly) }
                 }
 
-                Button {
-                    selectedTier = .free
-                    hasCompletedPaywall = true
-                    onSelect(.free)
-                } label: {
-                    Text("Maybe later")
-                        .font(.system(.body, design: .default, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 8)
+                freeDismissButton
+                    .padding(.top, 8)
             }
             .padding(.horizontal, 24)
 
@@ -111,9 +120,39 @@ struct PaywallView: View {
         } message: {
             Text(purchaseInfoMessage ?? "")
         }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            guard freeDismissCountdownSeconds > 0, freeDismissSecondsLeft > 0 else { return }
+            freeDismissSecondsLeft -= 1
+        }
         .task {
             await premiumProducts.refresh()
         }
+    }
+
+    private var canDismissAsFree: Bool {
+        freeDismissCountdownSeconds == 0 || freeDismissSecondsLeft <= 0
+    }
+
+    private var freeDismissButton: some View {
+        Button {
+            selectedTier = .free
+            hasCompletedPaywall = true
+            onSelect(.free)
+        } label: {
+            Group {
+                if canDismissAsFree {
+                    Text("Maybe later")
+                } else {
+                    Text("You have 3 or less subscriptions to track.\nContinue in \(freeDismissSecondsLeft)…")
+                }
+            }
+            .font(.system(.body, design: .default, weight: .medium))
+            .multilineTextAlignment(.center)
+            .foregroundStyle(canDismissAsFree ? .secondary : .tertiary)
+            .frame(maxWidth: .infinity)
+        }
+        .disabled(!canDismissAsFree || premiumProducts.isPurchasing)
+        .buttonStyle(.plain)
     }
 
     private func purchasePremium(tier: SubscriptionTier) async {
@@ -366,7 +405,8 @@ struct UpgradePaywallView: View {
     PaywallView(
         hasCompletedPaywall: .constant(false),
         selectedTier: .constant(.free),
-        onSelect: { _ in }
+        onSelect: { _ in },
+        freeDismissCountdownSeconds: 0
     )
     .environmentObject(PremiumSubscriptionProducts())
 }

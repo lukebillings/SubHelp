@@ -27,6 +27,11 @@ struct HomeView: View {
             } else {
                 VStack(spacing: 0) {
                     summarySection
+                    if subscriptionTier == .free {
+                        PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+                    }
                     segmentControl
 
                     switch viewModel.viewMode {
@@ -132,6 +137,12 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.bottom, 20)
+
+                    if subscriptionTier == .free {
+                        PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 20)
+                    }
 
                     Button {
                         if canAddMore {
@@ -403,6 +414,27 @@ struct HomeView: View {
     // MARK: - Calendar
 
     private let weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    /// Same gold family as the yearly savings badge on the mascot.
+    private let calendarTodayGold = Color(red: 1.0, green: 0.84, blue: 0.0)
+
+    private func calendarDayIsToday(day: Int, inMonthContaining date: Date) -> Bool {
+        let cal = Calendar.current
+        var comps = cal.dateComponents([.year, .month], from: date)
+        comps.day = day
+        guard let d = cal.date(from: comps) else { return false }
+        return cal.isDateInToday(d)
+    }
+
+    @ViewBuilder
+    private func calendarDayNumberBackground(isSelected: Bool, isToday: Bool) -> some View {
+        if isToday {
+            Circle().fill(calendarTodayGold)
+        } else if isSelected {
+            Circle().fill(Color.blue)
+        } else {
+            Color.clear
+        }
+    }
 
     private var calendarSection: some View {
         ScrollView {
@@ -449,6 +481,7 @@ struct HomeView: View {
                             let day = index - offset + 1
                             let colors = viewModel.subscriptionColors(forDay: day, inMonth: viewModel.selectedDate)
                             let isSelected = day == selectedDay
+                            let isToday = calendarDayIsToday(day: day, inMonthContaining: viewModel.selectedDate)
 
                             Button {
                                 let cal = Calendar.current
@@ -460,10 +493,14 @@ struct HomeView: View {
                             } label: {
                                 VStack(spacing: 2) {
                                     Text("\(day)")
-                                        .font(.system(.body, design: .default, weight: isSelected ? .bold : .regular))
-                                        .foregroundStyle(isSelected ? .white : .primary)
+                                        .font(.system(.body, design: .default, weight: (isSelected || isToday) ? .bold : .regular))
+                                        .foregroundStyle(
+                                            isSelected
+                                                ? Color.white
+                                                : (isToday ? Color(red: 0.2, green: 0.14, blue: 0.02) : Color.primary)
+                                        )
                                         .frame(width: 28, height: 28)
-                                        .background(isSelected ? Color.blue : Color.clear)
+                                        .background(calendarDayNumberBackground(isSelected: isSelected, isToday: isToday))
                                         .clipShape(Circle())
 
                                     // Colored dots for subscriptions
@@ -746,6 +783,7 @@ private struct SavingsHologramCardView: View {
 
 private struct MainTabsPreview: View {
     @StateObject private var homeViewModel = HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions)
+    @StateObject private var premiumProducts = PremiumSubscriptionProducts()
 
     var body: some View {
         TabView {
@@ -767,6 +805,7 @@ private struct MainTabsPreview: View {
             }
         }
         .tint(.blue)
+        .environmentObject(premiumProducts)
     }
 }
 

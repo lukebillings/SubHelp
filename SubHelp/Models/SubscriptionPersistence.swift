@@ -19,6 +19,8 @@ private struct PersistedSubscription: Codable {
     var colorB: Double
     var frequency: String
     var category: String?
+    /// Older app versions did not store this; see `loadSubscriptions` migration.
+    var addedAt: Date?
 
     init(from sub: Subscription) {
         self.id = sub.id
@@ -31,17 +33,20 @@ private struct PersistedSubscription: Codable {
         self.colorB = b
         self.frequency = sub.frequency.rawValue
         self.category = sub.category
+        self.addedAt = sub.addedAt
     }
 
-    func toSubscription() -> Subscription {
-        Subscription(
+    func toSubscription(legacyListIndex: Int?) -> Subscription {
+        let resolvedAddedAt = addedAt ?? Date(timeIntervalSince1970: TimeInterval(legacyListIndex ?? 0))
+        return Subscription(
             id: id,
             name: name,
             nextPaymentDate: nextPaymentDate,
             price: price,
             color: Color(red: colorR, green: colorG, blue: colorB),
             frequency: BillingFrequency(rawValue: frequency) ?? .monthly,
-            category: category
+            category: category,
+            addedAt: resolvedAddedAt
         )
     }
 }
@@ -96,7 +101,10 @@ enum SubscriptionStorage {
               let decoded = try? JSONDecoder().decode([PersistedSubscription].self, from: data) else {
             return []
         }
-        return decoded.map { $0.toSubscription() }
+        return decoded.enumerated().map { index, p in
+            let legacyIndex = p.addedAt == nil ? index : nil
+            return p.toSubscription(legacyListIndex: legacyIndex)
+        }
     }
 
     static func loadUnsubscribed() -> [Subscription] {
@@ -104,7 +112,10 @@ enum SubscriptionStorage {
               let decoded = try? JSONDecoder().decode([PersistedSubscription].self, from: data) else {
             return []
         }
-        return decoded.map { $0.toSubscription() }
+        return decoded.enumerated().map { index, p in
+            let legacyIndex = p.addedAt == nil ? index : nil
+            return p.toSubscription(legacyListIndex: legacyIndex)
+        }
     }
 
     static func saveAll(subscriptions: [Subscription], unsubscribed: [Subscription]) {
@@ -166,5 +177,6 @@ enum SubscriptionStorage {
         UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
         UserDefaults.standard.removeObject(forKey: "hapticsEnabled")
         UserDefaults.standard.set(SubscriptionTier.free.rawValue, forKey: "subscriptionTier")
+        UserDefaults.standard.removeObject(forKey: "subhelp.sessionPaywallActivateCount")
     }
 }

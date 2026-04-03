@@ -27,7 +27,13 @@ private enum HelpGoal: CaseIterable {
 struct HelpView: View {
     @ObservedObject var viewModel: HomeViewModel
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
+    @AppStorage("subscriptionTier") private var subscriptionTierRaw: String = SubscriptionTier.free.rawValue
     @State private var selectedGoal: HelpGoal?
+    @State private var showUpgradePaywall = false
+
+    private var subscriptionTier: SubscriptionTier {
+        SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
+    }
     @State private var isThinking = false
     /// Amount in the text field (draft); results do not update until OK.
     @State private var saveTargetInput: Decimal = 100
@@ -42,10 +48,22 @@ struct HelpView: View {
         "deezer", "tidal", "soundcloud", "prime video", "hulu", "espn+"
     ]
 
+    /// Streaming savings include manually added subs with category **Streaming**, plus known services by name when category is unset (e.g. older data).
+    private static func isStreamingSubscription(_ sub: Subscription) -> Bool {
+        if sub.category == SubscriptionCategory.streaming.rawValue { return true }
+        return streamingServiceNames.contains(sub.name.lowercased())
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    if subscriptionTier == .free {
+                        PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                    }
+
                     // What do you want to achieve? (left) + dog (right)
                     HStack(alignment: .center, spacing: 16) {
                         Text("What do you want to achieve?")
@@ -60,7 +78,7 @@ struct HelpView: View {
                             .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 24)
+                    .padding(.top, subscriptionTier == .free ? 8 : 24)
 
                     // Selected option label (under the header line when one is picked)
                     if let goal = selectedGoal {
@@ -122,6 +140,11 @@ struct HelpView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Help")
+            .sheet(isPresented: $showUpgradePaywall) {
+                UpgradePaywallView { tier in
+                    subscriptionTierRaw = tier.rawValue
+                }
+            }
             .sheet(item: $helpSelectedSubscription) { sub in
                 NavigationStack {
                     SubscriptionDetailView(
@@ -355,7 +378,7 @@ struct HelpView: View {
                 .font(.system(.title3, design: .default, weight: .bold))
                 .padding(.horizontal, 20)
 
-            let streaming = viewModel.subscriptions.filter { Self.streamingServiceNames.contains($0.name.lowercased()) }
+            let streaming = viewModel.subscriptions.filter { Self.isStreamingSubscription($0) }
             let yearlySavings = streaming.reduce(Decimal.zero) { total, sub in
                 total + yearlyAmount(for: sub)
             }
