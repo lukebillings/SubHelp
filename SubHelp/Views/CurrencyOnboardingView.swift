@@ -56,7 +56,7 @@ struct CurrencyOnboardingView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        if step > 0 {
+                        if step == 2 {
                             Button("Back") {
                                 step -= 1
                             }
@@ -249,13 +249,13 @@ struct CurrencyOnboardingView: View {
                         }
                     }
                 }
-                .frame(height: 460)
             }
-            .padding(16)
+            .padding(.top, 16)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(.white)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 22)
     }
