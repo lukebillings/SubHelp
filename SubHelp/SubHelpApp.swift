@@ -79,6 +79,9 @@ struct SubHelpApp: App {
                     }
                 }
                 .tint(.blue)
+                .onChange(of: selectedTab) { _, _ in
+                    SubHelpHaptics.impact(.light)
+                }
                 .onAppear {
                     RenewalNotificationScheduler.scheduleRenewalReminders()
                     Task {
@@ -181,6 +184,7 @@ struct SubHelpApp: App {
                     showSessionPaywall = false
                 }
             }
+            .preferredColorScheme(.light)
         }
     }
 

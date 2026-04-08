@@ -5,12 +5,30 @@ enum RenewalNotificationScheduler {
     private static let renewalCategoryIdentifier = "subhelp.renewal"
     private static let notificationSetupKey = "subhelp.didCompleteNotificationSetup"
 
+    /// Master switch: when `false`, no SubHelp notifications are scheduled (renewal reminders cleared).
+    static let notificationsEnabledKey = "subhelp.notificationsEnabled"
+
+    /// Master toggle when set; otherwise legacy heuristic (`notificationDaysBefore == -1` meant no renewal scheduling).
+    static func notificationsEnabledInStorage() -> Bool {
+        if UserDefaults.standard.object(forKey: notificationsEnabledKey) != nil {
+            return UserDefaults.standard.bool(forKey: notificationsEnabledKey)
+        }
+        let days = UserDefaults.standard.object(forKey: "notificationDaysBefore") as? Int ?? 1
+        return days >= 0
+    }
+
     /// Schedules local notifications for subscription renewals based on stored subscriptions and notificationDaysBefore setting.
     static func scheduleRenewalReminders() {
+        guard notificationsEnabledInStorage() else {
+            removeAllRenewalNotifications()
+            return
+        }
+
         guard UserDefaults.standard.bool(forKey: notificationSetupKey) else { return }
 
         let daysBefore = UserDefaults.standard.object(forKey: "notificationDaysBefore") as? Int ?? 1
 
+        // `-1` (“Never” in Settings): keep app notifications allowed, but do not schedule renewal reminders.
         guard daysBefore >= 0 else {
             removeAllRenewalNotifications()
             return

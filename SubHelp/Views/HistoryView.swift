@@ -12,41 +12,46 @@ struct HistoryView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.unsubscribed.isEmpty {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            emptyState
-                        }
-                    }
-                    .background(Color(.systemGroupedBackground))
-                } else {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            savedHeroSection
-                                .padding(.horizontal, 20)
-                                .padding(.top, 16)
-                                .padding(.bottom, 20)
-
-                            HStack {
-                                Text("\(viewModel.unsubscribed.count) cancelled")
-                                    .font(.system(.footnote, design: .default, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                                Spacer()
+            ZStack {
+                Color(.systemGroupedBackground).ignoresSafeArea()
+                Group {
+                    if viewModel.unsubscribed.isEmpty {
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                emptyState
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 8)
+                            .frame(maxWidth: .infinity)
+                        }
+                        .scrollContentBackground(.hidden)
+                    } else {
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                savedHeroSection
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 16)
+                                    .padding(.bottom, 20)
 
-                            LazyVStack(spacing: 12) {
-                                ForEach(viewModel.unsubscribed) { sub in
-                                    historyRow(sub)
+                                HStack {
+                                    Text("\(viewModel.unsubscribed.count) cancelled")
+                                        .font(.system(.footnote, design: .default, weight: .medium))
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
                                 }
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 8)
+
+                                LazyVStack(spacing: 12) {
+                                    ForEach(viewModel.unsubscribed) { sub in
+                                        historyRow(sub)
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 20)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
+                            .frame(maxWidth: .infinity)
                         }
+                        .scrollContentBackground(.hidden)
                     }
-                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("History")

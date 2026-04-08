@@ -376,9 +376,13 @@ private struct AddPopularServiceSheetContent: View {
     let onDismiss: () -> Void
 
     @State private var category: String
-    @State private var addPrice: Decimal
+    @State private var addPrice: Decimal?
     @State private var addFrequency: BillingFrequency
     @State private var addNextPayment: Date
+
+    private var canAdd: Bool {
+        (addPrice ?? 0) > 0
+    }
 
     init(service: PopularService, currencyCode: String, onAdd: @escaping (Subscription) -> Void, onDismiss: @escaping () -> Void) {
         self.service = service
@@ -390,7 +394,7 @@ private struct AddPopularServiceSheetContent: View {
         let comps = cal.dateComponents([.year, .month], from: nextMonth)
         let defaultNext = cal.date(from: comps) ?? Date()
         _category = State(initialValue: service.category)
-        _addPrice = State(initialValue: service.suggestedMonthlyPrice)
+        _addPrice = State(initialValue: nil)
         _addFrequency = State(initialValue: .monthly)
         _addNextPayment = State(initialValue: defaultNext)
     }
@@ -449,10 +453,11 @@ private struct AddPopularServiceSheetContent: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add") {
+                        guard let price = addPrice, price > 0 else { return }
                         let sub = Subscription(
                             name: service.name,
                             nextPaymentDate: addNextPayment,
-                            price: addPrice,
+                            price: price,
                             color: service.color,
                             frequency: addFrequency,
                             category: category.isEmpty ? nil : category
@@ -460,6 +465,7 @@ private struct AddPopularServiceSheetContent: View {
                         onAdd(sub)
                     }
                     .fontWeight(.semibold)
+                    .disabled(!canAdd)
                 }
             }
         }

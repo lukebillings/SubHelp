@@ -138,13 +138,25 @@ final class PremiumSubscriptionProducts: ObservableObject {
 
     /// Yearly plan price divided by subscription length in months, formatted with the product’s currency (for paywall).
     func yearlyEffectiveMonthlySubtitle() -> String? {
+        guard let (perMonth, product) = yearlyEffectiveMonthlyComponents() else { return nil }
+        let formatted = Self.formattedStoreAmount(perMonth, product: product)
+        return String(format: String(localized: "≈ %@ per month"), formatted as CVarArg)
+    }
+
+    /// Short badge for yearly card, e.g. "≈ $1.67/mo" (yearly price ÷ months in period).
+    func yearlyEffectiveMonthlyBadgeText() -> String? {
+        guard let (perMonth, product) = yearlyEffectiveMonthlyComponents() else { return nil }
+        let formatted = Self.formattedStoreAmount(perMonth, product: product)
+        return String(format: String(localized: "≈ %@/mo"), formatted as CVarArg)
+    }
+
+    private func yearlyEffectiveMonthlyComponents() -> (Decimal, Product)? {
         guard loadState != .idle, loadState != .loading else { return nil }
         guard let product = yearlyProduct, let subscription = product.subscription else { return nil }
         let months = Self.monthCount(for: subscription.subscriptionPeriod)
         guard months > 0 else { return nil }
         let perMonth = product.price / Decimal(months)
-        let formatted = Self.formattedStoreAmount(perMonth, product: product)
-        return String(format: String(localized: "≈ %@ per month"), formatted as CVarArg)
+        return (perMonth, product)
     }
 
     private nonisolated static func monthCount(for period: Product.SubscriptionPeriod) -> Int {

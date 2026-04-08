@@ -45,6 +45,7 @@ struct PaywallView: View {
                     .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1.5))
                 Spacer(minLength: 0)
                 Button {
+                    SubHelpHaptics.impact(.light)
                     selectedTier = .free
                     hasCompletedPaywall = true
                     onSelect(.free)
@@ -76,8 +77,20 @@ struct PaywallView: View {
         .tint(.black)
         .background(Color(.systemBackground).ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 8) {
+            // Same bottom chrome as `CurrencyOnboardingView.onboardingBottomChrome` (steps 0–1).
+            VStack(spacing: 12) {
+                Text("Not now")
+                    .font(.system(.headline, design: .default, weight: .semibold))
+                    .foregroundStyle(.clear)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+
                 Button {
+                    SubHelpHaptics.impact(.medium)
                     Task { await purchasePremium(tier: selectedOffer) }
                 } label: {
                     Text("Continue")
@@ -89,8 +102,6 @@ struct PaywallView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(premiumProducts.isPurchasing)
-
-                SubscriptionPolicyLinksRow()
             }
             .padding(.horizontal, ctaHorizontalPadding)
             .padding(.top, 8)
@@ -131,7 +142,7 @@ struct PaywallView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 benefitRow(String(localized: "Track unlimited subscriptions"), compact: false)
-                benefitRow(String(localized: "Receive subscription renewal reminders"), compact: false)
+                benefitRow(String(localized: "Subscription renewal reminders"), compact: false)
                 benefitRow(String(localized: "No ads"), compact: false)
             }
             .padding(16)
@@ -144,6 +155,7 @@ struct PaywallView: View {
                     title: String(localized: "Yearly"),
                     price: premiumProducts.yearlyPlanTitle(),
                     subtitle: nil,
+                    goldTag: premiumProducts.yearlyEffectiveMonthlyBadgeText(),
                     tier: .yearly,
                     emphasized: true,
                     compact: false
@@ -153,14 +165,19 @@ struct PaywallView: View {
                     title: String(localized: "Monthly"),
                     price: premiumProducts.monthlyPlanTitle(),
                     subtitle: nil,
+                    goldTag: nil,
                     tier: .monthly,
                     emphasized: false,
                     compact: false
                 )
             }
 
-            subscriptionLegalSection(includeRestoreButton: true, includePolicyLinks: false, compact: false)
-                .foregroundStyle(.black.opacity(0.85))
+            VStack(spacing: 6) {
+                subscriptionLegalSection(includeRestoreButton: true, includePolicyLinks: false, compact: false)
+                    .foregroundStyle(.black.opacity(0.85))
+                SubscriptionPolicyLinksRow()
+            }
+            .padding(.bottom, 32)
         }
         .padding(.horizontal, ctaHorizontalPadding)
         .padding(.top, 2)
@@ -198,6 +215,7 @@ struct PaywallView: View {
         title: String,
         price: String,
         subtitle: String?,
+        goldTag: String? = nil,
         tier: SubscriptionTier,
         emphasized: Bool,
         compact: Bool = false
@@ -218,13 +236,31 @@ struct PaywallView: View {
         let cardPadding: CGFloat = compact ? (emphasized ? 12 : 10) : (emphasized ? 18 : 16)
         let corner: CGFloat = compact ? 14 : 20
         return Button {
+            SubHelpHaptics.impact(.light)
             selectedOffer = tier
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: compact ? 2 : 4) {
-                    Text(title)
-                        .font(titleFont)
-                        .foregroundStyle(.black)
+                    HStack(alignment: .center, spacing: 8) {
+                        Text(title)
+                            .font(titleFont)
+                            .foregroundStyle(.black)
+                        if let goldTag, !goldTag.isEmpty {
+                            Text(goldTag)
+                                .font(.system(compact ? .caption2 : .caption, design: .default, weight: .bold))
+                                .foregroundStyle(.black.opacity(0.88))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, compact ? 3 : 4)
+                                .background {
+                                    Capsule(style: .continuous)
+                                        .fill(brandGold.opacity(0.42))
+                                }
+                                .overlay {
+                                    Capsule(style: .continuous)
+                                        .strokeBorder(brandGold.opacity(0.95), lineWidth: 1)
+                                }
+                        }
+                    }
                     Text(price)
                         .font(priceFont)
                         .foregroundStyle(.black)
@@ -299,6 +335,7 @@ private struct SubscriptionLegalFooterView: View {
         VStack(spacing: compact ? 6 : 16) {
             if includeRestoreButton {
                 Button("Restore Purchases") {
+                    SubHelpHaptics.impact(.light)
                     Task {
                         if let error = await premiumProducts.restorePurchases() {
                             restoreAlertMessage = error
@@ -367,6 +404,7 @@ struct UpgradePaywallView: View {
 
                 VStack(spacing: 12) {
                     Button {
+                        SubHelpHaptics.impact(.light)
                         Task { await purchasePlan(.yearly) }
                     } label: {
                         HStack {
@@ -385,6 +423,7 @@ struct UpgradePaywallView: View {
                     .disabled(premiumProducts.isPurchasing)
 
                     Button {
+                        SubHelpHaptics.impact(.light)
                         Task { await purchasePlan(.monthly) }
                     } label: {
                         HStack {
@@ -429,6 +468,7 @@ struct UpgradePaywallView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Not now") {
+                        SubHelpHaptics.impact(.light)
                         dismiss()
                     }
                     .disabled(premiumProducts.isPurchasing)

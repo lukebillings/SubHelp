@@ -57,6 +57,7 @@ struct CurrencyOnboardingView: View {
                     ToolbarItem(placement: .cancellationAction) {
                         if step == 2 {
                             Button("Back") {
+                                SubHelpHaptics.impact(.light)
                                 step -= 1
                             }
                             .foregroundStyle(.black)
@@ -100,7 +101,9 @@ struct CurrencyOnboardingView: View {
         VStack(spacing: 12) {
             if step == 2 {
                 Button(role: .none) {
-                    UserDefaults.standard.set(-1, forKey: "notificationDaysBefore")
+                    SubHelpHaptics.impact(.medium)
+                    UserDefaults.standard.set(false, forKey: RenewalNotificationScheduler.notificationsEnabledKey)
+                    UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
                     completeOnboarding()
                 } label: {
                     Text("Not now")
@@ -147,6 +150,7 @@ struct CurrencyOnboardingView: View {
     }
 
     private func primaryOnboardingBottomAction() {
+        SubHelpHaptics.impact(.light)
         if step == 0 {
             if benefitPageIndex < benefitPages.count - 1 {
                 benefitPageIndex += 1
@@ -158,9 +162,7 @@ struct CurrencyOnboardingView: View {
         } else {
             Task {
                 _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
-                if (UserDefaults.standard.object(forKey: "notificationDaysBefore") as? Int) == -1 {
-                    UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
-                }
+                UserDefaults.standard.set(true, forKey: RenewalNotificationScheduler.notificationsEnabledKey)
                 await MainActor.run {
                     completeOnboarding()
                 }
@@ -225,6 +227,7 @@ struct CurrencyOnboardingView: View {
                     LazyVStack(spacing: 6) {
                         ForEach(CurrencyOptions.topCurrencies + CurrencyOptions.otherCurrencies, id: \.code) { currency in
                             Button {
+                                SubHelpHaptics.impact(.light)
                                 currencyCode = currency.code
                             } label: {
                                 HStack(spacing: 10) {
