@@ -183,7 +183,7 @@ enum SubscriptionStorage {
         UserDefaults.standard.set("GBP", forKey: "currencyCode")
         UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
         UserDefaults.standard.removeObject(forKey: RenewalNotificationScheduler.notificationsEnabledKey)
-        UserDefaults.standard.removeObject(forKey: "hapticsEnabled")
+        UserDefaults.standard.removeObject(forKey: SubHelpHaptics.userDefaultsKey)
         UserDefaults.standard.set(SubscriptionTier.free.rawValue, forKey: "subscriptionTier")
         UserDefaults.standard.removeObject(forKey: "subhelp.sessionPaywallActivateCount")
     }
