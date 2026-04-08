@@ -126,12 +126,48 @@ final class PremiumSubscriptionProducts: ObservableObject {
         }
     }
 
-    func yearlyPlanTitle(fallback: String = "£29.99 per year") -> String {
-        planTitle(product: yearlyProduct, period: String(localized: "per year"), fallback: fallback)
+    func yearlyPlanTitle(fallback: String? = nil) -> String {
+        let fb = fallback ?? String(localized: "Price unavailable")
+        return planTitle(product: yearlyProduct, period: String(localized: "per year"), fallback: fb)
     }
 
-    func monthlyPlanTitle(fallback: String = "£9.99 per month") -> String {
-        planTitle(product: monthlyProduct, period: String(localized: "per month"), fallback: fallback)
+    func monthlyPlanTitle(fallback: String? = nil) -> String {
+        let fb = fallback ?? String(localized: "Price unavailable")
+        return planTitle(product: monthlyProduct, period: String(localized: "per month"), fallback: fb)
+    }
+
+    /// Yearly plan price divided by subscription length in months, formatted with the product’s currency (for paywall).
+    func yearlyEffectiveMonthlySubtitle() -> String? {
+        guard loadState != .idle, loadState != .loading else { return nil }
+        guard let product = yearlyProduct, let subscription = product.subscription else { return nil }
+        let months = Self.monthCount(for: subscription.subscriptionPeriod)
+        guard months > 0 else { return nil }
+        let perMonth = product.price / Decimal(months)
+        let formatted = Self.formattedStoreAmount(perMonth, product: product)
+        return String(format: String(localized: "≈ %@ per month"), formatted as CVarArg)
+    }
+
+    private nonisolated static func monthCount(for period: Product.SubscriptionPeriod) -> Int {
+        switch period.unit {
+        case .day:
+            return max(1, (period.value + 15) / 30)
+        case .week:
+            return max(1, (period.value * 7 + 15) / 30)
+        case .month:
+            return max(1, period.value)
+        case .year:
+            return max(1, period.value * 12)
+        @unknown default:
+            return 12
+        }
+    }
+
+    private static func formattedStoreAmount(_ amount: Decimal, product: Product) -> String {
+        amount.formatted(
+            product.priceFormatStyle
+                .locale(.autoupdatingCurrent)
+                .presentation(.narrow)
+        )
     }
 
     private func planTitle(product: Product?, period: String, fallback: String) -> String {
@@ -140,7 +176,7 @@ final class PremiumSubscriptionProducts: ObservableObject {
             return String(localized: "Loading…")
         case .loaded, .failed:
             if let product {
-                return "\(product.displayPrice) \(period)"
+                return "\(Self.formattedStoreAmount(product.price, product: product)) \(period)"
             }
             return fallback
         }

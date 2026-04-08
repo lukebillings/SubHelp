@@ -45,7 +45,7 @@ enum RenewalNotificationScheduler {
                 let content = UNMutableNotificationContent()
                 content.title = "Subscription renewal"
                 let currency = UserDefaults.standard.string(forKey: "currencyCode") ?? "GBP"
-                let priceText = sub.price.formatted(.currency(code: currency).locale(.autoupdatingCurrent))
+                let priceText = CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currency)
                 content.body = "\(sub.name) renews \(priceText) on \(formatDate(sub.nextPaymentDate))"
                 content.sound = .default
                 content.categoryIdentifier = Self.renewalCategoryIdentifier

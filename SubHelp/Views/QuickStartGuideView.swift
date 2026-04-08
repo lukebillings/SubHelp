@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Popular service (suggested monthly price for display)
+// MARK: - Popular service (default price when adding; not shown on the list card)
 
 private struct PopularService: Identifiable {
     /// Stable id so `sheet(item:)` and list cells don’t treat the same service as a new item on each view refresh (which cleared the category binding).
@@ -8,6 +8,7 @@ private struct PopularService: Identifiable {
     /// Matches `SubscriptionCategory` raw values (e.g. `"Streaming"` for Netflix).
     let category: String
     let name: String
+    /// Prefills the add sheet; user can change before saving.
     let suggestedMonthlyPrice: Decimal
     let color: Color
 }
@@ -186,15 +187,11 @@ struct QuickStartGuideView: View {
                                     serviceToAdd = service
                                 } label: {
                                     HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(service.name)
-                                                .font(.system(.headline, design: .default, weight: .bold))
-                                                .foregroundStyle(.white)
-                                            Text("Around \(service.suggestedMonthlyPrice, format: .currency(code: currencyCode))/month")
-                                                .font(.system(.subheadline, design: .default, weight: .regular))
-                                                .foregroundStyle(.white.opacity(0.9))
-                                        }
-                                        Spacer()
+                                        Text(service.name)
+                                            .font(.system(.headline, design: .default, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .multilineTextAlignment(.leading)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                         Image(systemName: "plus.circle.fill")
                                             .font(.title3)
                                             .foregroundStyle(.white.opacity(0.9))
@@ -426,11 +423,11 @@ private struct AddPopularServiceSheetContent: View {
                         HStack {
                             Text("Amount")
                             Spacer()
-                            TextField("0.00", value: $addPrice, format: .currency(code: currencyCode))
+                            TextField("0.00", value: $addPrice, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
                         }
-                        Text("Know how much you usually pay? If not we will estimate.")
+                        Text("How much do you pay? If not estimate.")
                             .font(.system(.caption, design: .default, weight: .regular))
                             .foregroundStyle(.secondary)
                     }

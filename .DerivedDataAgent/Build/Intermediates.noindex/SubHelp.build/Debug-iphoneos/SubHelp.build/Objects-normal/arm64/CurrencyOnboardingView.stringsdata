@@ -1,0 +1,96 @@
+{
+  "source": "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/CurrencyOnboardingView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 55
+        }
+      },
+      {
+        "comment": "",
+        "key": "Back",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 60
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not now",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 117
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not now",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 107
+        }
+      },
+      {
+        "comment": "",
+        "key": "Continue",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 134
+        }
+      },
+      {
+        "comment": "",
+        "key": "Turn on notifications",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select currency",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 208
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose the currency SubHelp uses for subscription prices and totals. You can change this anytime in Settings.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 212
+        }
+      },
+      {
+        "comment": "",
+        "key": "Currency",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 223
+        }
+      },
+      {
+        "comment": "",
+        "key": "Notifications",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 266
+        }
+      },
+      {
+        "comment": "",
+        "key": "Turn on notifications to get renewal alerts before subscriptions charge, plus other helpful updates. You can change this anytime in Settings.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 270
+        }
+      }
+    ]
+  },
+  "version": 1
+}

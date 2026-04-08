@@ -9,7 +9,6 @@ struct SettingsView: View {
     @AppStorage("subscriptionTier") private var subscriptionTierRaw: String = SubscriptionTier.free.rawValue
 
     @State private var showResetConfirmation = false
-    @State private var showUpgradePaywall = false
     @State private var isRestoringPurchases = false
     @State private var restoreAlertMessage: String?
 
@@ -20,15 +19,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                if subscriptionTier == .free {
-                    Section {
-                        PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
-                    }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                }
-
                 Section("SubHelp Premium") {
                     Button {
                         Task { await restorePurchases() }
@@ -128,11 +118,6 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("This removes all subscriptions, history, and settings. The app will start as if you just downloaded it.")
-            }
-            .sheet(isPresented: $showUpgradePaywall) {
-                UpgradePaywallView { tier in
-                    subscriptionTierRaw = tier.rawValue
-                }
             }
             .alert("Restore Purchases", isPresented: Binding(
                 get: { restoreAlertMessage != nil },

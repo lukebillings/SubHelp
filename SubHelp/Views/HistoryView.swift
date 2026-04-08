@@ -16,12 +16,6 @@ struct HistoryView: View {
                 if viewModel.unsubscribed.isEmpty {
                     ScrollView {
                         VStack(spacing: 0) {
-                            if subscriptionTier == .free {
-                                PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 8)
-                                    .padding(.bottom, 8)
-                            }
                             emptyState
                         }
                     }
@@ -29,12 +23,6 @@ struct HistoryView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 0) {
-                            if subscriptionTier == .free {
-                                PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 8)
-                                    .padding(.bottom, 8)
-                            }
                             savedHeroSection
                                 .padding(.horizontal, 20)
                                 .padding(.top, 16)
@@ -76,7 +64,7 @@ struct HistoryView: View {
         VStack(spacing: 16) {
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(viewModel.unsubscribedSavedPerYear, format: .currency(code: currencyCode))
+                    Text(CurrencyOptions.formatPresentation(amount: viewModel.unsubscribedSavedPerYear, currencyCode: currencyCode))
                         .font(.system(size: 42, weight: .bold, design: .default))
                         .foregroundStyle(.primary)
                     Text("That's how much you're saving per year thanks to the subscriptions you've cancelled.")
@@ -132,7 +120,7 @@ struct HistoryView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(sub.price, format: .currency(code: currencyCode))
+                Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
                     .font(.system(.headline, design: .default, weight: .bold))
                     .foregroundStyle(.white)
                 Text(sub.frequency.shortLabel)

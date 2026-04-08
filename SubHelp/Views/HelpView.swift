@@ -27,13 +27,7 @@ private enum HelpGoal: CaseIterable {
 struct HelpView: View {
     @ObservedObject var viewModel: HomeViewModel
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
-    @AppStorage("subscriptionTier") private var subscriptionTierRaw: String = SubscriptionTier.free.rawValue
     @State private var selectedGoal: HelpGoal?
-    @State private var showUpgradePaywall = false
-
-    private var subscriptionTier: SubscriptionTier {
-        SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
-    }
     @State private var isThinking = false
     /// Amount in the text field (draft); results do not update until OK.
     @State private var saveTargetInput: Decimal = 100
@@ -58,12 +52,6 @@ struct HelpView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    if subscriptionTier == .free {
-                        PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
-                            .padding(.horizontal, 20)
-                            .padding(.top, 8)
-                    }
-
                     // What do you want to achieve? (left) + dog (right)
                     HStack(alignment: .center, spacing: 16) {
                         Text("What do you want to achieve?")
@@ -78,7 +66,7 @@ struct HelpView: View {
                             .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, subscriptionTier == .free ? 8 : 24)
+                    .padding(.top, 24)
 
                     // Selected option label (under the header line when one is picked)
                     if let goal = selectedGoal {
@@ -140,11 +128,6 @@ struct HelpView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Help")
-            .sheet(isPresented: $showUpgradePaywall) {
-                UpgradePaywallView { tier in
-                    subscriptionTierRaw = tier.rawValue
-                }
-            }
             .sheet(item: $helpSelectedSubscription) { sub in
                 NavigationStack {
                     SubscriptionDetailView(
@@ -248,7 +231,7 @@ struct HelpView: View {
                 Text("Target amount")
                     .font(.system(.subheadline, design: .default, weight: .medium))
                 Spacer()
-                TextField("Amount", value: $saveTargetInput, format: .currency(code: currencyCode))
+                TextField("Amount", value: $saveTargetInput, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 120)
@@ -282,7 +265,7 @@ struct HelpView: View {
                 Text("Target amount")
                     .font(.system(.subheadline, design: .default, weight: .medium))
                 Spacer()
-                TextField("Amount", value: $saveTargetInput, format: .currency(code: currencyCode))
+                TextField("Amount", value: $saveTargetInput, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 120)
@@ -315,7 +298,7 @@ struct HelpView: View {
         let combinations = combinationsToSave(yearlyTarget: targetYearly, from: viewModel.subscriptions)
 
         if combinations.isEmpty {
-            Text("Add subscriptions on the Subscriptions tab, then come back. I’ll show you combinations that add up to \(targetYearly.formatted(.currency(code: currencyCode)))/year or more.")
+            Text("Add subscriptions on the Subscriptions tab, then come back. I’ll show you combinations that add up to \(CurrencyOptions.formatPresentation(amount: targetYearly, currencyCode: currencyCode))/year or more.")
                 .font(.system(.footnote, design: .default, weight: .regular))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 20)
@@ -323,7 +306,7 @@ struct HelpView: View {
             ForEach(Array(combinations.prefix(3).enumerated()), id: \.offset) { index, subs in
                 let total = yearlyTotal(for: subs)
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Option \(index + 1): Cancel these to save \(total.formatted(.currency(code: currencyCode)))/year")
+                    Text("Option \(index + 1): Cancel these to save \(CurrencyOptions.formatPresentation(amount: total, currencyCode: currencyCode))/year")
                         .font(.system(.subheadline, design: .default, weight: .semibold))
                     ForEach(subs) { sub in
                         Button {
@@ -390,7 +373,7 @@ struct HelpView: View {
                     .padding(.horizontal, 20)
             } else {
                 (Text("If you remove your streaming services below, you’d save ")
-                    + Text(yearlySavings, format: .currency(code: currencyCode)).fontWeight(.semibold)
+                    + Text(CurrencyOptions.formatPresentation(amount: yearlySavings, currencyCode: currencyCode)).fontWeight(.semibold)
                     + Text(" per year."))
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .padding(.horizontal, 20)
@@ -425,7 +408,7 @@ struct HelpView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(sub.price, format: .currency(code: currencyCode))
+                Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
                     .font(.system(.headline, design: .default, weight: .bold))
                     .foregroundStyle(.white)
                 Text(sub.frequency.shortLabel)

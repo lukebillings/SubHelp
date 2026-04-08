@@ -27,9 +27,17 @@ struct SubHelpApp: App {
         SubscriptionStorage.registerForCloudUpdates()
         SubscriptionStorage.mergeFromCloudOnLaunch()
         let defaults = UserDefaults.standard
-        if defaults.object(forKey: "hasCompletedCurrencyOnboarding") == nil,
-           defaults.bool(forKey: "hasCompletedPaywall") {
-            defaults.set(true, forKey: "hasCompletedCurrencyOnboarding")
+        // One-time after this release: show the new onboarding for everyone who is not already on a paid tier.
+        // Subscriptions stay in UserDefaults / iCloud; only flags change. Subscribed users skip the sheet.
+        if !defaults.bool(forKey: SubHelpAppStorageKey.hasCompletedOnboardingV2) {
+            let tierRaw = defaults.string(forKey: "subscriptionTier") ?? SubscriptionTier.free.rawValue
+            let tier = SubscriptionTier(rawValue: tierRaw) ?? .free
+            if tier == .yearly || tier == .monthly {
+                defaults.set(true, forKey: SubHelpAppStorageKey.hasCompletedOnboardingV2)
+                defaults.set(true, forKey: "hasCompletedCurrencyOnboarding")
+            } else {
+                defaults.set(false, forKey: "hasCompletedCurrencyOnboarding")
+            }
         }
         if defaults.bool(forKey: "hasCompletedCurrencyOnboarding"),
            defaults.object(forKey: "subhelp.didCompleteNotificationSetup") == nil {
@@ -75,6 +83,9 @@ struct SubHelpApp: App {
                     RenewalNotificationScheduler.scheduleRenewalReminders()
                     Task {
                         await premiumSubscriptionProducts.syncEntitlementsFromStore()
+                        await MainActor.run {
+                            reconcileOnboardingAfterStoreTierCheck()
+                        }
                         await premiumSubscriptionProducts.refresh()
                     }
                 }
@@ -83,6 +94,9 @@ struct SubHelpApp: App {
                     RenewalNotificationScheduler.scheduleRenewalReminders()
                     Task {
                         await premiumSubscriptionProducts.syncEntitlementsFromStore()
+                        await MainActor.run {
+                            reconcileOnboardingAfterStoreTierCheck()
+                        }
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
@@ -124,17 +138,19 @@ struct SubHelpApp: App {
                         ),
                         onSelect: { tier in
                             UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
-                        },
-                        freeDismissCountdownSeconds: 5
+                        }
                     )
                     .transition(.opacity)
                     .zIndex(1)
                 }
             }
             .environmentObject(premiumSubscriptionProducts)
-            .sheet(isPresented: $showCurrencyOnboarding) {
+            .fullScreenCover(isPresented: $showCurrencyOnboarding) {
                 CurrencyOnboardingView(isPresented: $showCurrencyOnboarding) {
                     selectedTab = .subscriptions
+                    if subscriptionTier == .free {
+                        showSessionPaywall = true
+                    }
                 }
                 .interactiveDismissDisabled()
             }
@@ -155,6 +171,9 @@ struct SubHelpApp: App {
             .onChange(of: subscriptionTierRaw) { _, _ in
                 if subscriptionTier != .free {
                     showSessionPaywall = false
+                    UserDefaults.standard.set(true, forKey: SubHelpAppStorageKey.hasCompletedOnboardingV2)
+                    UserDefaults.standard.set(true, forKey: "hasCompletedCurrencyOnboarding")
+                    showCurrencyOnboarding = false
                 }
             }
             .onChange(of: showCurrencyOnboarding) { _, showing in
@@ -163,5 +182,15 @@ struct SubHelpApp: App {
                 }
             }
         }
+    }
+
+    /// After StoreKit sync, skip onboarding if the user already has an active subscription (tier may have been stale on disk).
+    private func reconcileOnboardingAfterStoreTierCheck() {
+        let raw = UserDefaults.standard.string(forKey: "subscriptionTier") ?? SubscriptionTier.free.rawValue
+        let tier = SubscriptionTier(rawValue: raw) ?? .free
+        guard tier == .yearly || tier == .monthly else { return }
+        UserDefaults.standard.set(true, forKey: SubHelpAppStorageKey.hasCompletedOnboardingV2)
+        UserDefaults.standard.set(true, forKey: "hasCompletedCurrencyOnboarding")
+        showCurrencyOnboarding = false
     }
 }

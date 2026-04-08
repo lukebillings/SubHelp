@@ -15,95 +15,87 @@ struct PaywallView: View {
     @Binding var hasCompletedPaywall: Bool
     @Binding var selectedTier: SubscriptionTier
     var onSelect: (SubscriptionTier) -> Void
-    /// When > 0, choosing free is disabled until this many seconds elapse; label shows a countdown.
-    var freeDismissCountdownSeconds: Int = 0
 
     @State private var purchaseInfoMessage: String?
-    @State private var freeDismissSecondsLeft: Int
+    @State private var selectedOffer: SubscriptionTier = .yearly
+
+    private let brandBlue = Color(red: 0.596, green: 0.812, blue: 0.875)
+    private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
+    private let ctaHorizontalPadding: CGFloat = 22
+    private let ctaBottomInset: CGFloat = 16
 
     init(
         hasCompletedPaywall: Binding<Bool>,
         selectedTier: Binding<SubscriptionTier>,
-        onSelect: @escaping (SubscriptionTier) -> Void,
-        freeDismissCountdownSeconds: Int = 0
+        onSelect: @escaping (SubscriptionTier) -> Void
     ) {
         self._hasCompletedPaywall = hasCompletedPaywall
         self._selectedTier = selectedTier
         self.onSelect = onSelect
-        self.freeDismissCountdownSeconds = freeDismissCountdownSeconds
-        self._freeDismissSecondsLeft = State(initialValue: max(0, freeDismissCountdownSeconds))
         self._purchaseInfoMessage = State(initialValue: nil)
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 Image("ShibaMascot")
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 80, height: 80)
+                    .frame(width: 48, height: 48)
                     .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
-
-                Text("SubHelp Premium")
-                    .font(.system(.title, design: .default, weight: .bold))
-
-                VStack(spacing: 4) {
-                    Text("Want to add all your subscriptions? With a small subscription you can do just that!")
-                        .font(.system(.subheadline, design: .default, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity)
-                    Text("Add more than 3 subscriptions")
-                        .font(.system(.caption, design: .default, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity)
+                    .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1.5))
+                Spacer(minLength: 0)
+                Button {
+                    selectedTier = .free
+                    hasCompletedPaywall = true
+                    onSelect(.free)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.black.opacity(0.85))
+                        .frame(width: 36, height: 36)
+                        .background { ShinyGoldCircleCloseBackground() }
                 }
-                .padding(.horizontal, 24)
+                .buttonStyle(.plain)
+                .disabled(premiumProducts.isPurchasing)
+                .accessibilityLabel(String(localized: "Close"))
             }
-            .padding(.top, 48)
-            .padding(.bottom, 32)
+            .padding(.horizontal, ctaHorizontalPadding)
+            .padding(.top, 8)
+            .padding(.bottom, 6)
 
-            // Plans
-            VStack(spacing: 12) {
-                planButton(
-                    title: premiumProducts.yearlyPlanTitle(),
-                    subtitle: "Add more than 3 subscriptions",
-                    isRecommended: true,
-                    disabled: premiumProducts.isPurchasing
-                ) {
-                    Task { await purchasePremium(tier: .yearly) }
+            ViewThatFits(in: .vertical) {
+                paywallScrollableColumn(spacing: 22)
+                    .padding(.bottom, 6)
+                ScrollView(showsIndicators: false) {
+                    paywallScrollableColumn(spacing: 24)
                 }
-
-                planButton(
-                    title: premiumProducts.monthlyPlanTitle(),
-                    subtitle: "Add more than 3 subscriptions",
-                    isRecommended: false,
-                    disabled: premiumProducts.isPurchasing
-                ) {
-                    Task { await purchasePremium(tier: .monthly) }
-                }
-
-                freeDismissButton
-                    .padding(.top, 8)
             }
-            .padding(.horizontal, 24)
-
-            Spacer(minLength: 0)
-
-            subscriptionLegalSection(includeRestoreButton: true)
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
-                .padding(.bottom, 24)
-
-            Spacer(minLength: 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .tint(.black)
+        .background(brandBlue.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 8) {
+                Button {
+                    Task { await purchasePremium(tier: selectedOffer) }
+                } label: {
+                    Text("Continue")
+                        .font(.system(.title3, design: .default, weight: .bold))
+                        .foregroundStyle(.black.opacity(0.85))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background { ShinyGoldCTABackground() }
+                }
+                .buttonStyle(.plain)
+                .disabled(premiumProducts.isPurchasing)
+
+                SubscriptionPolicyLinksRow()
+            }
+            .padding(.horizontal, ctaHorizontalPadding)
+            .padding(.top, 8)
+            .padding(.bottom, ctaBottomInset)
+        }
         .overlay {
             if premiumProducts.isPurchasing {
                 Color.black.opacity(0.15)
@@ -120,39 +112,78 @@ struct PaywallView: View {
         } message: {
             Text(purchaseInfoMessage ?? "")
         }
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-            guard freeDismissCountdownSeconds > 0, freeDismissSecondsLeft > 0 else { return }
-            freeDismissSecondsLeft -= 1
-        }
         .task {
+            selectedOffer = .yearly
             await premiumProducts.refresh()
         }
     }
 
-    private var canDismissAsFree: Bool {
-        freeDismissCountdownSeconds == 0 || freeDismissSecondsLeft <= 0
+    @ViewBuilder
+    private func paywallScrollableColumn(spacing: CGFloat) -> some View {
+        VStack(spacing: spacing) {
+            Text("Take control of your subscriptions")
+                .font(.system(.title, design: .default, weight: .bold))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.black)
+                .minimumScaleFactor(0.88)
+                .frame(maxWidth: .infinity)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("See everything in one place, avoid surprise renewals, and stay in control of your spending.")
+                .font(.system(.body, design: .default, weight: .regular))
+                .foregroundStyle(.black.opacity(0.85))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12)
+
+            VStack(alignment: .leading, spacing: 10) {
+                benefitRow(String(localized: "Track unlimited subscriptions"), compact: false)
+                benefitRow(String(localized: "Receive subscription renewal reminders"), compact: false)
+                benefitRow(String(localized: "No ads"), compact: false)
+            }
+            .padding(16)
+            .background {
+                PaywallGlassPanel(cornerRadius: 20, borderEmphasized: false)
+            }
+
+            VStack(spacing: 12) {
+                selectablePlanButton(
+                    title: String(localized: "Yearly"),
+                    price: premiumProducts.yearlyPlanTitle(),
+                    subtitle: nil,
+                    tier: .yearly,
+                    emphasized: true,
+                    compact: false
+                )
+
+                selectablePlanButton(
+                    title: String(localized: "Monthly"),
+                    price: premiumProducts.monthlyPlanTitle(),
+                    subtitle: nil,
+                    tier: .monthly,
+                    emphasized: false,
+                    compact: false
+                )
+            }
+
+            subscriptionLegalSection(includeRestoreButton: true, includePolicyLinks: false, compact: false)
+                .foregroundStyle(.black.opacity(0.85))
+        }
+        .padding(.horizontal, ctaHorizontalPadding)
+        .padding(.top, 2)
     }
 
-    private var freeDismissButton: some View {
-        Button {
-            selectedTier = .free
-            hasCompletedPaywall = true
-            onSelect(.free)
-        } label: {
-            Group {
-                if canDismissAsFree {
-                    Text("Maybe later")
-                } else {
-                    Text("You have 3 or less subscriptions to track.\nContinue in \(freeDismissSecondsLeft)…")
-                }
-            }
-            .font(.system(.body, design: .default, weight: .medium))
-            .multilineTextAlignment(.center)
-            .foregroundStyle(canDismissAsFree ? .secondary : .tertiary)
-            .frame(maxWidth: .infinity)
+    private func benefitRow(_ text: String, compact: Bool = false) -> some View {
+        HStack(alignment: .center, spacing: compact ? 6 : 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(compact ? .callout : .title3)
+                .foregroundStyle(brandGold)
+            Text(text)
+                .font(.system(compact ? .caption : .body, design: .default, weight: .semibold))
+                .foregroundStyle(.black.opacity(0.85))
+            Spacer(minLength: 0)
         }
-        .disabled(!canDismissAsFree || premiumProducts.isPurchasing)
-        .buttonStyle(.plain)
     }
 
     private func purchasePremium(tier: SubscriptionTier) async {
@@ -171,54 +202,87 @@ struct PaywallView: View {
         }
     }
 
-    private func planButton(
+    private func selectablePlanButton(
         title: String,
-        subtitle: String,
-        isRecommended: Bool,
-        disabled: Bool = false,
-        action: @escaping () -> Void
+        price: String,
+        subtitle: String?,
+        tier: SubscriptionTier,
+        emphasized: Bool,
+        compact: Bool = false
     ) -> some View {
-        Button(action: action) {
+        let selected = selectedOffer == tier
+        let titleFont: Font = {
+            if compact {
+                return .system(emphasized ? .headline : .subheadline, design: .default, weight: .bold)
+            }
+            return .system(emphasized ? .title3 : .headline, design: .default, weight: .bold)
+        }()
+        let priceFont: Font = {
+            if compact {
+                return .system(emphasized ? .headline : .callout, design: .default, weight: .semibold)
+            }
+            return .system(emphasized ? .title3 : .subheadline, design: .default, weight: .semibold)
+        }()
+        let cardPadding: CGFloat = compact ? (emphasized ? 12 : 10) : (emphasized ? 18 : 16)
+        let corner: CGFloat = compact ? 14 : 20
+        return Button {
+            selectedOffer = tier
+        } label: {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(title)
-                            .font(.system(.headline, design: .default, weight: .semibold))
-                        if isRecommended {
-                            Text("Best value")
-                                .font(.system(.caption2, design: .default, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.blue)
-                                .clipShape(Capsule())
-                        }
+                VStack(alignment: .leading, spacing: compact ? 2 : 4) {
+                    Text(title)
+                        .font(titleFont)
+                        .foregroundStyle(.black)
+                    Text(price)
+                        .font(priceFont)
+                        .foregroundStyle(.black)
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.system(compact ? .caption2 : .caption, design: .default, weight: .medium))
+                            .foregroundStyle(.black.opacity(0.75))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
                     }
-                    Text(subtitle)
-                        .font(.system(.subheadline, design: .default, weight: .regular))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                    .font(compact ? .callout.weight(.semibold) : .title3.weight(.semibold))
+                    .foregroundStyle(selected ? brandGold : .black.opacity(0.65))
             }
-            .padding(16)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(isRecommended ? Color.blue : Color.clear, lineWidth: 2)
-            )
+            .padding(cardPadding)
+            .background {
+                if compact {
+                    RoundedRectangle(cornerRadius: corner, style: .continuous)
+                        .fill(.white.opacity(selected ? 0.22 : 0.12))
+                } else {
+                    PaywallGlassPanel(cornerRadius: corner, borderEmphasized: selected)
+                }
+            }
         }
         .buttonStyle(.plain)
-        .disabled(disabled)
+        .disabled(premiumProducts.isPurchasing)
     }
 
-    private func subscriptionLegalSection(includeRestoreButton: Bool = false) -> some View {
-        SubscriptionLegalFooterView(includeRestoreButton: includeRestoreButton)
+    private func subscriptionLegalSection(includeRestoreButton: Bool = false, includePolicyLinks: Bool = true, compact: Bool = false) -> some View {
+        SubscriptionLegalFooterView(includeRestoreButton: includeRestoreButton, includePolicyLinks: includePolicyLinks, compact: compact)
+    }
+}
+
+// MARK: - Policy links (shared row)
+
+private struct SubscriptionPolicyLinksRow: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Link("Privacy Policy", destination: URL(string: "https://lukebillings.github.io/SubHelp/privacypolicy/index.html")!)
+            Text("·")
+            Link("Terms and Conditions", destination: URL(string: "https://lukebillings.github.io/SubHelp/termsandconditions/index.html")!)
+            Text("·")
+            Link("Terms of Use (EULA)", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+        }
+        .font(.system(.caption, design: .default, weight: .regular))
+        .foregroundStyle(.black.opacity(0.85))
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -227,10 +291,20 @@ struct PaywallView: View {
 private struct SubscriptionLegalFooterView: View {
     @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
     var includeRestoreButton: Bool = false
+    var includePolicyLinks: Bool = true
+    var compact: Bool = false
     @State private var restoreAlertMessage: String?
 
+    private var subscriptionDisclosureText: String {
+        if compact {
+            "Payment will be charged to your Apple Account at confirmation of purchase.\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.\nCancel anytime in App Store settings."
+        } else {
+            "Payment will be charged to your Apple Account at confirmation of purchase.\n\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.\n\nCancel anytime in App Store settings."
+        }
+    }
+
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: compact ? 6 : 16) {
             if includeRestoreButton {
                 Button("Restore Purchases") {
                     Task {
@@ -241,25 +315,20 @@ private struct SubscriptionLegalFooterView: View {
                         }
                     }
                 }
-                .font(.system(.caption, design: .default, weight: .regular))
-                .foregroundStyle(.blue)
+                .font(.system(compact ? .footnote : .subheadline, design: .default, weight: .medium))
+                .foregroundStyle(.black.opacity(0.85))
                 .disabled(premiumProducts.isPurchasing)
-                .padding(.bottom, 8)
+                .padding(.bottom, compact ? 2 : 8)
             }
 
-            Text("Payment will be charged to your Apple Account at confirmation of purchase.\n\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.\n\nCancel anytime in App Store settings.")
+            Text(subscriptionDisclosureText)
                 .font(.system(.caption2, design: .default, weight: .regular))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.black.opacity(0.7))
                 .multilineTextAlignment(.center)
 
-            HStack(spacing: 4) {
-                Link("Privacy Policy", destination: URL(string: "https://lukebillings.github.io/SubHelp/privacypolicy/index.html")!)
-                Text("·")
-                Link("Terms and Conditions", destination: URL(string: "https://lukebillings.github.io/SubHelp/termsandconditions/index.html")!)
-                Text("·")
-                Link("Terms of Use (EULA)", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+            if includePolicyLinks {
+                SubscriptionPolicyLinksRow()
             }
-            .font(.system(.caption2, design: .default, weight: .regular))
         }
         .alert("Restore", isPresented: Binding(
             get: { restoreAlertMessage != nil },
@@ -401,12 +470,157 @@ struct UpgradePaywallView: View {
     }
 }
 
+// MARK: - Paywall glass surfaces (match onboarding on brand blue)
+
+struct PaywallGlassPanel: View {
+    var cornerRadius: CGFloat = 20
+    var borderEmphasized: Bool = false
+    private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
+
+    var body: some View {
+        let r = cornerRadius
+        ZStack {
+            RoundedRectangle(cornerRadius: r, style: .continuous)
+                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: r, style: .continuous)
+                .fill(Color.white.opacity(borderEmphasized ? 0.26 : 0.16))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: r, style: .continuous))
+        .overlay {
+            if borderEmphasized {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .strokeBorder(brandGold, lineWidth: 2.5)
+            } else {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.58),
+                                Color.white.opacity(0.18)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.1
+                    )
+            }
+        }
+        .shadow(color: Color.black.opacity(0.07), radius: 10, x: 0, y: 4)
+    }
+}
+
+struct ShinyGoldCircleCloseBackground: View {
+    var body: some View {
+        Circle()
+            .fill(Self.metallicGoldGradient)
+            .overlay {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.55),
+                                Color.white.opacity(0.08),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .blendMode(.screen)
+            }
+            .overlay(
+                Circle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.7),
+                                Color.white.opacity(0.2)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1.1
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.16), radius: 5, x: 0, y: 3)
+            .shadow(color: Color(red: 0.96, green: 0.78, blue: 0.22).opacity(0.4), radius: 10, x: 0, y: 5)
+    }
+
+    private static var metallicGoldGradient: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: Color(red: 1.0, green: 0.93, blue: 0.48), location: 0),
+                .init(color: Color(red: 0.98, green: 0.82, blue: 0.28), location: 0.45),
+                .init(color: Color(red: 0.92, green: 0.68, blue: 0.12), location: 1)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
+// MARK: - Shiny gold primary CTA
+
+/// Solid metallic gold with a bright highlight (Continue, Turn on notifications, etc.).
+struct ShinyGoldCTABackground: View {
+    static let cornerRadius: CGFloat = 24
+
+    var body: some View {
+        let r = Self.cornerRadius
+        RoundedRectangle(cornerRadius: r, style: .continuous)
+            .fill(Self.metallicGoldGradient)
+            .overlay {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.5),
+                                Color.white.opacity(0.1),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: UnitPoint(x: 0.55, y: 0.5)
+                        )
+                    )
+                    .blendMode(.screen)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.65),
+                                Color.white.opacity(0.18)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1.2
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 4)
+            .shadow(color: Color(red: 0.96, green: 0.78, blue: 0.22).opacity(0.42), radius: 14, x: 0, y: 7)
+    }
+
+    private static var metallicGoldGradient: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: Color(red: 1.0, green: 0.93, blue: 0.48), location: 0),
+                .init(color: Color(red: 0.99, green: 0.84, blue: 0.32), location: 0.38),
+                .init(color: Color(red: 0.96, green: 0.72, blue: 0.16), location: 0.72),
+                .init(color: Color(red: 0.82, green: 0.56, blue: 0.06), location: 1)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
 #Preview("Paywall") {
     PaywallView(
         hasCompletedPaywall: .constant(false),
         selectedTier: .constant(.free),
-        onSelect: { _ in },
-        freeDismissCountdownSeconds: 0
+        onSelect: { _ in }
     )
     .environmentObject(PremiumSubscriptionProducts())
 }

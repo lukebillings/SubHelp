@@ -1,10 +1,12 @@
 import SwiftUI
+import StoreKit
 import AVFoundation
 import UIKit
 
 struct SubscriptionDetailView: View {
     @Binding var subscription: Subscription
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.requestReview) private var requestReview
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     var onUnsubscribe: ((Subscription) -> Void)?
 
@@ -70,7 +72,7 @@ struct SubscriptionDetailView: View {
 
     private var savingsText: String {
         let amount = subscription.price
-        let formatted = amount.formatted(.currency(code: currencyCode))
+        let formatted = CurrencyOptions.formatPresentation(amount: amount, currencyCode: currencyCode)
         switch subscription.frequency {
         case .weekly: return "\(formatted) per week"
         case .monthly: return "\(formatted) per month"
@@ -128,7 +130,7 @@ struct SubscriptionDetailView: View {
             HStack {
                 Text("Amount")
                 Spacer()
-                TextField("Price", value: $subscription.price, format: .currency(code: currencyCode))
+                TextField("Price", value: $subscription.price, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
             }
@@ -261,6 +263,11 @@ struct SubscriptionDetailView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             let impactLight = UIImpactFeedbackGenerator(style: .light)
             impactLight.impactOccurred()
+        }
+
+        // System may ignore this if a review was requested recently (Apple caps frequency).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            requestReview()
         }
     }
 
