@@ -19,7 +19,6 @@ struct PaywallView: View {
     @State private var purchaseInfoMessage: String?
     @State private var selectedOffer: SubscriptionTier = .yearly
 
-    private let brandBlue = Color(red: 0.596, green: 0.812, blue: 0.875)
     private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
     private let ctaHorizontalPadding: CGFloat = 22
     private let ctaBottomInset: CGFloat = 16
@@ -70,11 +69,12 @@ struct PaywallView: View {
                 ScrollView(showsIndicators: false) {
                     paywallScrollableColumn(spacing: 24)
                 }
+                .scrollContentBackground(.hidden)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .tint(.black)
-        .background(brandBlue.ignoresSafeArea())
+        .background(Color(.systemBackground).ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 8) {
                 Button {
@@ -128,14 +128,6 @@ struct PaywallView: View {
                 .minimumScaleFactor(0.88)
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
-
-            Text("See everything in one place, avoid surprise renewals, and stay in control of your spending.")
-                .font(.system(.body, design: .default, weight: .regular))
-                .foregroundStyle(.black.opacity(0.85))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 12)
 
             VStack(alignment: .leading, spacing: 10) {
                 benefitRow(String(localized: "Track unlimited subscriptions"), compact: false)
@@ -366,7 +358,7 @@ struct UpgradePaywallView: View {
 
                     Text("Subscribe to SubHelp Premium to add more than 3 subscriptions.")
                         .font(.system(.body, design: .default, weight: .regular))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.black.opacity(0.85))
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity)
@@ -421,9 +413,11 @@ struct UpgradePaywallView: View {
 
                 Spacer(minLength: 16)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color(.systemBackground).ignoresSafeArea())
             .navigationTitle("Upgrade")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+            .tint(.black)
             .overlay {
                 if premiumProducts.isPurchasing {
                     Color.black.opacity(0.12)

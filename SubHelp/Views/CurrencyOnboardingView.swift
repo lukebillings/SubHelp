@@ -11,7 +11,6 @@ struct CurrencyOnboardingView: View {
     @State private var step = 0
     @State private var benefitPageIndex = 0
 
-    private let brandBlue = Color(red: 0.596, green: 0.812, blue: 0.875)
     private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
 
     private let benefitPages: [BenefitPage] = [
@@ -39,7 +38,7 @@ struct CurrencyOnboardingView: View {
 
     var body: some View {
         ZStack {
-            brandBlue.ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
 
             NavigationStack {
                 Group {
@@ -71,7 +70,7 @@ struct CurrencyOnboardingView: View {
             .tint(.black)
             .scrollContentBackground(.hidden)
             .background(Color.clear)
-            .toolbarBackground(brandBlue, for: .navigationBar)
+            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
