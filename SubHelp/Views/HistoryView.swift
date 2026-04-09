@@ -12,53 +12,46 @@ struct HistoryView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.unsubscribed.isEmpty {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            if subscriptionTier == .free {
-                                PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 8)
-                                    .padding(.bottom, 8)
+            ZStack {
+                Color(.systemGroupedBackground).ignoresSafeArea()
+                Group {
+                    if viewModel.unsubscribed.isEmpty {
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                emptyState
                             }
-                            emptyState
+                            .frame(maxWidth: .infinity)
                         }
-                    }
-                    .background(Color(.systemGroupedBackground))
-                } else {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            if subscriptionTier == .free {
-                                PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
+                        .scrollContentBackground(.hidden)
+                    } else {
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                savedHeroSection
                                     .padding(.horizontal, 20)
-                                    .padding(.top, 8)
-                                    .padding(.bottom, 8)
-                            }
-                            savedHeroSection
-                                .padding(.horizontal, 20)
-                                .padding(.top, 16)
-                                .padding(.bottom, 20)
+                                    .padding(.top, 16)
+                                    .padding(.bottom, 20)
 
-                            HStack {
-                                Text("\(viewModel.unsubscribed.count) cancelled")
-                                    .font(.system(.footnote, design: .default, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 8)
-
-                            LazyVStack(spacing: 12) {
-                                ForEach(viewModel.unsubscribed) { sub in
-                                    historyRow(sub)
+                                HStack {
+                                    Text("\(viewModel.unsubscribed.count) cancelled")
+                                        .font(.system(.footnote, design: .default, weight: .medium))
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
                                 }
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 8)
+
+                                LazyVStack(spacing: 12) {
+                                    ForEach(viewModel.unsubscribed) { sub in
+                                        historyRow(sub)
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 20)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
+                            .frame(maxWidth: .infinity)
                         }
+                        .scrollContentBackground(.hidden)
                     }
-                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("History")
@@ -76,7 +69,7 @@ struct HistoryView: View {
         VStack(spacing: 16) {
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(viewModel.unsubscribedSavedPerYear, format: .currency(code: currencyCode))
+                    Text(CurrencyOptions.formatPresentation(amount: viewModel.unsubscribedSavedPerYear, currencyCode: currencyCode))
                         .font(.system(size: 42, weight: .bold, design: .default))
                         .foregroundStyle(.primary)
                     Text("That's how much you're saving per year thanks to the subscriptions you've cancelled.")
@@ -132,7 +125,7 @@ struct HistoryView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(sub.price, format: .currency(code: currencyCode))
+                Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
                     .font(.system(.headline, design: .default, weight: .bold))
                     .foregroundStyle(.white)
                 Text(sub.frequency.shortLabel)

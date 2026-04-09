@@ -1,0 +1,40 @@
+{
+  "source": "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/SubHelpApp.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Subscriptions",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 62
+        }
+      },
+      {
+        "comment": "",
+        "key": "History",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 71
+        }
+      },
+      {
+        "comment": "",
+        "key": "Help",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 74
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 77
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,224 @@
+{
+  "source": "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/HomeView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "View",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "No subscriptions in this category.",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 39
+        }
+      },
+      {
+        "comment": "",
+        "key": "Know what subscriptions you have?",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 125
+        }
+      },
+      {
+        "comment": "",
+        "key": "Get started by manually adding a subscription.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not sure where to start?",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 154
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Subscription",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 143
+        }
+      },
+      {
+        "comment": "",
+        "key": "Help Find Subscriptions",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 166
+        }
+      },
+      {
+        "comment": "",
+        "key": "Subscription Spend",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 184
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ ",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 188
+        }
+      },
+      {
+        "comment": "",
+        "key": "/month",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 190
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ ",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 194
+        }
+      },
+      {
+        "comment": "",
+        "key": "/year",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 196
+        }
+      },
+      {
+        "comment": "",
+        "key": "+ Add Subscription",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 200
+        }
+      },
+      {
+        "comment": "",
+        "key": "Help Find Subscriptions",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 222
+        }
+      },
+      {
+        "comment": "",
+        "key": "Yearly Savings",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 247
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next payment: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 383
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 484
+        }
+      },
+      {
+        "comment": "",
+        "key": "No subscriptions due",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 521
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 609
+        }
+      },
+      {
+        "comment": "",
+        "key": "I'm Saving",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 678
+        }
+      },
+      {
+        "comment": "",
+        "key": "per year",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 691
+        }
+      },
+      {
+        "comment": "",
+        "key": "per month",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 704
+        }
+      },
+      {
+        "comment": "",
+        "key": "per week",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 718
+        }
+      },
+      {
+        "comment": "",
+        "key": "Subscriptions",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 779
+        }
+      },
+      {
+        "comment": "",
+        "key": "History",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 786
+        }
+      },
+      {
+        "comment": "",
+        "key": "Help",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 789
+        }
+      },
+      {
+        "comment": "",
+        "key": "Settings",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 792
+        }
+      }
+    ]
+  },
+  "version": 1
+}

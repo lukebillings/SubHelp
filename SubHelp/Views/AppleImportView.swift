@@ -133,7 +133,7 @@ struct AppleImportView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(service.displayName)
                         .font(.system(.body, design: .default, weight: .semibold))
-                    Text("\(service.price, format: .currency(code: currencyCode))\(service.frequency.shortLabel)")
+                    Text("\(CurrencyOptions.formatPresentation(amount: service.price, currencyCode: currencyCode))\(service.frequency.shortLabel)")
                         .font(.system(.subheadline, design: .default, weight: .regular))
                         .foregroundStyle(.secondary)
                 }

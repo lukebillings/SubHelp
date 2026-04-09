@@ -1,0 +1,72 @@
+{
+  "source": "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Models/PremiumSubscriptionProducts.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Something went wrong. Please try again.",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 111
+        }
+      },
+      {
+        "comment": "",
+        "key": "Subscription options couldn’t be loaded. Check your connection or try again in a moment.",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 89
+        }
+      },
+      {
+        "comment": "",
+        "key": "per year",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Price unavailable",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "Loading…",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 176
+        }
+      },
+      {
+        "comment": "",
+        "key": "per month",
+        "location": {
+          "startingColumn": 77,
+          "startingLine": 136
+        }
+      },
+      {
+        "comment": "",
+        "key": "Price unavailable",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 135
+        }
+      },
+      {
+        "comment": "",
+        "key": "≈ %@ per month",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 147
+        }
+      }
+    ]
+  },
+  "version": 1
+}

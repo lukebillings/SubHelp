@@ -1,0 +1,64 @@
+{
+  "source": "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/AppleImportView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Import from Apple",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 80
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your Apple subscriptions have been opened in Settings as a reference. Tick the ones you have below, set the renewal date, then tap Add.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 59
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Apple Subscriptions",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 68
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 113
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next renewal",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 165
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 136
+        }
+      }
+    ]
+  },
+  "version": 1
+}

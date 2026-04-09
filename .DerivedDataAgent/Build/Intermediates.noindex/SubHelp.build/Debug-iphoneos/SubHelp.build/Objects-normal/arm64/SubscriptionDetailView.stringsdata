@@ -1,0 +1,336 @@
+{
+  "source": "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/SubscriptionDetailView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Sub details",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancellation help",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 164
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 95
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 110
+        }
+      },
+      {
+        "comment": "",
+        "key": "Frequency",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 124
+        }
+      },
+      {
+        "comment": "",
+        "key": "When it renews",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 138
+        }
+      },
+      {
+        "comment": "",
+        "key": "None",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 118
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Price",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "Background colour",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 141
+        }
+      },
+      {
+        "comment": "",
+        "key": "Here you’ll find different ways to cancel this subscription.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 167
+        }
+      },
+      {
+        "comment": "",
+        "key": "1. Apple subscriptions",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 175
+        }
+      },
+      {
+        "comment": "",
+        "key": "Click below to see if this subscription is being paid for with your Apple account. You can cancel there.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "Check Apple subscriptions",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 185
+        }
+      },
+      {
+        "comment": "",
+        "key": "2. Popular services guide",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "Step-by-step how to unsubscribe or cancel for common services.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 195
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel Guides",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 359
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel guide (popular services)",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 204
+        }
+      },
+      {
+        "comment": "",
+        "key": "3. General guide",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 210
+        }
+      },
+      {
+        "comment": "",
+        "key": "General steps for cancelling via the service's website or Apple.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 212
+        }
+      },
+      {
+        "comment": "",
+        "key": "General cancel guide",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 221
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark as Unsubscribed",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 236
+        }
+      },
+      {
+        "comment": "",
+        "key": "Yay!",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 317
+        }
+      },
+      {
+        "comment": "",
+        "key": "You save %@ now!",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 320
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap anywhere to close",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 324
+        }
+      },
+      {
+        "comment": "",
+        "key": "Apple Subscriptions",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 424
+        }
+      },
+      {
+        "comment": "",
+        "key": "Steps",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 406
+        }
+      },
+      {
+        "comment": "",
+        "key": "If you subscribed through the App Store, you can manage and cancel directly from your Apple ID settings.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 402
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open the Settings app",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 407
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap your name at the top",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 408
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap Subscriptions",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 409
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap the subscription to cancel",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 410
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap Cancel Subscription",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 411
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Subscription Settings",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 415
+        }
+      },
+      {
+        "comment": "",
+        "key": "General Guide",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 443
+        }
+      },
+      {
+        "comment": "",
+        "key": "Via the service's website",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 433
+        }
+      },
+      {
+        "comment": "",
+        "key": "Log in to the service's website",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 434
+        }
+      },
+      {
+        "comment": "",
+        "key": "Go to Account or Settings",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 435
+        }
+      },
+      {
+        "comment": "",
+        "key": "Look for Subscription or Billing",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 436
+        }
+      },
+      {
+        "comment": "",
+        "key": "Click Cancel / End subscription",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 437
+        }
+      },
+      {
+        "comment": "",
+        "key": "Confirm the cancellation",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 438
+        }
+      }
+    ]
+  },
+  "version": 1
+}
