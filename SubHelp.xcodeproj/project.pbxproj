@@ -26,7 +26,7 @@
 		5A00004C2B8F4A0100C7D8E9 /* CurrencyOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00004A2B8F4A0100C7D8E9 /* CurrencyOptions.swift */; };
 		5A00004D2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */; };
 		5A0000522B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */; };
-		5A0000552B8F4A0100C7D8E9 /* PremiumUpgradePromoBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000562B8F4A0100C7D8E9 /* PremiumUpgradePromoBanner.swift */; };
+		5A0000552B8F4A0100C7D8E9 /* SubHelpHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000562B8F4A0100C7D8E9 /* SubHelpHaptics.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,7 +51,7 @@
 		5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyOnboardingView.swift; sourceTree = "<group>"; };
 		5A00004E2B8F4A0100C7D8E9 /* SubHelp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SubHelp.entitlements; sourceTree = "<group>"; };
 		5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpAppDelegate.swift; sourceTree = "<group>"; };
-		5A0000562B8F4A0100C7D8E9 /* PremiumUpgradePromoBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumUpgradePromoBanner.swift; sourceTree = "<group>"; };
+		5A0000562B8F4A0100C7D8E9 /* SubHelpHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpHaptics.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +78,7 @@
 			children = (
 				5A0000112B8F4A0100C7D8E9 /* SubHelpApp.swift */,
 				5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */,
+				5A0000562B8F4A0100C7D8E9 /* SubHelpHaptics.swift */,
 				5A0000052B8F4A0100C7D8E9 /* Views */,
 				5A0000062B8F4A0100C7D8E9 /* ViewModels */,
 				5A0000072B8F4A0100C7D8E9 /* Models */,
@@ -108,7 +109,6 @@
 				5A0000402B8F4A0100C7D8E9 /* HelpView.swift */,
 				5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */,
 				5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */,
-				5A0000562B8F4A0100C7D8E9 /* PremiumUpgradePromoBanner.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -204,6 +204,7 @@
 			files = (
 				5A0000122B8F4A0100C7D8E9 /* SubHelpApp.swift in Sources */,
 				5A0000522B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift in Sources */,
+				5A0000552B8F4A0100C7D8E9 /* SubHelpHaptics.swift in Sources */,
 				5A0000142B8F4A0100C7D8E9 /* HomeView.swift in Sources */,
 				5A0000162B8F4A0100C7D8E9 /* HomeViewModel.swift in Sources */,
 				5A00001A2B8F4A0100C7D8E9 /* Subscription.swift in Sources */,
@@ -220,7 +221,6 @@
 				5A0000492B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift in Sources */,
 				5A00004C2B8F4A0100C7D8E9 /* CurrencyOptions.swift in Sources */,
 				5A00004D2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift in Sources */,
-				5A0000552B8F4A0100C7D8E9 /* PremiumUpgradePromoBanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -357,7 +357,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = SubHelp/SubHelp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -370,7 +370,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.subhelp.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -387,7 +387,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = SubHelp/SubHelp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -400,7 +400,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.subhelp.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

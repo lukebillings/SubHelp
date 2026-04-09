@@ -1,0 +1,248 @@
+{
+  "source": "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/PaywallView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "SubHelp Premium",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 107
+        }
+      },
+      {
+        "comment": "",
+        "key": "Close",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 61
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your purchase is waiting for approval. SubHelp Premium will unlock when it completes.",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 199
+        }
+      },
+      {
+        "comment": "",
+        "key": "Continue",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 83
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 111
+        }
+      },
+      {
+        "comment": "",
+        "key": "Take control of your subscriptions",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 124
+        }
+      },
+      {
+        "comment": "",
+        "key": "See everything in one place, avoid surprise renewals, and stay in control of your spending.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "Track unlimited subscriptions",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 141
+        }
+      },
+      {
+        "comment": "",
+        "key": "Receive subscription renewal reminders",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 142
+        }
+      },
+      {
+        "comment": "",
+        "key": "No ads",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 143
+        }
+      },
+      {
+        "comment": "",
+        "key": "Yearly",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 152
+        }
+      },
+      {
+        "comment": "",
+        "key": "Monthly",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 161
+        }
+      },
+      {
+        "comment": "",
+        "key": "·",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 277
+        }
+      },
+      {
+        "comment": "",
+        "key": "·",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 279
+        }
+      },
+      {
+        "comment": "",
+        "key": "Privacy Policy",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 276
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terms and Conditions",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 278
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terms of Use (EULA)",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 280
+        }
+      },
+      {
+        "comment": "",
+        "key": "Restore",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 333
+        }
+      },
+      {
+        "comment": "",
+        "key": "Restore Purchases",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 309
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your purchases were synced with the App Store.",
+        "location": {
+          "startingColumn": 69,
+          "startingLine": 314
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 337
+        }
+      },
+      {
+        "comment": "",
+        "key": "Upgrade",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 425
+        }
+      },
+      {
+        "comment": "",
+        "key": "SubHelp Premium",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 443
+        }
+      },
+      {
+        "comment": "",
+        "key": "Subscription limit reached",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 364
+        }
+      },
+      {
+        "comment": "",
+        "key": "Subscribe to SubHelp Premium to add more than 3 subscriptions.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 367
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your purchase is waiting for approval. SubHelp Premium will unlock when it completes.",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 466
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add more than 3 subscriptions",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 384
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add more than 3 subscriptions",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 402
+        }
+      },
+      {
+        "comment": "",
+        "key": "Not now",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 437
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 447
+        }
+      }
+    ]
+  },
+  "version": 1
+}

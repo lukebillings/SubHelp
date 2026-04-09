@@ -66,6 +66,12 @@ private extension Color {
 
 // MARK: - Subscription storage (local + iCloud Key-Value)
 
+/// UserDefaults keys shared outside `SubscriptionStorage`.
+enum SubHelpAppStorageKey {
+    /// Set when the user finishes the current onboarding (benefits → currency → reminders). Used to migrate pre–onboarding-v2 installs once.
+    static let hasCompletedOnboardingV2 = "subhelp.hasCompletedOnboardingV2"
+}
+
 enum SubscriptionStorage {
     static let subscriptionsKey = "subhelp.subscriptions"
     static let unsubscribedKey = "subhelp.unsubscribed"
@@ -172,10 +178,12 @@ enum SubscriptionStorage {
 
         UserDefaults.standard.set(false, forKey: "hasCompletedPaywall")
         UserDefaults.standard.set(false, forKey: "hasCompletedCurrencyOnboarding")
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.hasCompletedOnboardingV2)
         UserDefaults.standard.set(false, forKey: "subhelp.didCompleteNotificationSetup")
         UserDefaults.standard.set("GBP", forKey: "currencyCode")
         UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
-        UserDefaults.standard.removeObject(forKey: "hapticsEnabled")
+        UserDefaults.standard.removeObject(forKey: RenewalNotificationScheduler.notificationsEnabledKey)
+        UserDefaults.standard.removeObject(forKey: SubHelpHaptics.userDefaultsKey)
         UserDefaults.standard.set(SubscriptionTier.free.rawValue, forKey: "subscriptionTier")
         UserDefaults.standard.removeObject(forKey: "subhelp.sessionPaywallActivateCount")
     }

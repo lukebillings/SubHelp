@@ -27,11 +27,6 @@ struct HomeView: View {
             } else {
                 VStack(spacing: 0) {
                     summarySection
-                    if subscriptionTier == .free {
-                        PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
-                    }
                     segmentControl
 
                     switch viewModel.viewMode {
@@ -138,12 +133,6 @@ struct HomeView: View {
                         .multilineTextAlignment(.center)
                         .padding(.bottom, 20)
 
-                    if subscriptionTier == .free {
-                        PremiumUpgradePromoBanner(onUpgradeTap: { showUpgradePaywall = true })
-                            .padding(.horizontal, 24)
-                            .padding(.bottom, 20)
-                    }
-
                     Button {
                         if canAddMore {
                             showAddSheet = true
@@ -196,13 +185,13 @@ struct HomeView: View {
                     .font(.system(.title3, design: .default, weight: .bold))
                     .foregroundStyle(.primary)
 
-                (Text("\(viewModel.totalPerMonth, format: .currency(code: currencyCode)) ")
+                (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerMonth, currencyCode: currencyCode)) ")
                     .font(.system(.title, design: .default, weight: .bold))
                  + Text("/month")
                     .font(.system(.title3, design: .default, weight: .medium))
                     .foregroundStyle(.secondary))
 
-                (Text("\(viewModel.totalPerYear, format: .currency(code: currencyCode)) ")
+                (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerYear, currencyCode: currencyCode)) ")
                     .font(.system(.title, design: .default, weight: .bold))
                  + Text("/year")
                     .font(.system(.title3, design: .default, weight: .medium))
@@ -253,7 +242,7 @@ struct HomeView: View {
                         .clipShape(Circle())
 
                     VStack(spacing: 2) {
-                        Text(viewModel.savedAmount * 12, format: .currency(code: currencyCode))
+                        Text(CurrencyOptions.formatPresentation(amount: viewModel.savedAmount * 12, currencyCode: currencyCode))
                             .font(.system(.subheadline, design: .default, weight: .bold))
                         Text("Yearly Savings")
                             .font(.system(.caption2, design: .default, weight: .bold))
@@ -397,7 +386,7 @@ struct HomeView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(sub.price, format: .currency(code: currencyCode))
+                Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
                     .font(.system(.headline, design: .default, weight: .bold))
                     .foregroundStyle(.white)
                 Text(sub.frequency.shortLabel)
@@ -559,7 +548,7 @@ struct HomeView: View {
                 .foregroundStyle(.white)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
-            Text(sub.price, format: .currency(code: currencyCode))
+            Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
                 .font(.system(.headline, design: .default, weight: .bold))
                 .foregroundStyle(.white)
             Text(sub.frequency.rawValue)
@@ -694,7 +683,7 @@ private struct SavingsHologramCardView: View {
                     .padding(.top, 14)
 
                 // Large yearly amount
-                Text(savedPerYear, format: .currency(code: currencyCode))
+                Text(CurrencyOptions.formatPresentation(amount: savedPerYear, currencyCode: currencyCode))
                     .font(.system(size: 36, weight: .heavy, design: .default))
                     .foregroundStyle(.black.opacity(0.9))
                     .padding(.top, 4)
@@ -709,7 +698,7 @@ private struct SavingsHologramCardView: View {
                 // Monthly and weekly
                 HStack(spacing: 0) {
                     VStack(spacing: 4) {
-                        Text(savedAmountPerMonth, format: .currency(code: currencyCode))
+                        Text(CurrencyOptions.formatPresentation(amount: savedAmountPerMonth, currencyCode: currencyCode))
                             .font(.system(.title3, design: .default, weight: .bold))
                             .foregroundStyle(.black.opacity(0.85))
                         Text("per month")
@@ -723,7 +712,7 @@ private struct SavingsHologramCardView: View {
                         .frame(width: 1, height: 36)
 
                     VStack(spacing: 4) {
-                        Text(savedPerWeek, format: .currency(code: currencyCode))
+                        Text(CurrencyOptions.formatPresentation(amount: savedPerWeek, currencyCode: currencyCode))
                             .font(.system(.title3, design: .default, weight: .bold))
                             .foregroundStyle(.black.opacity(0.85))
                         Text("per week")

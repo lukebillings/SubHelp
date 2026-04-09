@@ -1,0 +1,23 @@
+{
+  "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/AppleImportView.swift" : {
+    "const-values" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/AppleImportView.swiftconstvalues",
+    "dependencies" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/AppleImportView.d",
+    "diagnostics" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/AppleImportView.dia",
+    "object" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/AppleImportView.o",
+    "swift-dependencies" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/AppleImportView.swiftdeps"
+  },
+  "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/HelpView.swift" : {
+    "const-values" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/HelpView.swiftconstvalues",
+    "dependencies" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/HelpView.d",
+    "diagnostics" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/HelpView.dia",
+    "object" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/HelpView.o",
+    "swift-dependencies" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/HelpView.swiftdeps"
+  },
+  "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/QuickStartGuideView.swift" : {
+    "const-values" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/QuickStartGuideView.swiftconstvalues",
+    "dependencies" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/QuickStartGuideView.d",
+    "diagnostics" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/QuickStartGuideView.dia",
+    "object" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/QuickStartGuideView.o",
+    "swift-dependencies" : "/Users/lukebillings/code/lukebillings/SubHelp/.DerivedData/Build/Intermediates.noindex/SubHelp.build/Debug-iphoneos/SubHelp.build/Objects-normal/arm64/QuickStartGuideView.swiftdeps"
+  }
+}

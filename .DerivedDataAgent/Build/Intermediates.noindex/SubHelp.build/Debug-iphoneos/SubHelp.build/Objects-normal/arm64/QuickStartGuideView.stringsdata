@@ -1,0 +1,256 @@
+{
+  "source": "/Users/lukebillings/code/lukebillings/SubHelp/SubHelp/Views/QuickStartGuideView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Help Find Subscriptions",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 347
+        }
+      },
+      {
+        "comment": "",
+        "key": "Here are places to check",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 232
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 123
+        }
+      },
+      {
+        "comment": "",
+        "key": "All",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 140
+        }
+      },
+      {
+        "comment": "",
+        "key": "Here are some common subscriptions you might already have. Just tap any you use to quickly add it.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 174
+        }
+      },
+      {
+        "comment": "",
+        "key": "Find where your subscriptions appear, then use the button on the main screen to add them manually.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 217
+        }
+      },
+      {
+        "comment": "",
+        "key": "+ Add Subscription",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 221
+        }
+      },
+      {
+        "comment": "",
+        "key": "1. Apple Subscriptions",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 235
+        }
+      },
+      {
+        "comment": "",
+        "key": "See what you're billed for through your Apple ID.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 237
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open your Apple Subscriptions",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 245
+        }
+      },
+      {
+        "comment": "",
+        "key": "2. Email",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 253
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy the text below. Open your email app with the links below, paste in the search term, then look through your mail to see subscriptions.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 255
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copied",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 277
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mail",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 302
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gmail",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 313
+        }
+      },
+      {
+        "comment": "",
+        "key": "Outlook",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 324
+        }
+      },
+      {
+        "comment": "",
+        "key": "3. Banking apps",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 335
+        }
+      },
+      {
+        "comment": "",
+        "key": "Flick through your banking app and see if you spot something you subscribe to. Many banking apps also have a recurring payments or subscriptions section — check there too.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 337
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 351
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 444
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 409
+        }
+      },
+      {
+        "comment": "",
+        "key": "How do you pay?",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 416
+        }
+      },
+      {
+        "comment": "",
+        "key": "Service",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 403
+        }
+      },
+      {
+        "comment": "",
+        "key": "None",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 410
+        }
+      },
+      {
+        "comment": "",
+        "key": "How much do you pay? If not estimate.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 430
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 424
+        }
+      },
+      {
+        "comment": "",
+        "key": "0.00",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 426
+        }
+      },
+      {
+        "comment": "",
+        "key": "Know when your next payment is? If not we will assume 1st of each month, you can always change later.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 437
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next payment",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 436
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 448
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 451
+        }
+      }
+    ]
+  },
+  "version": 1
+}

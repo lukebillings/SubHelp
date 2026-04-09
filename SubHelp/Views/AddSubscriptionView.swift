@@ -62,7 +62,7 @@ struct AddSubscriptionView: View {
                     HStack {
                         Text("Amount")
                         Spacer()
-                        TextField("0.00", value: $price, format: .currency(code: currencyCode))
+                        TextField("0.00", value: $price, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                     }
@@ -109,7 +109,7 @@ struct AddSubscriptionView: View {
                             }
                             Spacer()
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text(price ?? 0, format: .currency(code: currencyCode))
+                                Text(CurrencyOptions.formatPresentation(amount: price ?? 0, currencyCode: currencyCode))
                                     .font(.system(.headline, design: .default, weight: .bold))
                                     .foregroundStyle(.white)
                                 Text(frequency.shortLabel)
