@@ -44,21 +44,6 @@ struct PaywallView: View {
                     .clipShape(Circle())
                     .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1.5))
                 Spacer(minLength: 0)
-                Button {
-                    SubHelpHaptics.impact(.light)
-                    selectedTier = .free
-                    hasCompletedPaywall = true
-                    onSelect(.free)
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.black.opacity(0.85))
-                        .frame(width: 36, height: 36)
-                        .background { ShinyGoldCircleCloseBackground() }
-                }
-                .buttonStyle(.plain)
-                .disabled(premiumProducts.isPurchasing)
-                .accessibilityLabel(String(localized: "Close"))
             }
             .padding(.horizontal, ctaHorizontalPadding)
             .padding(.top, 8)
@@ -77,32 +62,19 @@ struct PaywallView: View {
         .tint(.black)
         .background(Color(.systemBackground).ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            // Same bottom chrome as `CurrencyOnboardingView.onboardingBottomChrome` (steps 0–1).
-            VStack(spacing: 12) {
-                Text("Not now")
-                    .font(.system(.headline, design: .default, weight: .semibold))
-                    .foregroundStyle(.clear)
+            Button {
+                SubHelpHaptics.impact(.medium)
+                Task { await purchasePremium(tier: selectedOffer) }
+            } label: {
+                Text("Continue")
+                    .font(.system(.title3, design: .default, weight: .bold))
+                    .foregroundStyle(.black.opacity(0.85))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(Color.clear)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                    .accessibilityHidden(true)
-                    .allowsHitTesting(false)
-
-                Button {
-                    SubHelpHaptics.impact(.medium)
-                    Task { await purchasePremium(tier: selectedOffer) }
-                } label: {
-                    Text("Continue")
-                        .font(.system(.title3, design: .default, weight: .bold))
-                        .foregroundStyle(.black.opacity(0.85))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background { ShinyGoldCTABackground() }
-                }
-                .buttonStyle(.plain)
-                .disabled(premiumProducts.isPurchasing)
+                    .background { ShinyGoldCTABackground() }
             }
+            .buttonStyle(.plain)
+            .disabled(premiumProducts.isPurchasing)
             .padding(.horizontal, ctaHorizontalPadding)
             .padding(.top, 8)
             .padding(.bottom, ctaBottomInset)
@@ -465,15 +437,6 @@ struct UpgradePaywallView: View {
                         .scaleEffect(1.2)
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Not now") {
-                        SubHelpHaptics.impact(.light)
-                        dismiss()
-                    }
-                    .disabled(premiumProducts.isPurchasing)
-                }
-            }
             .alert("SubHelp Premium", isPresented: Binding(
                 get: { purchaseInfoMessage != nil },
                 set: { if !$0 { purchaseInfoMessage = nil } }
@@ -540,56 +503,6 @@ struct PaywallGlassPanel: View {
             }
         }
         .shadow(color: Color.black.opacity(0.07), radius: 10, x: 0, y: 4)
-    }
-}
-
-struct ShinyGoldCircleCloseBackground: View {
-    var body: some View {
-        Circle()
-            .fill(Self.metallicGoldGradient)
-            .overlay {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.55),
-                                Color.white.opacity(0.08),
-                                Color.clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .blendMode(.screen)
-            }
-            .overlay(
-                Circle()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.7),
-                                Color.white.opacity(0.2)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 1.1
-                    )
-            )
-            .shadow(color: Color.black.opacity(0.16), radius: 5, x: 0, y: 3)
-            .shadow(color: Color(red: 0.96, green: 0.78, blue: 0.22).opacity(0.4), radius: 10, x: 0, y: 5)
-    }
-
-    private static var metallicGoldGradient: LinearGradient {
-        LinearGradient(
-            stops: [
-                .init(color: Color(red: 1.0, green: 0.93, blue: 0.48), location: 0),
-                .init(color: Color(red: 0.98, green: 0.82, blue: 0.28), location: 0.45),
-                .init(color: Color(red: 0.92, green: 0.68, blue: 0.12), location: 1)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
     }
 }
 
