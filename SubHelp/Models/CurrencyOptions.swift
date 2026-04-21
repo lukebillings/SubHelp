@@ -25,6 +25,7 @@ enum CurrencyOptions {
         ("DKK", "kr DKK – Danish Krone"),
         ("DZD", "د.ج DZD – Algerian Dinar"),
         ("EGP", "E£ EGP – Egyptian Pound"),
+        ("GHS", "₵ GHS – Ghanaian Cedi"),
         ("HKD", "HK$ HKD – Hong Kong Dollar"),
         ("HRK", "kn HRK – Croatian Kuna"),
         ("HUF", "Ft HUF – Hungarian Forint"),
