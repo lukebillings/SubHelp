@@ -136,44 +136,6 @@ final class PremiumSubscriptionProducts: ObservableObject {
         return planTitle(product: monthlyProduct, period: String(localized: "per month"), fallback: fb)
     }
 
-    /// Yearly plan price divided by subscription length in months, formatted with the product’s currency (for paywall).
-    func yearlyEffectiveMonthlySubtitle() -> String? {
-        guard let (perMonth, product) = yearlyEffectiveMonthlyComponents() else { return nil }
-        let formatted = Self.formattedStoreAmount(perMonth, product: product)
-        return String(format: String(localized: "≈ %@ per month"), formatted as CVarArg)
-    }
-
-    /// Short badge for yearly card, e.g. "≈ $1.67/mo" (yearly price ÷ months in period).
-    func yearlyEffectiveMonthlyBadgeText() -> String? {
-        guard let (perMonth, product) = yearlyEffectiveMonthlyComponents() else { return nil }
-        let formatted = Self.formattedStoreAmount(perMonth, product: product)
-        return String(format: String(localized: "≈ %@/mo"), formatted as CVarArg)
-    }
-
-    private func yearlyEffectiveMonthlyComponents() -> (Decimal, Product)? {
-        guard loadState != .idle, loadState != .loading else { return nil }
-        guard let product = yearlyProduct, let subscription = product.subscription else { return nil }
-        let months = Self.monthCount(for: subscription.subscriptionPeriod)
-        guard months > 0 else { return nil }
-        let perMonth = product.price / Decimal(months)
-        return (perMonth, product)
-    }
-
-    private nonisolated static func monthCount(for period: Product.SubscriptionPeriod) -> Int {
-        switch period.unit {
-        case .day:
-            return max(1, (period.value + 15) / 30)
-        case .week:
-            return max(1, (period.value * 7 + 15) / 30)
-        case .month:
-            return max(1, period.value)
-        case .year:
-            return max(1, period.value * 12)
-        @unknown default:
-            return 12
-        }
-    }
-
     private static func formattedStoreAmount(_ amount: Decimal, product: Product) -> String {
         amount.formatted(
             product.priceFormatStyle
