@@ -36,19 +36,6 @@ struct PaywallView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .center, spacing: 12) {
-                Image("ShibaMascot")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 48, height: 48)
-                    .clipShape(Circle())
-                    .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1.5))
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, ctaHorizontalPadding)
-            .padding(.top, 8)
-            .padding(.bottom, 6)
-
             ViewThatFits(in: .vertical) {
                 paywallScrollableColumn(spacing: 22)
                     .padding(.bottom, 6)
@@ -66,12 +53,23 @@ struct PaywallView: View {
                 SubHelpHaptics.impact(.medium)
                 Task { await purchasePremium(tier: selectedOffer) }
             } label: {
-                Text("Continue")
+                Text(ctaButtonTitle)
                     .font(.system(.title3, design: .default, weight: .bold))
                     .foregroundStyle(.black.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background { ShinyGoldCTABackground() }
+                    .background {
+                        ZStack {
+                            ShinyGoldCTABackground()
+                            if !premiumProducts.isPurchasing {
+                                PaywallCTADiagonalSheen()
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: ShinyGoldCTABackground.cornerRadius, style: .continuous))
+                    }
             }
             .buttonStyle(.plain)
             .disabled(premiumProducts.isPurchasing)
@@ -101,6 +99,19 @@ struct PaywallView: View {
         }
     }
 
+    private var ctaButtonTitle: String {
+        if selectedOffer == .yearly {
+            String(localized: "Start My 7 Day Free Trial")
+        } else {
+            String(localized: "Subscribe")
+        }
+    }
+
+    private func yearlyRenewalSubtitle() -> String {
+        let price = premiumProducts.yearlyPlanTitle()
+        return String(format: String(localized: "After the trial, renews yearly at %@"), price as CVarArg)
+    }
+
     @ViewBuilder
     private func paywallScrollableColumn(spacing: CGFloat) -> some View {
         VStack(spacing: spacing) {
@@ -124,10 +135,10 @@ struct PaywallView: View {
 
             VStack(spacing: 12) {
                 selectablePlanButton(
-                    title: String(localized: "Yearly"),
+                    title: String(localized: "7 Day Free Trial"),
                     price: premiumProducts.yearlyPlanTitle(),
-                    subtitle: nil,
-                    goldTag: premiumProducts.yearlyEffectiveMonthlyBadgeText(),
+                    subtitle: yearlyRenewalSubtitle(),
+                    goldTag: nil,
                     tier: .yearly,
                     emphasized: true,
                     compact: false
@@ -152,7 +163,7 @@ struct PaywallView: View {
             .padding(.bottom, 32)
         }
         .padding(.horizontal, ctaHorizontalPadding)
-        .padding(.top, 2)
+        .padding(.top, 0)
     }
 
     private func benefitRow(_ text: String, compact: Bool = false) -> some View {
@@ -194,16 +205,30 @@ struct PaywallView: View {
     ) -> some View {
         let selected = selectedOffer == tier
         let titleFont: Font = {
+            if tier == .yearly {
+                if compact {
+                    return .system(.title3, design: .default, weight: .bold)
+                }
+                return .system(.title2, design: .default, weight: .bold)
+            }
             if compact {
                 return .system(emphasized ? .headline : .subheadline, design: .default, weight: .bold)
             }
             return .system(emphasized ? .title3 : .headline, design: .default, weight: .bold)
         }()
+        // Monthly plan price (regular weight; yearly card no longer shows this price).
         let priceFont: Font = {
             if compact {
-                return .system(emphasized ? .headline : .callout, design: .default, weight: .semibold)
+                return .system(.callout, design: .default, weight: .regular)
             }
-            return .system(emphasized ? .title3 : .subheadline, design: .default, weight: .semibold)
+            return .system(.subheadline, design: .default, weight: .regular)
+        }()
+        // Same text style size as `priceFont`, regular weight (yearly renewal line only).
+        let yearlyRenewalFont: Font = {
+            if compact {
+                return .system(.callout, design: .default, weight: .regular)
+            }
+            return .system(.subheadline, design: .default, weight: .regular)
         }()
         let cardPadding: CGFloat = compact ? (emphasized ? 12 : 10) : (emphasized ? 18 : 16)
         let corner: CGFloat = compact ? 14 : 20
@@ -211,43 +236,83 @@ struct PaywallView: View {
             SubHelpHaptics.impact(.light)
             selectedOffer = tier
         } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: compact ? 2 : 4) {
-                    HStack(alignment: .center, spacing: 8) {
-                        Text(title)
-                            .font(titleFont)
-                            .foregroundStyle(.black)
-                        if let goldTag, !goldTag.isEmpty {
-                            Text(goldTag)
-                                .font(.system(compact ? .caption2 : .caption, design: .default, weight: .bold))
-                                .foregroundStyle(.black.opacity(0.88))
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, compact ? 3 : 4)
-                                .background {
-                                    Capsule(style: .continuous)
-                                        .fill(brandGold.opacity(0.42))
-                                }
-                                .overlay {
-                                    Capsule(style: .continuous)
-                                        .strokeBorder(brandGold.opacity(0.95), lineWidth: 1)
-                                }
+            Group {
+                if tier == .yearly {
+                    VStack(alignment: .leading, spacing: compact ? 2 : 4) {
+                        HStack(alignment: .center, spacing: 8) {
+                            Text(title)
+                                .font(titleFont)
+                                .foregroundStyle(.black)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                            if let goldTag, !goldTag.isEmpty {
+                                Text(goldTag)
+                                    .font(.system(compact ? .caption2 : .caption, design: .default, weight: .bold))
+                                    .foregroundStyle(.black.opacity(0.88))
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, compact ? 3 : 4)
+                                    .background {
+                                        Capsule(style: .continuous)
+                                            .fill(brandGold.opacity(0.42))
+                                    }
+                                    .overlay {
+                                        Capsule(style: .continuous)
+                                            .strokeBorder(brandGold.opacity(0.95), lineWidth: 1)
+                                    }
+                            }
+                        }
+                        if let subtitle, !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(yearlyRenewalFont)
+                                .foregroundStyle(.black)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.78)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-                    Text(price)
-                        .font(priceFont)
-                        .foregroundStyle(.black)
-                    if let subtitle, !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(.system(compact ? .caption2 : .caption, design: .default, weight: .medium))
-                            .foregroundStyle(.black.opacity(0.75))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .multilineTextAlignment(.leading)
+                } else {
+                    HStack(alignment: .top, spacing: 10) {
+                        VStack(alignment: .leading, spacing: compact ? 2 : 4) {
+                            HStack(alignment: .center, spacing: 8) {
+                                Text(title)
+                                    .font(titleFont)
+                                    .foregroundStyle(.black)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.82)
+                                if let goldTag, !goldTag.isEmpty {
+                                    Text(goldTag)
+                                        .font(.system(compact ? .caption2 : .caption, design: .default, weight: .bold))
+                                        .foregroundStyle(.black.opacity(0.88))
+                                        .padding(.horizontal, 9)
+                                        .padding(.vertical, compact ? 3 : 4)
+                                        .background {
+                                            Capsule(style: .continuous)
+                                                .fill(brandGold.opacity(0.42))
+                                        }
+                                        .overlay {
+                                            Capsule(style: .continuous)
+                                                .strokeBorder(brandGold.opacity(0.95), lineWidth: 1)
+                                        }
+                                }
+                            }
+                            if let subtitle, !subtitle.isEmpty {
+                                Text(subtitle)
+                                    .font(.system(compact ? .caption2 : .caption, design: .default, weight: .medium))
+                                    .foregroundStyle(.black.opacity(0.75))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .multilineTextAlignment(.leading)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text(price)
+                            .font(priceFont)
+                            .foregroundStyle(.black)
+                            .multilineTextAlignment(.trailing)
+                            .layoutPriority(1)
                     }
                 }
-                Spacer(minLength: 8)
-                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
-                    .font(compact ? .callout.weight(.semibold) : .title3.weight(.semibold))
-                    .foregroundStyle(selected ? brandGold : .black.opacity(0.65))
             }
             .padding(cardPadding)
             .background {
@@ -297,9 +362,9 @@ private struct SubscriptionLegalFooterView: View {
 
     private var subscriptionDisclosureText: String {
         if compact {
-            "Payment will be charged to your Apple Account at confirmation of purchase.\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.\nCancel anytime in App Store settings."
+            "Cancel anytime in App Store settings.\nPayment will be charged to your Apple Account at confirmation of purchase.\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period."
         } else {
-            "Payment will be charged to your Apple Account at confirmation of purchase.\n\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.\n\nCancel anytime in App Store settings."
+            "Cancel anytime in App Store settings.\n\nPayment will be charged to your Apple Account at confirmation of purchase.\n\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period."
         }
     }
 
@@ -503,6 +568,52 @@ struct PaywallGlassPanel: View {
             }
         }
         .shadow(color: Color.black.opacity(0.07), radius: 10, x: 0, y: 4)
+    }
+}
+
+// MARK: - Paywall CTA diagonal sheen
+
+/// Animated diagonal highlight sweep across the gold CTA (paywall only).
+private struct PaywallCTADiagonalSheen: View {
+    private let cornerRadius = ShinyGoldCTABackground.cornerRadius
+    private let sweepPeriod: Double = 2.4
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let t = context.date.timeIntervalSinceReferenceDate / sweepPeriod
+                let phase = CGFloat(t - floor(t))
+
+                let bandWidth = max(80, h * 1.15)
+                let travel = w + bandWidth * 1.5
+                let xShift = -travel * 0.48 + phase * travel
+
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .white.opacity(0), location: 0),
+                                .init(color: .white.opacity(0.18), location: 0.38),
+                                .init(color: .white.opacity(0.62), location: 0.5),
+                                .init(color: .white.opacity(0.18), location: 0.62),
+                                .init(color: .white.opacity(0), location: 1),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: bandWidth, height: h * 3)
+                    .rotationEffect(.degrees(-50))
+                    .offset(x: xShift)
+                    .blendMode(.screen)
+                    .frame(width: w, height: h)
+                    .clipped()
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .allowsHitTesting(false)
     }
 }
 
