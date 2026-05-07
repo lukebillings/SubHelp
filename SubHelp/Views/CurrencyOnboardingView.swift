@@ -2,38 +2,27 @@ import SwiftUI
 import UserNotifications
 
 struct CurrencyOnboardingView: View {
+    @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     @AppStorage("hasCompletedCurrencyOnboarding") private var hasCompletedCurrencyOnboarding = false
+    @AppStorage("onboardingPrimaryGoal") private var onboardingPrimaryGoal: String = ""
+    @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
     @Binding var isPresented: Bool
     /// Called after the user finishes the walkthrough (notifications on or not now).
     var onComplete: () -> Void = {}
 
     @State private var step = 0
-    @State private var benefitPageIndex = 0
+    @State private var selectedGoals: Set<String> = []
 
     private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
+    private let skipRowHeight: CGFloat = 22
 
-    private let benefitPages: [BenefitPage] = [
-        BenefitPage(
-            title: "CLARITY",
-            message: "View subscriptions in one place.",
-            screenshotName: "OnboardingShot1"
-        ),
-        BenefitPage(
-            title: "AWARE",
-            message: "Help find forgotten subscriptions.",
-            screenshotName: "OnboardingShot3"
-        ),
-        BenefitPage(
-            title: "READY",
-            message: "Calendar view plus notifications.",
-            screenshotName: "OnboardingShot4"
-        ),
-        BenefitPage(
-            title: "RELIEF",
-            message: "Help canceling your subscriptions.",
-            screenshotName: "OnboardingShot2"
-        )
+    private let goalOptions: [String] = [
+        "Spend less each month",
+        "Avoid surprise renewals",
+        "Track all subscriptions in one place",
+        "Find subscriptions I forgot about",
+        "Cancel subscriptions faster"
     ]
 
     var body: some View {
@@ -46,8 +35,10 @@ struct CurrencyOnboardingView: View {
                         benefitsStep
                     } else if step == 1 {
                         currencyStep
-                    } else {
+                    } else if step == 2 {
                         notificationStep
+                    } else {
+                        paywallStep
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -55,17 +46,23 @@ struct CurrencyOnboardingView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        if step == 2 {
+                        if step >= 1 && step <= 3 {
                             Button("Back") {
                                 SubHelpHaptics.impact(.light)
                                 step -= 1
                             }
                             .foregroundStyle(.black)
+                        } else {
+                            Text("Back")
+                                .foregroundStyle(.clear)
+                                .accessibilityHidden(true)
                         }
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    onboardingBottomChrome
+                    if step < 3 {
+                        onboardingBottomChrome
+                    }
                 }
             }
             .tint(.black)
@@ -76,53 +73,46 @@ struct CurrencyOnboardingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// Horizontal progress under the onboarding mockup (one segment per benefit page).
-    private var benefitPagesProgressBar: some View {
-        let pageCount = benefitPages.count
-        return GeometryReader { geo in
-            let width = geo.size.width
-            let fraction = CGFloat(benefitPageIndex + 1) / CGFloat(pageCount)
-            Capsule()
-                .fill(Color.white.opacity(0.35))
-                .overlay(alignment: .leading) {
-                    Capsule()
-                        .fill(brandGold)
-                        .frame(width: width * fraction)
-                }
-                .clipShape(Capsule())
+    /// Dot-style progress shown above the primary CTA.
+    private var onboardingProgressBar: some View {
+        let pageCount = 4
+        return HStack(spacing: 8) {
+            ForEach(0..<pageCount, id: \.self) { index in
+                Circle()
+                    .fill(index == step ? brandGold : Color.black.opacity(0.14))
+                    .frame(width: 8, height: 8)
+            }
         }
-        .frame(height: 6)
-        .padding(.horizontal, 8)
-        .animation(.easeInOut(duration: 0.25), value: benefitPageIndex)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.vertical, 2)
+        .animation(.easeInOut(duration: 0.25), value: step)
     }
 
-    /// Same bottom layout on every step: optional “Not now” slot + primary CTA pinned to identical Y.
+    /// Same bottom layout on every step: optional "Skip" text row + primary CTA pinned to identical Y.
     private var onboardingBottomChrome: some View {
         VStack(spacing: 12) {
+            onboardingProgressBar
+
             if step == 2 {
                 Button(role: .none) {
                     SubHelpHaptics.impact(.medium)
                     UserDefaults.standard.set(false, forKey: RenewalNotificationScheduler.notificationsEnabledKey)
                     UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
-                    completeOnboarding()
+                    continueToFinalStepOrComplete()
                 } label: {
-                    Text("Not now")
-                        .font(.system(.headline, design: .default, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.85))
+                    Text("Skip")
+                        .font(.system(.subheadline, design: .default, weight: .semibold))
+                        .foregroundStyle(.black.opacity(0.72))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(Color(.systemGray4))
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .frame(height: skipRowHeight)
                 }
                 .buttonStyle(.plain)
             } else {
-                Text("Not now")
-                    .font(.system(.headline, design: .default, weight: .semibold))
+                Text("Skip")
+                    .font(.system(.subheadline, design: .default, weight: .semibold))
                     .foregroundStyle(.clear)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-                    .background(Color.clear)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .frame(height: skipRowHeight)
                     .accessibilityHidden(true)
                     .allowsHitTesting(false)
             }
@@ -130,7 +120,7 @@ struct CurrencyOnboardingView: View {
             Button(action: primaryOnboardingBottomAction) {
                 Group {
                     if step == 2 {
-                        Label("Turn on notifications", systemImage: "bell.badge")
+                        Text("Turn on notifications")
                             .font(.system(.title3, design: .default, weight: .bold))
                     } else {
                         Text("Continue")
@@ -140,7 +130,13 @@ struct CurrencyOnboardingView: View {
                 .foregroundStyle(.black.opacity(0.85))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
-                .background { ShinyGoldCTABackground() }
+                .background {
+                    ZStack {
+                        ShinyGoldCTABackground()
+                        CTADiagonalSheen()
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: ShinyGoldCTABackground.cornerRadius, style: .continuous))
+                }
             }
             .buttonStyle(.plain)
         }
@@ -152,11 +148,10 @@ struct CurrencyOnboardingView: View {
     private func primaryOnboardingBottomAction() {
         SubHelpHaptics.impact(.light)
         if step == 0 {
-            if benefitPageIndex < benefitPages.count - 1 {
-                benefitPageIndex += 1
-            } else {
-                step = 1
+            if onboardingPrimaryGoal.isEmpty, let fallbackGoal = selectedGoals.first {
+                onboardingPrimaryGoal = fallbackGoal
             }
+            step = 1
         } else if step == 1 {
             step = 2
         } else {
@@ -164,39 +159,83 @@ struct CurrencyOnboardingView: View {
                 _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
                 UserDefaults.standard.set(true, forKey: RenewalNotificationScheduler.notificationsEnabledKey)
                 await MainActor.run {
-                    completeOnboarding()
+                    continueToFinalStepOrComplete()
                 }
             }
         }
     }
 
-    private var benefitsStep: some View {
-        let currentPage = benefitPages[benefitPageIndex]
-        return VStack(spacing: 28) {
-            VStack(spacing: 12) {
-                Text(currentPage.title)
-                    .font(.system(.title, design: .default, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.black)
-                Text(currentPage.message)
-                    .font(.system(.body, design: .default, weight: .regular))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.black.opacity(0.85))
-                    .frame(maxWidth: .infinity)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 12)
-            }
-            .padding(.top, 4)
+    private func continueToFinalStepOrComplete() {
+        let tier = SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
+        if tier == .free {
+            step = 3
+        } else {
+            completeOnboarding()
+        }
+    }
 
-            Image(currentPage.screenshotName)
-                .resizable()
-                .renderingMode(.original)
-                .scaledToFit()
-                .padding(.horizontal, -22)
+    private func onboardingHeader(title: String, subtitle: String) -> some View {
+        VStack(spacing: 12) {
+            Text(title)
+                .font(.system(.title, design: .default, weight: .bold))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.black)
+            Text(subtitle)
+                .font(.system(.body, design: .default, weight: .regular))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.black.opacity(0.85))
                 .frame(maxWidth: .infinity)
-                .frame(height: 460)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12)
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
+        .frame(height: 128, alignment: .top)
+        .padding(.top, 4)
+    }
 
-            benefitPagesProgressBar
+    private var benefitsStep: some View {
+        return VStack(spacing: 28) {
+            onboardingHeader(
+                title: "What do you most want to achieve with SubHelp?",
+                subtitle: "Select one or more goals."
+            )
+
+            VStack(spacing: 10) {
+                ForEach(goalOptions, id: \.self) { goal in
+                    Button {
+                        SubHelpHaptics.impact(.light)
+                        if selectedGoals.contains(goal) {
+                            selectedGoals.remove(goal)
+                            if onboardingPrimaryGoal == goal {
+                                onboardingPrimaryGoal = ""
+                            }
+                        } else {
+                            selectedGoals.insert(goal)
+                            if onboardingPrimaryGoal.isEmpty {
+                                onboardingPrimaryGoal = goal
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Text(goal)
+                                .font(.system(.subheadline, design: .default, weight: .semibold))
+                                .foregroundStyle(.black.opacity(0.9))
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                            Image(systemName: selectedGoals.contains(goal) ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(selectedGoals.contains(goal) ? .blue : .black.opacity(0.35))
+                        }
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(selectedGoals.contains(goal) ? Color.blue.opacity(0.12) : Color.white.opacity(0.9))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: .infinity)
 
             Spacer(minLength: 0)
         }
@@ -205,20 +244,10 @@ struct CurrencyOnboardingView: View {
 
     private var currencyStep: some View {
         VStack(spacing: 20) {
-            VStack(spacing: 12) {
-                Text("Select currency")
-                    .font(.system(.title, design: .default, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.black)
-                Text("Choose the currency SubHelp uses for subscription prices and totals. You can change this anytime in Settings.")
-                    .font(.system(.body, design: .default, weight: .regular))
-                    .foregroundStyle(.black.opacity(0.85))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 12)
-            }
-            .padding(.top, 4)
+            onboardingHeader(
+                title: "Select currency",
+                subtitle: "Choose the currency SubHelp uses for subscription prices and totals. You can change this anytime in Settings."
+            )
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Currency")
@@ -264,20 +293,10 @@ struct CurrencyOnboardingView: View {
 
     private var notificationStep: some View {
         VStack(spacing: 20) {
-            VStack(spacing: 12) {
-                Text("Notifications")
-                    .font(.system(.title, design: .default, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.black)
-                Text("Turn on notifications to get renewal alerts before subscriptions charge, plus other helpful updates. You can change this anytime in Settings.")
-                    .font(.system(.body, design: .default, weight: .regular))
-                    .foregroundStyle(.black.opacity(0.85))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 12)
-            }
-            .padding(.top, 4)
+            onboardingHeader(
+                title: "Notifications",
+                subtitle: "Turn on notifications to get renewal alerts before subscriptions charge, plus other helpful updates. You can change this anytime in Settings."
+            )
 
             Spacer(minLength: 0)
 
@@ -293,22 +312,40 @@ struct CurrencyOnboardingView: View {
         .padding(.horizontal, 22)
     }
 
+    private var paywallStep: some View {
+        PaywallView(
+            hasCompletedPaywall: Binding(
+                get: { false },
+                set: { finished in
+                    if finished { completeOnboarding() }
+                }
+            ),
+            selectedTier: Binding(
+                get: { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free },
+                set: { subscriptionTierRaw = $0.rawValue }
+            ), 
+            onSelect: { tier in
+                subscriptionTierRaw = tier.rawValue
+            }
+        )
+        .environmentObject(premiumProducts)
+    }
+
     private func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: SubHelpAppStorageKey.hasCompletedOnboardingV2)
         UserDefaults.standard.set(true, forKey: "subhelp.didCompleteNotificationSetup")
         RenewalNotificationScheduler.scheduleRenewalReminders()
         hasCompletedCurrencyOnboarding = true
-        isPresented = false
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            isPresented = false
+        }
         onComplete()
     }
 }
 
-private struct BenefitPage {
-    let title: String
-    let message: String
-    let screenshotName: String
-}
-
 #Preview {
     CurrencyOnboardingView(isPresented: .constant(true))
+        .environmentObject(PremiumSubscriptionProducts())
 }

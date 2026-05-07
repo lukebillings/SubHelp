@@ -143,7 +143,7 @@ struct SubHelpApp: App {
                             UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
                         }
                     )
-                    .transition(.opacity)
+                    .environmentObject(premiumSubscriptionProducts)
                     .zIndex(1)
                 }
             }
@@ -151,10 +151,8 @@ struct SubHelpApp: App {
             .fullScreenCover(isPresented: $showCurrencyOnboarding) {
                 CurrencyOnboardingView(isPresented: $showCurrencyOnboarding) {
                     selectedTab = .subscriptions
-                    if subscriptionTier == .free {
-                        showSessionPaywall = true
-                    }
                 }
+                .environmentObject(premiumSubscriptionProducts)
                 .interactiveDismissDisabled()
             }
             .onAppear {
