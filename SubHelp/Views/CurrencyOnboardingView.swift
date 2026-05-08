@@ -52,10 +52,6 @@ struct CurrencyOnboardingView: View {
                                 step -= 1
                             }
                             .foregroundStyle(.black)
-                        } else {
-                            Text("Back")
-                                .foregroundStyle(.clear)
-                                .accessibilityHidden(true)
                         }
                     }
                 }
@@ -199,6 +195,7 @@ struct CurrencyOnboardingView: View {
                 title: "What do you most want to achieve with SubHelp?",
                 subtitle: "Select one or more goals."
             )
+            .padding(.top, 54)
 
             VStack(spacing: 10) {
                 ForEach(goalOptions, id: \.self) { goal in
@@ -222,8 +219,6 @@ struct CurrencyOnboardingView: View {
                                 .foregroundStyle(.black.opacity(0.9))
                                 .multilineTextAlignment(.leading)
                             Spacer(minLength: 0)
-                            Image(systemName: selectedGoals.contains(goal) ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(selectedGoals.contains(goal) ? .blue : .black.opacity(0.35))
                         }
                         .padding(.vertical, 14)
                         .padding(.horizontal, 14)

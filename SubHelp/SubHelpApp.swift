@@ -143,6 +143,15 @@ struct SubHelpApp: App {
                     showSessionPaywall = false
                     showCurrencyOnboarding = true
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .subhelpTriggerRetentionCheck)) { _ in
+                    selectedTab = .subscriptions
+                    showRetentionCheckAlert = true
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .subhelpReplayPostPaywallTutorial)) { _ in
+                    selectedTab = .subscriptions
+                    activeTutorialFlow = .postPaywall
+                    activeTutorialStepIndex = 0
+                }
 
                 if showSessionPaywall, subscriptionTier == .free {
                     PaywallView(
@@ -164,13 +173,16 @@ struct SubHelpApp: App {
                 }
 
                 if let flow = activeTutorialFlow {
+                    let hasSubscriptions = !homeViewModel.subscriptions.isEmpty
+                    let steps = flow.steps(hasSubscriptions: hasSubscriptions)
                     InAppTutorialOverlay(
                         flow: flow,
+                        steps: steps,
                         stepIndex: activeTutorialStepIndex,
                         selectedTab: $selectedTab,
                         onNext: {
                             let nextIndex = activeTutorialStepIndex + 1
-                            if nextIndex < flow.steps.count {
+                            if nextIndex < steps.count {
                                 activeTutorialStepIndex = nextIndex
                             } else {
                                 activeTutorialFlow = nil
@@ -277,15 +289,16 @@ struct SubHelpApp: App {
 
 private enum TutorialTarget {
     case addButton
-    case summaryCard
+    case historyTab
     case helpTab
 
     func rect(in size: CGSize) -> CGRect {
         switch self {
         case .addButton:
             return CGRect(x: 24, y: 260, width: 190, height: 40)
-        case .summaryCard:
-            return CGRect(x: 20, y: 130, width: size.width - 40, height: 120)
+        case .historyTab:
+            let tabWidth = size.width / 4
+            return CGRect(x: tabWidth, y: size.height - 86, width: tabWidth, height: 60)
         case .helpTab:
             let tabWidth = size.width / 4
             return CGRect(x: tabWidth * 2, y: size.height - 86, width: tabWidth, height: 60)
@@ -304,26 +317,46 @@ private enum InAppTutorialFlow: Equatable {
     case postPaywall
     case topic(RetentionHelpTopic)
 
-    var steps: [InAppTutorialStep] {
+    func steps(hasSubscriptions: Bool) -> [InAppTutorialStep] {
         switch self {
         case .postPaywall:
-            return [
-                .init(title: "Add subscriptions", message: "Tap + Add Subscription here to start tracking.", tab: .subscriptions, target: .addButton),
-                .init(title: "See your totals", message: "This top section shows monthly and yearly spend.", tab: .subscriptions, target: .summaryCard),
-                .init(title: "Need help?", message: "Open Help for guided ways to find subscriptions.", tab: .help, target: .helpTab),
-            ]
+            if hasSubscriptions {
+                return [
+                    .init(title: "Here you can add subscriptions", message: "Tap + Add Subscription here to start tracking.", tab: .subscriptions, target: .addButton),
+                    .init(title: "Here you can view a history of the subscriptions you cancelled", message: "Use History to review anything you have unsubscribed from.", tab: .history, target: .historyTab),
+                    .init(title: "Here you can find tips on saving", message: "Open Help for saving tips and guidance.", tab: .help, target: .helpTab),
+                ]
+            } else {
+                return [
+                    .init(title: "Here you can add subscriptions", message: "Tap Add Subscription on this screen to start tracking.", tab: .subscriptions, target: .addButton),
+                    .init(title: "Here you can view a history of the subscriptions you cancelled", message: "Use History to review anything you have unsubscribed from.", tab: .history, target: .historyTab),
+                    .init(title: "Here you can find tips on saving", message: "Open Help for saving tips and guidance.", tab: .help, target: .helpTab),
+                ]
+            }
         case .topic(let topic):
             switch topic {
             case .addSubscriptions:
                 return [.init(title: topic.rawValue, message: "Use + Add Subscription to quickly add each recurring payment.", tab: .subscriptions, target: .addButton)]
             case .renewalDates:
-                return [.init(title: topic.rawValue, message: "Edit each subscription and set next payment dates for accurate reminders.", tab: .subscriptions, target: .summaryCard)]
+                if hasSubscriptions {
+                    return [.init(title: topic.rawValue, message: "Edit each subscription and set next payment dates for accurate reminders.", tab: .history, target: .historyTab)]
+                } else {
+                    return [.init(title: topic.rawValue, message: "Add your first subscription, then set its next payment date for reminders.", tab: .subscriptions, target: .addButton)]
+                }
             case .findForgotten:
                 return [.init(title: topic.rawValue, message: "Use the Help tab to check Apple, email receipts, and banking apps.", tab: .help, target: .helpTab)]
             case .cancelGuide:
-                return [.init(title: topic.rawValue, message: "Open a subscription and use cancellation guidance from its detail screen.", tab: .subscriptions, target: .summaryCard)]
+                if hasSubscriptions {
+                    return [.init(title: topic.rawValue, message: "Open History to review cancelled subscriptions and what you have already cut.", tab: .history, target: .historyTab)]
+                } else {
+                    return [.init(title: topic.rawValue, message: "Add subscriptions first, then use Help for cancellation guidance.", tab: .help, target: .helpTab)]
+                }
             case .lowerSpend:
-                return [.init(title: topic.rawValue, message: "Start with highest-cost subscriptions and trim from there.", tab: .subscriptions, target: .summaryCard)]
+                if hasSubscriptions {
+                    return [.init(title: topic.rawValue, message: "Use Help for saving ideas, then track progress in History.", tab: .help, target: .helpTab)]
+                } else {
+                    return [.init(title: topic.rawValue, message: "Add subscriptions first so SubHelp can show where to save.", tab: .subscriptions, target: .addButton)]
+                }
             }
         }
     }
@@ -331,22 +364,19 @@ private enum InAppTutorialFlow: Equatable {
 
 private struct InAppTutorialOverlay: View {
     let flow: InAppTutorialFlow
+    let steps: [InAppTutorialStep]
     let stepIndex: Int
     @Binding var selectedTab: MainTab
     var onNext: () -> Void
     var onSkip: () -> Void
 
     var body: some View {
-        let safeIndex = min(max(stepIndex, 0), max(flow.steps.count - 1, 0))
-        let step = flow.steps[safeIndex]
+        let safeIndex = min(max(stepIndex, 0), max(steps.count - 1, 0))
+        let step = steps[safeIndex]
         GeometryReader { geo in
             let target = step.target.rect(in: geo.size)
             ZStack {
                 Color.black.opacity(0.62).ignoresSafeArea()
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color(red: 0.96, green: 0.78, blue: 0.22), lineWidth: 2.5)
-                    .frame(width: target.width, height: target.height)
-                    .position(x: target.midX, y: target.midY)
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text(step.title)
@@ -355,9 +385,11 @@ private struct InAppTutorialOverlay: View {
                         .font(.system(.subheadline, design: .default, weight: .regular))
                         .foregroundStyle(.secondary)
                     HStack {
-                        Button("Skip") { onSkip() }
+                        if flow != .postPaywall {
+                            Button("Skip") { onSkip() }
+                        }
                         Spacer()
-                        Button(safeIndex == flow.steps.count - 1 ? "Done" : "Next") { onNext() }
+                        Button(safeIndex == steps.count - 1 ? "Done" : "Next") { onNext() }
                             .fontWeight(.bold)
                     }
                 }
@@ -373,7 +405,7 @@ private struct InAppTutorialOverlay: View {
 }
 
 private enum RetentionHelpTopic: String, CaseIterable, Identifiable {
-    case addSubscriptions = "Add subscriptions faster"
+    case addSubscriptions = "Add subscriptions"
     case renewalDates = "Track renewal dates"
     case findForgotten = "Find forgotten subscriptions"
     case cancelGuide = "Cancel subscriptions"
@@ -399,7 +431,7 @@ private struct RetentionHelpChooserView: View {
                 }
                 Section {
                     Button("None of these - Request a feature") {
-                        if let url = URL(string: "mailto:lukebillingsbusiness@gmail.com?subject=SubHelp%20Feature%20Request") {
+                        if let url = URL(string: "mailto:subhelp@outlook.com?subject=SubHelp%20Feature%20Request") {
                             openURL(url)
                         }
                         onDismiss()

@@ -19,7 +19,7 @@ struct PaywallView: View {
     var onSelect: (SubscriptionTier) -> Void
 
     @State private var purchaseInfoMessage: String?
-    @State private var selectedOffer: SubscriptionTier = .yearly
+    @State private var selectedOffer: SubscriptionTier = .monthly
     @State private var activeBenefitIndex: Int = 0
 
     private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
@@ -122,7 +122,7 @@ struct PaywallView: View {
             Text(purchaseInfoMessage ?? "")
         }
         .task {
-            selectedOffer = .yearly
+            selectedOffer = .monthly
             await premiumProducts.refresh()
         }
         .onReceive(Timer.publish(every: 2.1, on: .main, in: .common).autoconnect()) { _ in
@@ -175,7 +175,7 @@ struct PaywallView: View {
             .rounding(accordingToBehavior: nil)
         let savingsPercent = savingsPercentDecimal.intValue
         guard savingsPercent > 0 else { return nil }
-        return String(format: String(localized: "vs monthly SAVE %d%%"), savingsPercent)
+        return String(format: String(localized: "SAVE ~%d%% vs monthly"), savingsPercent)
     }
 
     private var paywallProgressBar: some View {
@@ -210,6 +210,7 @@ struct PaywallView: View {
                 .id("benefit-\(activeBenefitIndex)")
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
+            .frame(minHeight: 28, alignment: .leading)
             .padding(16)
             .background {
                 PaywallGlassPanel(cornerRadius: 20, borderEmphasized: false)
@@ -217,16 +218,6 @@ struct PaywallView: View {
             .animation(.easeInOut(duration: 0.25), value: activeBenefitIndex)
 
             VStack(spacing: 12) {
-                selectablePlanButton(
-                    title: String(localized: "Yearly"),
-                    price: premiumProducts.yearlyPlanTitle(),
-                    subtitle: yearlyMonthlyEquivalentSubtitle(),
-                    goldTag: yearlySavingsTag(),
-                    tier: .yearly,
-                    emphasized: true,
-                    compact: false
-                )
-
                 selectablePlanButton(
                     title: String(localized: "Monthly"),
                     price: premiumProducts.monthlyPlanTitle(),
@@ -236,6 +227,17 @@ struct PaywallView: View {
                     emphasized: false,
                     compact: false
                 )
+
+                selectablePlanButton(
+                    title: String(localized: "Yearly"),
+                    price: premiumProducts.yearlyPlanTitle(),
+                    subtitle: yearlyMonthlyEquivalentSubtitle(),
+                    goldTag: yearlySavingsTag(),
+                    tier: .yearly,
+                    emphasized: true,
+                    compact: false
+                )
+                .padding(.top, 14)
             }
 
             VStack(spacing: 6) {
@@ -247,7 +249,7 @@ struct PaywallView: View {
             .padding(.bottom, 32)
         }
         .padding(.horizontal, ctaHorizontalPadding)
-        .padding(.top, 0)
+        .padding(.top, -30)
     }
 
     private func benefitRow(_ text: String, iconName: String = "checkmark.circle.fill", compact: Bool = false) -> some View {
@@ -258,8 +260,9 @@ struct PaywallView: View {
             Text(text)
                 .font(.system(compact ? .caption : .body, design: .default, weight: .semibold))
                 .foregroundStyle(.black.opacity(0.85))
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
             Spacer(minLength: 0)
         }
     }
@@ -291,16 +294,10 @@ struct PaywallView: View {
     ) -> some View {
         let selected = selectedOffer == tier
         let titleFont: Font = {
-            if tier == .yearly {
-                if compact {
-                    return .system(.title3, design: .default, weight: .bold)
-                }
-                return .system(.title2, design: .default, weight: .bold)
-            }
             if compact {
-                return .system(emphasized ? .headline : .subheadline, design: .default, weight: .bold)
+                return .system(.title3, design: .default, weight: .bold)
             }
-            return .system(emphasized ? .title3 : .headline, design: .default, weight: .bold)
+            return .system(.title2, design: .default, weight: .bold)
         }()
         // Monthly plan price (regular weight; yearly card no longer shows this price).
         let priceFont: Font = {
