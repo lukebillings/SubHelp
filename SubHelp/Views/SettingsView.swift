@@ -101,7 +101,7 @@ struct SettingsView: View {
                         SubHelpHaptics.impact(.light)
                         NotificationCenter.default.post(name: .subhelpReplayPostPaywallTutorial, object: nil)
                     } label: {
-                        Label("Replay post-paywall tutorial", systemImage: "play.rectangle")
+                        Label("Replay tutorial", systemImage: "play.rectangle")
                     }
                 }
                 .font(.system(.body, design: .default, weight: .regular))
