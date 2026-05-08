@@ -95,24 +95,6 @@ struct PaywallView: View {
                     .scaleEffect(1.2)
             }
         }
-        .overlay(alignment: .topTrailing) {
-#if DEBUG
-            Button {
-                SubHelpHaptics.impact(.light)
-                hasCompletedPaywall = true
-                selectedTier = .free
-                onSelect(.free)
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.black.opacity(0.8))
-                    .frame(width: 32, height: 32)
-                    .background(Color.white.opacity(0.9), in: Circle())
-            }
-            .padding(.top, 10)
-            .padding(.trailing, 14)
-#endif
-        }
         .alert("SubHelp Premium", isPresented: Binding(
             get: { purchaseInfoMessage != nil },
             set: { if !$0 { purchaseInfoMessage = nil } }
