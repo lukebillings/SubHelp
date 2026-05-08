@@ -5,6 +5,8 @@ import UIKit
 extension Notification.Name {
     static let subhelpSubscriptionsDidChangeExternally = Notification.Name("subhelpSubscriptionsDidChangeExternally")
     static let subhelpResetAllData = Notification.Name("subhelpResetAllData")
+    static let subhelpTriggerRetentionCheck = Notification.Name("subhelpTriggerRetentionCheck")
+    static let subhelpReplayPostPaywallTutorial = Notification.Name("subhelpReplayPostPaywallTutorial")
 }
 
 // MARK: - Persisted subscription (Codable)

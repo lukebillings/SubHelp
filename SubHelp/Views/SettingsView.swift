@@ -89,6 +89,23 @@ struct SettingsView: View {
                         }
                 }
 
+                Section("Tutorials & Check-In") {
+                    Button {
+                        SubHelpHaptics.impact(.light)
+                        NotificationCenter.default.post(name: .subhelpTriggerRetentionCheck, object: nil)
+                    } label: {
+                        Label("Run check-in now", systemImage: "questionmark.bubble")
+                    }
+
+                    Button {
+                        SubHelpHaptics.impact(.light)
+                        NotificationCenter.default.post(name: .subhelpReplayPostPaywallTutorial, object: nil)
+                    } label: {
+                        Label("Replay tutorial", systemImage: "play.rectangle")
+                    }
+                }
+                .font(.system(.body, design: .default, weight: .regular))
+
                 Section("Other") {
                     Button {
                         SubHelpHaptics.impact(.light)
