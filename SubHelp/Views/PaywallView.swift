@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 // MARK: - Subscription Tier
 
@@ -12,16 +13,19 @@ enum SubscriptionTier: String, CaseIterable {
 
 struct PaywallView: View {
     @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
+    @AppStorage("onboardingPrimaryGoal") private var onboardingPrimaryGoal: String = ""
     @Binding var hasCompletedPaywall: Bool
     @Binding var selectedTier: SubscriptionTier
     var onSelect: (SubscriptionTier) -> Void
 
     @State private var purchaseInfoMessage: String?
-    @State private var selectedOffer: SubscriptionTier = .yearly
+    @State private var selectedOffer: SubscriptionTier = .monthly
+    @State private var activeBenefitIndex: Int = 0
 
     private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
     private let ctaHorizontalPadding: CGFloat = 22
     private let ctaBottomInset: CGFloat = 16
+    private let skipRowHeight: CGFloat = 22
 
     init(
         hasCompletedPaywall: Binding<Bool>,
@@ -49,30 +53,36 @@ struct PaywallView: View {
         .tint(.black)
         .background(Color(.systemBackground).ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Button {
-                SubHelpHaptics.impact(.medium)
-                Task { await purchasePremium(tier: selectedOffer) }
-            } label: {
-                Text(ctaButtonTitle)
-                    .font(.system(.title3, design: .default, weight: .bold))
-                    .foregroundStyle(.black.opacity(0.85))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.82)
+            VStack(spacing: 10) {
+                paywallProgressBar
+                Color.clear
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-                    .background {
-                        ZStack {
-                            ShinyGoldCTABackground()
-                            if !premiumProducts.isPurchasing {
-                                PaywallCTADiagonalSheen()
+                    .frame(height: skipRowHeight)
+                Button {
+                    SubHelpHaptics.impact(.medium)
+                    Task { await purchasePremium(tier: selectedOffer) }
+                } label: {
+                    Text(ctaButtonTitle)
+                        .font(.system(.title3, design: .default, weight: .bold))
+                        .foregroundStyle(.black.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background {
+                            ZStack {
+                                ShinyGoldCTABackground()
+                                if !premiumProducts.isPurchasing {
+                                    CTADiagonalSheen()
+                                }
                             }
+                            .clipShape(RoundedRectangle(cornerRadius: ShinyGoldCTABackground.cornerRadius, style: .continuous))
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: ShinyGoldCTABackground.cornerRadius, style: .continuous))
-                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(premiumProducts.isPurchasing)
             }
-            .buttonStyle(.plain)
-            .disabled(premiumProducts.isPurchasing)
             .padding(.horizontal, ctaHorizontalPadding)
             .padding(.top, 8)
             .padding(.bottom, ctaBottomInset)
@@ -94,22 +104,72 @@ struct PaywallView: View {
             Text(purchaseInfoMessage ?? "")
         }
         .task {
-            selectedOffer = .yearly
+            selectedOffer = .monthly
             await premiumProducts.refresh()
+        }
+        .onReceive(Timer.publish(every: 2.1, on: .main, in: .common).autoconnect()) { _ in
+            guard rotatingBenefits.count > 1 else { return }
+            withAnimation(.easeInOut(duration: 0.25)) {
+                activeBenefitIndex = (activeBenefitIndex + 1) % rotatingBenefits.count
+            }
         }
     }
 
     private var ctaButtonTitle: String {
-        if selectedOffer == .yearly {
-            String(localized: "Start My 7 Day Free Trial")
-        } else {
-            String(localized: "Subscribe")
-        }
+        String(localized: "Continue")
     }
 
-    private func yearlyRenewalSubtitle() -> String {
-        let price = premiumProducts.yearlyPlanTitle()
-        return String(format: String(localized: "After the trial, renews yearly at %@"), price as CVarArg)
+    private var rotatingBenefits: [String] {
+        var benefits: [String] = []
+        let trimmedPrimary = onboardingPrimaryGoal.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedPrimary.isEmpty {
+            benefits.append(trimmedPrimary)
+        }
+        let defaults = [
+            String(localized: "Track unlimited subscriptions"),
+            String(localized: "Subscription renewal reminders"),
+            String(localized: "No ads")
+        ]
+        for value in defaults where !benefits.contains(value) {
+            benefits.append(value)
+        }
+        return benefits
+    }
+
+    private func yearlyMonthlyEquivalentSubtitle() -> String? {
+        guard let yearly = premiumProducts.yearlyProduct else { return nil }
+        let monthlyEquivalent = yearly.price / Decimal(12)
+        let formatted = monthlyEquivalent.formatted(
+            yearly.priceFormatStyle
+                .locale(.autoupdatingCurrent)
+                .presentation(.narrow)
+        )
+        return String(format: String(localized: "~%@ per month"), formatted as CVarArg)
+    }
+
+    private func yearlySavingsTag() -> String? {
+        guard let yearly = premiumProducts.yearlyProduct,
+              let monthly = premiumProducts.monthlyProduct else { return nil }
+        let yearlyAtMonthlyRate = monthly.price * Decimal(12)
+        guard yearlyAtMonthlyRate > 0, yearlyAtMonthlyRate > yearly.price else { return nil }
+        let savingsRatio = (yearlyAtMonthlyRate - yearly.price) / yearlyAtMonthlyRate
+        let savingsPercentDecimal = NSDecimalNumber(decimal: savingsRatio * Decimal(100))
+            .rounding(accordingToBehavior: nil)
+        let savingsPercent = savingsPercentDecimal.intValue
+        guard savingsPercent > 0 else { return nil }
+        return String(format: String(localized: "SAVE ~%d%% vs monthly"), savingsPercent)
+    }
+
+    private var paywallProgressBar: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<4, id: \.self) { index in
+                Circle()
+                    .fill(index == 3 ? brandGold : Color.black.opacity(0.14))
+                    .frame(width: 8, height: 8)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder
@@ -123,27 +183,23 @@ struct PaywallView: View {
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 10) {
-                benefitRow(String(localized: "Track unlimited subscriptions"), compact: false)
-                benefitRow(String(localized: "Subscription renewal reminders"), compact: false)
-                benefitRow(String(localized: "No ads"), compact: false)
+            VStack(alignment: .leading, spacing: 0) {
+                benefitRow(
+                    rotatingBenefits[min(activeBenefitIndex, rotatingBenefits.count - 1)],
+                    iconName: "sparkles",
+                    compact: false
+                )
+                .id("benefit-\(activeBenefitIndex)")
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
+            .frame(minHeight: 28, alignment: .leading)
             .padding(16)
             .background {
                 PaywallGlassPanel(cornerRadius: 20, borderEmphasized: false)
             }
+            .animation(.easeInOut(duration: 0.25), value: activeBenefitIndex)
 
             VStack(spacing: 12) {
-                selectablePlanButton(
-                    title: String(localized: "7 Day Free Trial"),
-                    price: premiumProducts.yearlyPlanTitle(),
-                    subtitle: yearlyRenewalSubtitle(),
-                    goldTag: nil,
-                    tier: .yearly,
-                    emphasized: true,
-                    compact: false
-                )
-
                 selectablePlanButton(
                     title: String(localized: "Monthly"),
                     price: premiumProducts.monthlyPlanTitle(),
@@ -153,6 +209,17 @@ struct PaywallView: View {
                     emphasized: false,
                     compact: false
                 )
+
+                selectablePlanButton(
+                    title: String(localized: "Yearly"),
+                    price: premiumProducts.yearlyPlanTitle(),
+                    subtitle: yearlyMonthlyEquivalentSubtitle(),
+                    goldTag: yearlySavingsTag(),
+                    tier: .yearly,
+                    emphasized: true,
+                    compact: false
+                )
+                .padding(.top, 14)
             }
 
             VStack(spacing: 6) {
@@ -160,20 +227,24 @@ struct PaywallView: View {
                     .foregroundStyle(.black.opacity(0.85))
                 SubscriptionPolicyLinksRow()
             }
+            .padding(.top, 22)
             .padding(.bottom, 32)
         }
         .padding(.horizontal, ctaHorizontalPadding)
-        .padding(.top, 0)
+        .padding(.top, -30)
     }
 
-    private func benefitRow(_ text: String, compact: Bool = false) -> some View {
+    private func benefitRow(_ text: String, iconName: String = "checkmark.circle.fill", compact: Bool = false) -> some View {
         HStack(alignment: .center, spacing: compact ? 6 : 10) {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: iconName)
                 .font(compact ? .callout : .title3)
                 .foregroundStyle(brandGold)
             Text(text)
                 .font(.system(compact ? .caption : .body, design: .default, weight: .semibold))
                 .foregroundStyle(.black.opacity(0.85))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
             Spacer(minLength: 0)
         }
     }
@@ -205,16 +276,10 @@ struct PaywallView: View {
     ) -> some View {
         let selected = selectedOffer == tier
         let titleFont: Font = {
-            if tier == .yearly {
-                if compact {
-                    return .system(.title3, design: .default, weight: .bold)
-                }
-                return .system(.title2, design: .default, weight: .bold)
-            }
             if compact {
-                return .system(emphasized ? .headline : .subheadline, design: .default, weight: .bold)
+                return .system(.title3, design: .default, weight: .bold)
             }
-            return .system(emphasized ? .title3 : .headline, design: .default, weight: .bold)
+            return .system(.title2, design: .default, weight: .bold)
         }()
         // Monthly plan price (regular weight; yearly card no longer shows this price).
         let priceFont: Font = {
@@ -238,37 +303,29 @@ struct PaywallView: View {
         } label: {
             Group {
                 if tier == .yearly {
-                    VStack(alignment: .leading, spacing: compact ? 2 : 4) {
-                        HStack(alignment: .center, spacing: 8) {
+                    let yearlySubtitle = subtitle ?? ""
+                    VStack(alignment: .leading, spacing: compact ? 4 : 8) {
+                        HStack(alignment: .center, spacing: 10) {
                             Text(title)
                                 .font(titleFont)
                                 .foregroundStyle(.black)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.82)
-                            if let goldTag, !goldTag.isEmpty {
-                                Text(goldTag)
-                                    .font(.system(compact ? .caption2 : .caption, design: .default, weight: .bold))
-                                    .foregroundStyle(.black.opacity(0.88))
-                                    .padding(.horizontal, 9)
-                                    .padding(.vertical, compact ? 3 : 4)
-                                    .background {
-                                        Capsule(style: .continuous)
-                                            .fill(brandGold.opacity(0.42))
-                                    }
-                                    .overlay {
-                                        Capsule(style: .continuous)
-                                            .strokeBorder(brandGold.opacity(0.95), lineWidth: 1)
-                                    }
+                            Spacer(minLength: 0)
+                            VStack(alignment: .trailing, spacing: compact ? 2 : 4) {
+                                Text(price)
+                                    .font(priceFont)
+                                    .foregroundStyle(.black)
+                                    .multilineTextAlignment(.trailing)
+                                    .layoutPriority(1)
+                                Text(yearlySubtitle)
+                                    .font(yearlyRenewalFont)
+                                    .foregroundStyle(.black.opacity(0.78))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.78)
+                                    .multilineTextAlignment(.trailing)
+                                    .opacity(yearlySubtitle.isEmpty ? 0 : 1)
                             }
-                        }
-                        if let subtitle, !subtitle.isEmpty {
-                            Text(subtitle)
-                                .font(yearlyRenewalFont)
-                                .foregroundStyle(.black)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.78)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 } else {
@@ -323,6 +380,24 @@ struct PaywallView: View {
                     PaywallGlassPanel(cornerRadius: corner, borderEmphasized: selected)
                 }
             }
+            .overlay(alignment: .top) {
+                if tier == .yearly, let goldTag, !goldTag.isEmpty {
+                    Text(goldTag)
+                        .font(.system(compact ? .caption2 : .caption2, design: .default, weight: .bold))
+                        .foregroundStyle(.black.opacity(0.88))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, compact ? 3 : 4)
+                        .background {
+                            Capsule(style: .continuous)
+                                .fill(brandGold)
+                        }
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(brandGold.opacity(0.95), lineWidth: 1)
+                        }
+                        .offset(y: -10)
+                }
+            }
         }
         .buttonStyle(.plain)
         .disabled(premiumProducts.isPurchasing)
@@ -344,8 +419,8 @@ private struct SubscriptionPolicyLinksRow: View {
             Text("·")
             Link("Terms of Use (EULA)", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
         }
-        .font(.system(.caption, design: .default, weight: .regular))
-        .foregroundStyle(.black.opacity(0.85))
+        .font(.system(.caption2, design: .default, weight: .regular))
+        .foregroundStyle(.black.opacity(0.7))
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
     }
@@ -359,6 +434,8 @@ private struct SubscriptionLegalFooterView: View {
     var includePolicyLinks: Bool = true
     var compact: Bool = false
     @State private var restoreAlertMessage: String?
+    private let legalFont: Font = .system(.caption2, design: .default, weight: .regular)
+    private let legalTextColor = Color.black.opacity(0.7)
 
     private var subscriptionDisclosureText: String {
         if compact {
@@ -381,15 +458,15 @@ private struct SubscriptionLegalFooterView: View {
                         }
                     }
                 }
-                .font(.system(compact ? .footnote : .subheadline, design: .default, weight: .medium))
-                .foregroundStyle(.black.opacity(0.85))
+                .font(legalFont)
+                .foregroundStyle(legalTextColor)
                 .disabled(premiumProducts.isPurchasing)
                 .padding(.bottom, compact ? 2 : 8)
             }
 
             Text(subscriptionDisclosureText)
-                .font(.system(.caption2, design: .default, weight: .regular))
-                .foregroundStyle(.black.opacity(0.7))
+                .font(legalFont)
+                .foregroundStyle(legalTextColor)
                 .multilineTextAlignment(.center)
 
             if includePolicyLinks {
@@ -574,7 +651,7 @@ struct PaywallGlassPanel: View {
 // MARK: - Paywall CTA diagonal sheen
 
 /// Animated diagonal highlight sweep across the gold CTA (paywall only).
-private struct PaywallCTADiagonalSheen: View {
+struct CTADiagonalSheen: View {
     private let cornerRadius = ShinyGoldCTABackground.cornerRadius
     private let sweepPeriod: Double = 2.4
 
