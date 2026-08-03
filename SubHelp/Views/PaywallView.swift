@@ -20,12 +20,20 @@ struct PaywallView: View {
 
     @State private var purchaseInfoMessage: String?
     @State private var selectedOffer: SubscriptionTier = .monthly
-    @State private var activeBenefitIndex: Int = 0
 
     private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
     private let ctaHorizontalPadding: CGFloat = 22
     private let ctaBottomInset: CGFloat = 16
     private let skipRowHeight: CGFloat = 22
+
+    private let featureSquares: [(title: String, icon: String)] = [
+        (String(localized: "Track subscriptions"), "list.bullet.rectangle"),
+        (String(localized: "Calendar view"), "calendar"),
+        (String(localized: "Renewal reminders"), "bell.badge.fill"),
+        (String(localized: "Cancel guides"), "xmark.circle"),
+        (String(localized: "Find forgotten"), "magnifyingglass"),
+        (String(localized: "Spending insights"), "chart.bar.fill")
+    ]
 
     init(
         hasCompletedPaywall: Binding<Bool>,
@@ -54,7 +62,6 @@ struct PaywallView: View {
         .background(Color(.systemBackground).ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 10) {
-                paywallProgressBar
                 Color.clear
                     .frame(maxWidth: .infinity)
                     .frame(height: skipRowHeight)
@@ -107,33 +114,18 @@ struct PaywallView: View {
             selectedOffer = .monthly
             await premiumProducts.refresh()
         }
-        .onReceive(Timer.publish(every: 2.1, on: .main, in: .common).autoconnect()) { _ in
-            guard rotatingBenefits.count > 1 else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
-                activeBenefitIndex = (activeBenefitIndex + 1) % rotatingBenefits.count
-            }
-        }
     }
 
     private var ctaButtonTitle: String {
         String(localized: "Continue")
     }
 
-    private var rotatingBenefits: [String] {
-        var benefits: [String] = []
-        let trimmedPrimary = onboardingPrimaryGoal.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedPrimary.isEmpty {
-            benefits.append(trimmedPrimary)
+    private var personalizedHeadline: String {
+        let goal = onboardingPrimaryGoal.trimmingCharacters(in: .whitespacesAndNewlines)
+        if goal.isEmpty || goal == "None of the above" {
+            return String(localized: "Take control of your subscriptions + more")
         }
-        let defaults = [
-            String(localized: "Track unlimited subscriptions"),
-            String(localized: "Subscription renewal reminders"),
-            String(localized: "No ads")
-        ]
-        for value in defaults where !benefits.contains(value) {
-            benefits.append(value)
-        }
-        return benefits
+        return "\(goal) + more"
     }
 
     private func yearlyMonthlyEquivalentSubtitle() -> String? {
@@ -160,44 +152,18 @@ struct PaywallView: View {
         return String(format: String(localized: "SAVE ~%d%% vs monthly"), savingsPercent)
     }
 
-    private var paywallProgressBar: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<4, id: \.self) { index in
-                Circle()
-                    .fill(index == 3 ? brandGold : Color.black.opacity(0.14))
-                    .frame(width: 8, height: 8)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.vertical, 2)
-    }
-
     @ViewBuilder
     private func paywallScrollableColumn(spacing: CGFloat) -> some View {
         VStack(spacing: spacing) {
-            Text("Take control of your subscriptions")
+            Text(personalizedHeadline)
                 .font(.system(.title, design: .default, weight: .bold))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.black)
-                .minimumScaleFactor(0.88)
+                .minimumScaleFactor(0.82)
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 0) {
-                benefitRow(
-                    rotatingBenefits[min(activeBenefitIndex, rotatingBenefits.count - 1)],
-                    iconName: "sparkles",
-                    compact: false
-                )
-                .id("benefit-\(activeBenefitIndex)")
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
-            }
-            .frame(minHeight: 28, alignment: .leading)
-            .padding(16)
-            .background {
-                PaywallGlassPanel(cornerRadius: 20, borderEmphasized: false)
-            }
-            .animation(.easeInOut(duration: 0.25), value: activeBenefitIndex)
+            featureSquaresGrid
 
             VStack(spacing: 12) {
                 selectablePlanButton(
@@ -231,21 +197,39 @@ struct PaywallView: View {
             .padding(.bottom, 32)
         }
         .padding(.horizontal, ctaHorizontalPadding)
-        .padding(.top, -30)
+        .padding(.top, 8)
     }
 
-    private func benefitRow(_ text: String, iconName: String = "checkmark.circle.fill", compact: Bool = false) -> some View {
-        HStack(alignment: .center, spacing: compact ? 6 : 10) {
-            Image(systemName: iconName)
-                .font(compact ? .callout : .title3)
-                .foregroundStyle(brandGold)
-            Text(text)
-                .font(.system(compact ? .caption : .body, design: .default, weight: .semibold))
-                .foregroundStyle(.black.opacity(0.85))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(0.9)
-            Spacer(minLength: 0)
+    private var featureSquaresGrid: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 10),
+                GridItem(.flexible(), spacing: 10),
+                GridItem(.flexible(), spacing: 10)
+            ],
+            spacing: 10
+        ) {
+            ForEach(Array(featureSquares.enumerated()), id: \.offset) { _, feature in
+                VStack(spacing: 8) {
+                    Image(systemName: feature.icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(brandGold)
+                        .frame(height: 26)
+                    Text(feature.title)
+                        .font(.system(.caption2, design: .default, weight: .semibold))
+                        .foregroundStyle(.black.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, minHeight: 84)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 12)
+                .background {
+                    PaywallGlassPanel(cornerRadius: 16, borderEmphasized: false)
+                }
+            }
         }
     }
 
