@@ -88,12 +88,12 @@ struct SubscriptionDetailView: View {
                 unsubscribeSection
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
             .navigationTitle(subscription.name)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .font(.system(.body, design: .default, weight: .semibold))
+                    SubHelpDoneButton { dismiss() }
                 }
             }
 
@@ -149,6 +149,8 @@ struct SubscriptionDetailView: View {
                                     .strokeBorder(.white, lineWidth: subscription.color == color ? 3 : 0)
                             )
                             .shadow(color: subscription.color == color ? color.opacity(0.5) : .clear, radius: 4)
+                            .scaleEffect(subscription.color == color ? 1.14 : 1)
+                            .animation(SubHelpTheme.bouncy, value: subscription.color)
                             .onTapGesture {
                                 subscription.color = color
                             }
@@ -234,14 +236,10 @@ struct SubscriptionDetailView: View {
                 HStack {
                     Spacer()
                     Label("Mark as Unsubscribed", systemImage: "checkmark.circle.fill")
-                        .font(.system(.body, design: .default, weight: .bold))
-                        .foregroundStyle(.white)
                     Spacer()
                 }
-                .padding(.vertical, 16)
-                .background(.green)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
+            .buttonStyle(.subHelp(tint: .green, fullWidth: true))
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
         }
@@ -327,9 +325,8 @@ struct SubscriptionDetailView: View {
                     .padding(.top, 4)
             }
             .padding(32)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
+            .subHelpPanel(cornerRadius: 36)
+            .shadow(color: .black.opacity(0.18), radius: 24, y: 10)
             .padding(.horizontal, 40)
             .transition(.scale.combined(with: .opacity))
         }

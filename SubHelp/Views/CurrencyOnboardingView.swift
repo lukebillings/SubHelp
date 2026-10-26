@@ -27,7 +27,7 @@ struct CurrencyOnboardingView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            SubHelpBackdrop()
 
             NavigationStack {
                 Group {
@@ -51,7 +51,7 @@ struct CurrencyOnboardingView: View {
                                 SubHelpHaptics.impact(.light)
                                 step -= 1
                             }
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.primary)
                         }
                     }
                 }
@@ -61,21 +61,20 @@ struct CurrencyOnboardingView: View {
                     }
                 }
             }
-            .tint(.black)
+            .tint(.primary)
             .scrollContentBackground(.hidden)
             .background(Color.clear)
-            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// Dot-style progress shown above the primary CTA.
     private var onboardingProgressBar: some View {
-        let pageCount = 4
+        let pageCount = 3
         return HStack(spacing: 8) {
             ForEach(0..<pageCount, id: \.self) { index in
                 Circle()
-                    .fill(index == step ? brandGold : Color.black.opacity(0.14))
+                    .fill(index == step ? brandGold : Color.primary.opacity(0.14))
                     .frame(width: 8, height: 8)
             }
         }
@@ -98,7 +97,7 @@ struct CurrencyOnboardingView: View {
                 } label: {
                     Text("Skip")
                         .font(.system(.subheadline, design: .default, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.72))
+                        .foregroundStyle(.primary.opacity(0.72))
                         .frame(maxWidth: .infinity)
                         .frame(height: skipRowHeight)
                 }
@@ -162,12 +161,7 @@ struct CurrencyOnboardingView: View {
     }
 
     private func continueToFinalStepOrComplete() {
-        let tier = SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
-        if tier == .free {
-            step = 3
-        } else {
-            completeOnboarding()
-        }
+        completeOnboarding()
     }
 
     private func onboardingHeader(title: String, subtitle: String) -> some View {
@@ -175,11 +169,11 @@ struct CurrencyOnboardingView: View {
             Text(title)
                 .font(.system(.title, design: .default, weight: .bold))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.black)
+                .foregroundStyle(.primary)
             Text(subtitle)
                 .font(.system(.body, design: .default, weight: .regular))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.black.opacity(0.85))
+                .foregroundStyle(.primary.opacity(0.85))
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 12)
@@ -216,16 +210,23 @@ struct CurrencyOnboardingView: View {
                         HStack(spacing: 10) {
                             Text(goal)
                                 .font(.system(.subheadline, design: .default, weight: .semibold))
-                                .foregroundStyle(.black.opacity(0.9))
+                                .foregroundStyle(.primary.opacity(0.9))
                                 .multilineTextAlignment(.leading)
                             Spacer(minLength: 0)
+                            if selectedGoals.contains(goal) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.blue)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
                         }
                         .padding(.vertical, 14)
                         .padding(.horizontal, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(selectedGoals.contains(goal) ? Color.blue.opacity(0.12) : Color.white.opacity(0.9))
+                        .subHelpGlass(
+                            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+                            tint: selectedGoals.contains(goal) ? Color.blue.opacity(0.4) : nil,
+                            interactive: true
                         )
+                        .animation(SubHelpTheme.bouncy, value: selectedGoals)
                     }
                     .buttonStyle(.plain)
                 }
@@ -257,7 +258,7 @@ struct CurrencyOnboardingView: View {
                                 HStack(spacing: 10) {
                                     Text(currency.label)
                                         .font(.system(.subheadline, design: .default, weight: .medium))
-                                        .foregroundStyle(.black.opacity(0.85))
+                                        .foregroundStyle(.primary.opacity(0.85))
                                     Spacer(minLength: 0)
                                     if currencyCode == currency.code {
                                         Image(systemName: "checkmark.circle.fill")
@@ -280,8 +281,7 @@ struct CurrencyOnboardingView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .subHelpPanel(cornerRadius: 28)
         }
         .padding(.horizontal, 22)
     }
@@ -297,10 +297,9 @@ struct CurrencyOnboardingView: View {
 
             Image(systemName: "bell.badge.fill")
                 .font(.system(size: 72, weight: .semibold))
-                .foregroundStyle(.black.opacity(0.8))
+                .foregroundStyle(.primary.opacity(0.8))
                 .frame(width: 130, height: 130)
-                .background(.white.opacity(0.35))
-                .clipShape(Circle())
+                .subHelpGlass(in: Circle(), tint: SubHelpTheme.brandGold.opacity(0.35))
 
             Spacer(minLength: 0)
         }

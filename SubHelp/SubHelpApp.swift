@@ -69,7 +69,7 @@ struct SubHelpApp: App {
         WindowGroup {
             ZStack {
                 TabView(selection: $selectedTab) {
-                    Tab("Subscriptions", systemImage: "creditcard.fill", value: MainTab.subscriptions) {
+                    Tab("Subscriptions", systemImage: "creditcard", value: MainTab.subscriptions) {
                         HomeView(
                             viewModel: homeViewModel,
                             subscriptionTier: subscriptionTier,
@@ -81,14 +81,15 @@ struct SubHelpApp: App {
                     Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90", value: MainTab.history) {
                         HistoryView(viewModel: homeViewModel)
                     }
-                    Tab("Help", systemImage: "questionmark.circle.fill", value: MainTab.help) {
+                    Tab("Help", systemImage: "questionmark.circle", value: MainTab.help) {
                         HelpView(viewModel: homeViewModel)
                     }
-                    Tab("Settings", systemImage: "gearshape.fill", value: MainTab.settings) {
+                    Tab("Settings", systemImage: "gearshape", value: MainTab.settings) {
                         SettingsView()
                     }
                 }
                 .tint(.blue)
+                .subHelpTabBarBehavior()
                 .onChange(of: selectedTab) { _, _ in
                     SubHelpHaptics.impact(.light)
                 }
@@ -117,22 +118,10 @@ struct SubHelpApp: App {
                         appOpenCount += 1
                     }
                     guard hasCompletedCurrencyOnboarding else { return }
-                    guard subscriptionTier == .free else {
-                        showSessionPaywall = false
-                        maybePresentRetentionCheck()
-                        return
-                    }
                     guard !showCurrencyOnboarding else { return }
                     if skipNextSessionPaywallActivateBump {
                         skipNextSessionPaywallActivateBump = false
                         return
-                    }
-                    let key = SubHelpLaunchStorageKey.sessionPaywallActivateCount
-                    var n = UserDefaults.standard.integer(forKey: key)
-                    n += 1
-                    UserDefaults.standard.set(n, forKey: key)
-                    if n >= 2 {
-                        showSessionPaywall = true
                     }
                     maybePresentRetentionCheck()
                 }
@@ -256,7 +245,6 @@ struct SubHelpApp: App {
                     showSessionPaywall = false
                 }
             }
-            .preferredColorScheme(.light)
         }
     }
 
@@ -387,15 +375,16 @@ private struct InAppTutorialOverlay: View {
                     HStack {
                         if flow != .postPaywall {
                             Button("Skip") { onSkip() }
+                                .buttonStyle(.subHelp(.glass, tint: .secondary, compact: true))
                         }
                         Spacer()
                         Button(safeIndex == steps.count - 1 ? "Done" : "Next") { onNext() }
-                            .fontWeight(.bold)
+                            .buttonStyle(.subHelp(compact: true))
                     }
                 }
-                .padding(14)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(18)
                 .frame(width: min(geo.size.width - 32, 360))
+                .subHelpPanel(cornerRadius: 26)
                 .position(x: geo.size.width / 2, y: min(max(target.maxY + 84, 190), geo.size.height - 170))
             }
             .onAppear { selectedTab = step.tab }
@@ -441,7 +430,7 @@ private struct RetentionHelpChooserView: View {
             .navigationTitle("Help us help you")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { onDismiss() }
+                    SubHelpDoneButton(action: onDismiss)
                 }
             }
         }

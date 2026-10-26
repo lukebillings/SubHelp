@@ -140,10 +140,9 @@ struct QuickStartGuideView: View {
                                     Text("All")
                                         .font(.system(.subheadline, design: .default, weight: .medium))
                                         .foregroundStyle(selectedCategoryFilter == nil ? .white : .primary)
-                                        .padding(.horizontal, 12)
+                                        .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
-                                        .background(selectedCategoryFilter == nil ? Color.blue : Color(.secondarySystemGroupedBackground))
-                                        .clipShape(Capsule())
+                                        .subHelpGlass(in: Capsule(), tint: selectedCategoryFilter == nil ? .blue : nil, interactive: true)
                                 }
                                 .buttonStyle(.plain)
 
@@ -154,17 +153,17 @@ struct QuickStartGuideView: View {
                                         Text(category.name)
                                             .font(.system(.subheadline, design: .default, weight: .medium))
                                             .foregroundStyle(selectedCategoryFilter == category.name ? .white : .primary)
-                                            .padding(.horizontal, 12)
+                                            .padding(.horizontal, 14)
                                             .padding(.vertical, 8)
-                                            .background(selectedCategoryFilter == category.name ? Color.blue : Color(.secondarySystemGroupedBackground))
-                                            .clipShape(Capsule())
+                                            .subHelpGlass(in: Capsule(), tint: selectedCategoryFilter == category.name ? .blue : nil, interactive: true)
                                     }
                                     .buttonStyle(.plain)
                                 }
                             }
                             .padding(.vertical, 2)
+                            .animation(SubHelpTheme.snappy, value: selectedCategoryFilter)
                         }
-                        .frame(height: 40)
+                        .frame(height: 44)
                         .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
                         .listRowBackground(Color.clear)
                     }
@@ -196,11 +195,11 @@ struct QuickStartGuideView: View {
                                             .font(.title3)
                                             .foregroundStyle(.white.opacity(0.9))
                                     }
-                                    .padding(16)
+                                    .padding(18)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(service.color)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .subHelpColorCard(service.color)
                                 }
+                                .buttonStyle(.subHelpPressable)
                                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
@@ -222,9 +221,8 @@ struct QuickStartGuideView: View {
                                 .font(.system(.subheadline, design: .default, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(.blue)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .padding(.vertical, 8)
+                                .subHelpGlass(in: Capsule(), tint: .blue)
                         }
                         .listRowBackground(Color.clear)
                     }
@@ -288,8 +286,7 @@ struct QuickStartGuideView: View {
                                 .padding(.vertical, 8)
                                 .padding(.horizontal, 12)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color(.tertiarySystemGroupedBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                             }
                             .buttonStyle(.plain)
 
@@ -343,12 +340,13 @@ struct QuickStartGuideView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
             .listSectionSpacing(.compact)
             .navigationTitle("Help Find Subscriptions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    SubHelpDoneButton { dismiss() }
                 }
             }
             .sheet(item: $serviceToAdd) { service in
@@ -449,10 +447,10 @@ private struct AddPopularServiceSheetContent: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel", action: onDismiss)
+                    SubHelpCancelButton(action: onDismiss)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add") {
+                    SubHelpDoneButton(title: "Add") {
                         guard let price = addPrice, price > 0 else { return }
                         let sub = Subscription(
                             name: service.name,
@@ -464,7 +462,6 @@ private struct AddPopularServiceSheetContent: View {
                         )
                         onAdd(sub)
                     }
-                    .fontWeight(.semibold)
                     .disabled(!canAdd)
                 }
             }

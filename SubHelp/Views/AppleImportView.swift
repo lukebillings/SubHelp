@@ -77,6 +77,7 @@ struct AppleImportView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
             .navigationTitle("Import from Apple")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -90,10 +91,10 @@ struct AppleImportView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    SubHelpCancelButton { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
+                    SubHelpDoneButton(title: LocalizedStringKey("Add \(selected.count > 0 ? "\(selected.count)" : "")")) {
                         let subs = services
                             .filter { selected.contains($0.id) }
                             .enumerated()
@@ -109,9 +110,6 @@ struct AppleImportView: View {
                             }
                         onImport(subs)
                         dismiss()
-                    } label: {
-                        Text("Add \(selected.count > 0 ? "\(selected.count)" : "")")
-                            .font(.system(.body, design: .default, weight: .semibold))
                     }
                     .disabled(selected.isEmpty)
                 }
@@ -143,7 +141,9 @@ struct AppleImportView: View {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(isSelected ? .blue : Color(.tertiaryLabel))
-                    .animation(.spring(response: 0.25), value: isSelected)
+                    .symbolEffect(.bounce, value: isSelected)
+                    .contentTransition(.symbolEffect(.replace))
+                    .animation(SubHelpTheme.snappy, value: isSelected)
             }
             .contentShape(Rectangle())
             .onTapGesture {

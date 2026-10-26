@@ -17,6 +17,10 @@ struct PaywallView: View {
     @Binding var hasCompletedPaywall: Bool
     @Binding var selectedTier: SubscriptionTier
     var onSelect: (SubscriptionTier) -> Void
+    /// Onboarding uses the step dots. The add-subscription paywall does not.
+    var showsOnboardingProgress: Bool = true
+    /// Lets someone stay on the free plan with their first subscription.
+    var allowsDismiss: Bool = false
 
     @State private var purchaseInfoMessage: String?
     @State private var selectedOffer: SubscriptionTier = .monthly
@@ -30,10 +34,14 @@ struct PaywallView: View {
     init(
         hasCompletedPaywall: Binding<Bool>,
         selectedTier: Binding<SubscriptionTier>,
+        showsOnboardingProgress: Bool = true,
+        allowsDismiss: Bool = false,
         onSelect: @escaping (SubscriptionTier) -> Void
     ) {
         self._hasCompletedPaywall = hasCompletedPaywall
         self._selectedTier = selectedTier
+        self.showsOnboardingProgress = showsOnboardingProgress
+        self.allowsDismiss = allowsDismiss
         self.onSelect = onSelect
         self._purchaseInfoMessage = State(initialValue: nil)
     }
@@ -50,14 +58,26 @@ struct PaywallView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .tint(.black)
-        .background(Color(.systemBackground).ignoresSafeArea())
+        .tint(.primary)
+        .background { SubHelpBackdrop() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 10) {
-                paywallProgressBar
-                Color.clear
+                if showsOnboardingProgress {
+                    paywallProgressBar
+                }
+                if allowsDismiss {
+                    Button("Not now") {
+                        hasCompletedPaywall = true
+                    }
+                    .font(.system(.subheadline, design: .default, weight: .semibold))
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                     .frame(height: skipRowHeight)
+                } else {
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: skipRowHeight)
+                }
                 Button {
                     SubHelpHaptics.impact(.medium)
                     Task { await purchasePremium(tier: selectedOffer) }
@@ -164,7 +184,7 @@ struct PaywallView: View {
         HStack(spacing: 8) {
             ForEach(0..<4, id: \.self) { index in
                 Circle()
-                    .fill(index == 3 ? brandGold : Color.black.opacity(0.14))
+                    .fill(index == 3 ? brandGold : Color.primary.opacity(0.14))
                     .frame(width: 8, height: 8)
             }
         }
@@ -178,7 +198,7 @@ struct PaywallView: View {
             Text("Take control of your subscriptions")
                 .font(.system(.title, design: .default, weight: .bold))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.black)
+                .foregroundStyle(.primary)
                 .minimumScaleFactor(0.88)
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
@@ -224,7 +244,7 @@ struct PaywallView: View {
 
             VStack(spacing: 6) {
                 subscriptionLegalSection(includeRestoreButton: true, includePolicyLinks: false, compact: false)
-                    .foregroundStyle(.black.opacity(0.85))
+                    .foregroundStyle(.primary.opacity(0.85))
                 SubscriptionPolicyLinksRow()
             }
             .padding(.top, 22)
@@ -241,7 +261,7 @@ struct PaywallView: View {
                 .foregroundStyle(brandGold)
             Text(text)
                 .font(.system(compact ? .caption : .body, design: .default, weight: .semibold))
-                .foregroundStyle(.black.opacity(0.85))
+                .foregroundStyle(.primary.opacity(0.85))
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .minimumScaleFactor(0.9)
@@ -308,19 +328,19 @@ struct PaywallView: View {
                         HStack(alignment: .center, spacing: 10) {
                             Text(title)
                                 .font(titleFont)
-                                .foregroundStyle(.black)
+                                .foregroundStyle(.primary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.82)
                             Spacer(minLength: 0)
                             VStack(alignment: .trailing, spacing: compact ? 2 : 4) {
                                 Text(price)
                                     .font(priceFont)
-                                    .foregroundStyle(.black)
+                                    .foregroundStyle(.primary)
                                     .multilineTextAlignment(.trailing)
                                     .layoutPriority(1)
                                 Text(yearlySubtitle)
                                     .font(yearlyRenewalFont)
-                                    .foregroundStyle(.black.opacity(0.78))
+                                    .foregroundStyle(.primary.opacity(0.78))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.78)
                                     .multilineTextAlignment(.trailing)
@@ -334,13 +354,13 @@ struct PaywallView: View {
                             HStack(alignment: .center, spacing: 8) {
                                 Text(title)
                                     .font(titleFont)
-                                    .foregroundStyle(.black)
+                                    .foregroundStyle(.primary)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.82)
                                 if let goldTag, !goldTag.isEmpty {
                                     Text(goldTag)
                                         .font(.system(compact ? .caption2 : .caption, design: .default, weight: .bold))
-                                        .foregroundStyle(.black.opacity(0.88))
+                                        .foregroundStyle(.primary.opacity(0.88))
                                         .padding(.horizontal, 9)
                                         .padding(.vertical, compact ? 3 : 4)
                                         .background {
@@ -356,7 +376,7 @@ struct PaywallView: View {
                             if let subtitle, !subtitle.isEmpty {
                                 Text(subtitle)
                                     .font(.system(compact ? .caption2 : .caption, design: .default, weight: .medium))
-                                    .foregroundStyle(.black.opacity(0.75))
+                                    .foregroundStyle(.primary.opacity(0.75))
                                     .fixedSize(horizontal: false, vertical: true)
                                     .multilineTextAlignment(.leading)
                             }
@@ -365,7 +385,7 @@ struct PaywallView: View {
 
                         Text(price)
                             .font(priceFont)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.primary)
                             .multilineTextAlignment(.trailing)
                             .layoutPriority(1)
                     }
@@ -400,6 +420,8 @@ struct PaywallView: View {
             }
         }
         .buttonStyle(.plain)
+        .scaleEffect(selected ? 1.0 : 0.985)
+        .animation(SubHelpTheme.bouncy, value: selectedOffer)
         .disabled(premiumProducts.isPurchasing)
     }
 
@@ -420,7 +442,7 @@ private struct SubscriptionPolicyLinksRow: View {
             Link("Terms of Use (EULA)", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
         }
         .font(.system(.caption2, design: .default, weight: .regular))
-        .foregroundStyle(.black.opacity(0.7))
+        .foregroundStyle(.primary.opacity(0.7))
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
     }
@@ -435,7 +457,7 @@ private struct SubscriptionLegalFooterView: View {
     var compact: Bool = false
     @State private var restoreAlertMessage: String?
     private let legalFont: Font = .system(.caption2, design: .default, weight: .regular)
-    private let legalTextColor = Color.black.opacity(0.7)
+    private let legalTextColor = Color.primary.opacity(0.7)
 
     private var subscriptionDisclosureText: String {
         if compact {
@@ -507,9 +529,9 @@ struct UpgradePaywallView: View {
                     Text("Subscription limit reached")
                         .font(.system(.title2, design: .default, weight: .bold))
 
-                    Text("Subscribe to SubHelp Premium to add more than 3 subscriptions.")
+                    Text("Subscribe to SubHelp Premium to add a second subscription.")
                         .font(.system(.body, design: .default, weight: .regular))
-                        .foregroundStyle(.black.opacity(0.85))
+                        .foregroundStyle(.primary.opacity(0.85))
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity)
@@ -525,15 +547,14 @@ struct UpgradePaywallView: View {
                             Text(premiumProducts.yearlyPlanTitle())
                                 .font(.system(.headline, design: .default, weight: .semibold))
                             Spacer()
-                            Text("Add more than 3 subscriptions")
+                            Text("Add unlimited subscriptions")
                                 .font(.system(.subheadline, design: .default, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
-                        .padding(16)
-                        .background(Color(.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .padding(18)
+                        .subHelpPanel(cornerRadius: 24)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.subHelpPressable)
                     .disabled(premiumProducts.isPurchasing)
 
                     Button {
@@ -544,15 +565,14 @@ struct UpgradePaywallView: View {
                             Text(premiumProducts.monthlyPlanTitle())
                                 .font(.system(.headline, design: .default, weight: .semibold))
                             Spacer()
-                            Text("Add more than 3 subscriptions")
+                            Text("Add unlimited subscriptions")
                                 .font(.system(.subheadline, design: .default, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
-                        .padding(16)
-                        .background(Color(.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .padding(18)
+                        .subHelpPanel(cornerRadius: 24)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.subHelpPressable)
                     .disabled(premiumProducts.isPurchasing)
                 }
                 .padding(.horizontal, 24)
@@ -566,11 +586,10 @@ struct UpgradePaywallView: View {
 
                 Spacer(minLength: 16)
             }
-            .background(Color(.systemBackground).ignoresSafeArea())
+            .background { SubHelpBackdrop() }
             .navigationTitle("Upgrade")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
-            .tint(.black)
+            .tint(.primary)
             .overlay {
                 if premiumProducts.isPurchasing {
                     Color.black.opacity(0.12)
@@ -618,13 +637,7 @@ struct PaywallGlassPanel: View {
 
     var body: some View {
         let r = cornerRadius
-        ZStack {
-            RoundedRectangle(cornerRadius: r, style: .continuous)
-                .fill(.ultraThinMaterial)
-            RoundedRectangle(cornerRadius: r, style: .continuous)
-                .fill(Color.white.opacity(borderEmphasized ? 0.26 : 0.16))
-        }
-        .clipShape(RoundedRectangle(cornerRadius: r, style: .continuous))
+        surface(r)
         .overlay {
             if borderEmphasized {
                 RoundedRectangle(cornerRadius: r, style: .continuous)
@@ -645,6 +658,21 @@ struct PaywallGlassPanel: View {
             }
         }
         .shadow(color: Color.black.opacity(0.07), radius: 10, x: 0, y: 4)
+    }
+
+    @ViewBuilder
+    private func surface(_ r: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: r, style: .continuous)
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular.tint(borderEmphasized ? brandGold.opacity(0.16) : nil), in: shape)
+        } else {
+            ZStack {
+                shape.fill(.ultraThinMaterial)
+                shape.fill(Color.white.opacity(borderEmphasized ? 0.26 : 0.16))
+            }
+            .clipShape(shape)
+        }
     }
 }
 

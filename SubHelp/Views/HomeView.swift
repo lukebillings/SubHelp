@@ -11,9 +11,11 @@ struct HomeView: View {
     @State private var showQuickStartGuide = false
     @State private var showSavingsCard = false
     @State private var showUpgradePaywall = false
+    @Namespace private var cardTransition
 
+    /// Free accounts can track one subscription. The paywall appears when they try to add a second.
     private var subscriptionLimit: Int {
-        subscriptionTier == .free ? 3 : .max
+        subscriptionTier == .free ? 1 : .max
     }
 
     private var canAddMore: Bool {
@@ -52,7 +54,7 @@ struct HomeView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(Color(.systemGroupedBackground))
+                .background { SubHelpBackdrop() }
             }
         }
         .sheet(isPresented: $showAddSheet) {
@@ -76,9 +78,21 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showUpgradePaywall) {
-            UpgradePaywallView { tier in
-                onTierChange(tier)
-            }
+            PaywallView(
+                hasCompletedPaywall: Binding(
+                    get: { !showUpgradePaywall },
+                    set: { if $0 { showUpgradePaywall = false } }
+                ),
+                selectedTier: Binding(
+                    get: { subscriptionTier },
+                    set: { onTierChange($0) }
+                ),
+                showsOnboardingProgress: false,
+                allowsDismiss: true,
+                onSelect: { tier in
+                    onTierChange(tier)
+                }
+            )
         }
         .sheet(isPresented: $showSavingsCard) {
             SavingsHologramCardView(
@@ -102,6 +116,7 @@ struct HomeView: View {
                     }
                 )
             }
+            .navigationTransition(.zoom(sourceID: sub.id, in: cardTransition))
         }
     }
 
@@ -109,7 +124,7 @@ struct HomeView: View {
 
     private var welcomeState: some View {
         ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
+            SubHelpBackdrop()
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -141,13 +156,8 @@ struct HomeView: View {
                         }
                     } label: {
                         Label("Add Subscription", systemImage: "plus")
-                            .font(.system(.body, design: .default, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
+                    .buttonStyle(.subHelp(fullWidth: true))
                     .padding(.horizontal, 32)
                     .padding(.bottom, 28)
 
@@ -164,10 +174,8 @@ struct HomeView: View {
                         }
                     } label: {
                         Text("Help Find Subscriptions")
-                            .font(.system(.body, design: .default, weight: .semibold))
-                            .foregroundStyle(.blue)
-                            .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.subHelp(.glass, fullWidth: true))
                     .padding(.horizontal, 32)
                     .padding(.bottom, 40)
                 }
@@ -186,31 +194,34 @@ struct HomeView: View {
                     .foregroundStyle(.primary)
 
                 (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerMonth, currencyCode: currencyCode)) ")
-                    .font(.system(.title, design: .default, weight: .bold))
+                    .font(.system(.title, design: .rounded, weight: .bold))
                  + Text("/month")
                     .font(.system(.title3, design: .default, weight: .medium))
                     .foregroundStyle(.secondary))
+                    .subHelpNumeric(value: viewModel.totalPerMonth)
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
 
                 (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerYear, currencyCode: currencyCode)) ")
-                    .font(.system(.title, design: .default, weight: .bold))
+                    .font(.system(.title, design: .rounded, weight: .bold))
                  + Text("/year")
                     .font(.system(.title3, design: .default, weight: .medium))
                     .foregroundStyle(.secondary))
+                    .subHelpNumeric(value: viewModel.totalPerYear)
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
 
-                Button("+ Add Subscription") {
+                Button {
                     if canAddMore {
                         showAddSheet = true
                     } else {
                         showUpgradePaywall = true
                     }
+                } label: {
+                    Label("Add Subscription", systemImage: "plus")
                 }
-                    .font(.system(.subheadline, design: .default, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(.blue)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .padding(.top, 4)
+                .buttonStyle(.subHelp(compact: true))
+                .padding(.top, 6)
 
                 Button {
                     if canAddMore {
@@ -220,14 +231,8 @@ struct HomeView: View {
                     }
                 } label: {
                     Text("Help Find Subscriptions")
-                        .font(.system(.subheadline, design: .default, weight: .semibold))
-                        .foregroundStyle(.blue)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
-                .padding(.top, 4)
+                .buttonStyle(.subHelp(.glass, compact: true))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -243,24 +248,27 @@ struct HomeView: View {
 
                     VStack(spacing: 2) {
                         Text(CurrencyOptions.formatPresentation(amount: viewModel.savedAmount * 12, currencyCode: currencyCode))
-                            .font(.system(.subheadline, design: .default, weight: .bold))
+                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .subHelpNumeric(value: viewModel.savedAmount)
                         Text("Yearly Savings")
                             .font(.system(.caption2, design: .default, weight: .bold))
                     }
                     .foregroundStyle(.black)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(red: 1.0, green: 0.84, blue: 0.0))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .subHelpGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous), tint: SubHelpTheme.savingsGold)
                     .padding(.bottom, 2)
                     .offset(y: 20)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.subHelpPressable)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
+        .padding(20)
+        .padding(.bottom, 8)
+        .subHelpPanel()
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     // MARK: - Segment
@@ -302,8 +310,10 @@ struct HomeView: View {
             }
             .font(.system(.subheadline, design: .default, weight: .medium))
             .foregroundStyle(.blue)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .subHelpGlass(in: Capsule(), interactive: true)
+            .contentShape(Capsule())
         }
     }
 
@@ -331,8 +341,10 @@ struct HomeView: View {
             }
             .font(.system(.subheadline, design: .default, weight: .medium))
             .foregroundStyle(.blue)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .contentShape(Rectangle())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .subHelpGlass(in: Capsule(), interactive: true)
+            .contentShape(Capsule())
         }
     }
 
@@ -361,13 +373,18 @@ struct HomeView: View {
     // MARK: - List
 
     private var cardsList: some View {
-        LazyVStack(spacing: 12) {
+        LazyVStack(spacing: 14) {
             ForEach(viewModel.subscriptionsForDisplay) { sub in
-                subscriptionCard(sub)
-                    .onTapGesture { selectedSubscription = sub }
+                Button { selectedSubscription = sub } label: {
+                    subscriptionCard(sub)
+                }
+                .buttonStyle(.subHelpPressable)
+                .matchedTransitionSource(id: sub.id, in: cardTransition)
+                .subHelpScrollFade()
+                .transition(.scale(scale: 0.94).combined(with: .opacity))
             }
-
         }
+        .animation(SubHelpTheme.smooth, value: viewModel.subscriptionsForDisplay.map(\.id))
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 20)
@@ -394,10 +411,9 @@ struct HomeView: View {
                     .foregroundStyle(.white.opacity(0.8))
             }
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(sub.color)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .subHelpColorCard(sub.color)
     }
 
     // MARK: - Calendar
@@ -430,18 +446,26 @@ struct HomeView: View {
             VStack(spacing: 8) {
                 // Month navigation
                 HStack {
-                    Button { viewModel.changeMonth(by: -1) } label: {
+                    Button { withAnimation(SubHelpTheme.smooth) { viewModel.changeMonth(by: -1) } } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(.body, design: .default, weight: .semibold))
+                            .frame(width: 40, height: 40)
+                            .subHelpGlass(in: Circle(), interactive: true)
                     }
+                    .buttonStyle(.plain)
                     Spacer()
                     Text(viewModel.monthYearString)
                         .font(.system(.headline, design: .default, weight: .bold))
+                        .contentTransition(.numericText())
+                        .animation(SubHelpTheme.smooth, value: viewModel.monthYearString)
                     Spacer()
-                    Button { viewModel.changeMonth(by: 1) } label: {
+                    Button { withAnimation(SubHelpTheme.smooth) { viewModel.changeMonth(by: 1) } } label: {
                         Image(systemName: "chevron.right")
                             .font(.system(.body, design: .default, weight: .semibold))
+                            .frame(width: 40, height: 40)
+                            .subHelpGlass(in: Circle(), interactive: true)
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -530,8 +554,11 @@ struct HomeView: View {
                         GridItem(.flexible(), spacing: 12)
                     ], spacing: 12) {
                         ForEach(subsForDate) { sub in
-                            calendarCard(sub)
-                                .onTapGesture { selectedSubscription = sub }
+                            Button { selectedSubscription = sub } label: {
+                                calendarCard(sub)
+                            }
+                            .buttonStyle(.subHelpPressable)
+                            .matchedTransitionSource(id: sub.id, in: cardTransition)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -556,9 +583,9 @@ struct HomeView: View {
                 .foregroundStyle(.white.opacity(0.8))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(sub.color)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.vertical, 16)
+        .padding(.horizontal, 8)
+        .subHelpColorCard(sub.color)
     }
 }
 
@@ -606,9 +633,7 @@ private struct SavingsHologramCardView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                    SubHelpDoneButton { dismiss() }
                 }
             }
         }
@@ -776,7 +801,7 @@ private struct MainTabsPreview: View {
 
     var body: some View {
         TabView {
-            Tab("Subscriptions", systemImage: "creditcard.fill") {
+            Tab("Subscriptions", systemImage: "creditcard") {
                 HomeView(
                     viewModel: homeViewModel,
                     subscriptionTier: .free,
@@ -786,10 +811,10 @@ private struct MainTabsPreview: View {
             Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
                 HistoryView(viewModel: homeViewModel)
             }
-            Tab("Help", systemImage: "questionmark.circle.fill") {
+            Tab("Help", systemImage: "questionmark.circle") {
                 HelpView(viewModel: homeViewModel)
             }
-            Tab("Settings", systemImage: "gearshape.fill") {
+            Tab("Settings", systemImage: "gearshape") {
                 SettingsView()
             }
         }

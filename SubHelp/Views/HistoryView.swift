@@ -13,7 +13,7 @@ struct HistoryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(.systemGroupedBackground).ignoresSafeArea()
+                SubHelpBackdrop()
                 Group {
                     if viewModel.unsubscribed.isEmpty {
                         ScrollView {
@@ -27,8 +27,10 @@ struct HistoryView: View {
                         ScrollView {
                             VStack(spacing: 0) {
                                 savedHeroSection
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 16)
+                                    .padding(22)
+                                    .subHelpPanel()
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 8)
                                     .padding(.bottom, 20)
 
                                 HStack {
@@ -40,11 +42,14 @@ struct HistoryView: View {
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 8)
 
-                                LazyVStack(spacing: 12) {
+                                LazyVStack(spacing: 14) {
                                     ForEach(viewModel.unsubscribed) { sub in
                                         historyRow(sub)
+                                            .subHelpScrollFade()
+                                            .transition(.scale(scale: 0.94).combined(with: .opacity))
                                     }
                                 }
+                                .animation(SubHelpTheme.smooth, value: viewModel.unsubscribed.map(\.id))
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 20)
                             }
@@ -70,8 +75,11 @@ struct HistoryView: View {
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(CurrencyOptions.formatPresentation(amount: viewModel.unsubscribedSavedPerYear, currencyCode: currencyCode))
-                        .font(.system(size: 42, weight: .bold, design: .default))
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                        .subHelpNumeric(value: viewModel.unsubscribedSavedPerYear)
                     Text("That's how much you're saving per year thanks to the subscriptions you've cancelled.")
                         .font(.system(.subheadline, design: .default, weight: .regular))
                         .foregroundStyle(.secondary)
@@ -133,9 +141,8 @@ struct HistoryView: View {
                     .foregroundStyle(.white.opacity(0.8))
             }
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(sub.color.opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .subHelpColorCard(sub.color, opacity: 0.55)
     }
 }

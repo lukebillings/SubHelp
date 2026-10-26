@@ -163,6 +163,7 @@ struct SettingsView: View {
                 .font(.system(.body, design: .default, weight: .regular))
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
             .onAppear {
                 migrateLegacyNotificationNeverIfNeeded()
             }

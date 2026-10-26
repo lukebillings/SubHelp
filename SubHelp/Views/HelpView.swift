@@ -104,15 +104,16 @@ struct HelpView: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 14)
-                                    .background(Color(.secondarySystemGroupedBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    .padding(.horizontal, 18)
+                                    .padding(.vertical, 16)
+                                    .subHelpPanel(cornerRadius: 24)
+                                    .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.subHelpPressable)
                             }
                         }
                         .padding(.horizontal, 20)
+                        .transition(.scale(scale: 0.96).combined(with: .opacity))
                     }
 
                     // Pulsing "Thinking..." (contained) or result below
@@ -126,7 +127,11 @@ struct HelpView: View {
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .background { SubHelpBackdrop() }
+            .scrollContentBackground(.hidden)
+            .animation(SubHelpTheme.smooth, value: selectedGoal)
+            .animation(SubHelpTheme.smooth, value: isThinking)
+            .animation(SubHelpTheme.smooth, value: save100Phase)
             .navigationTitle("Help")
             .sheet(item: $helpSelectedSubscription) { sub in
                 NavigationStack {
@@ -238,17 +243,15 @@ struct HelpView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .subHelpRow()
             .padding(.horizontal, 20)
 
             Button(action: runSave100Calculation) {
                 Text("OK")
                     .font(.system(.body, design: .default, weight: .semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.subHelp(fullWidth: true))
             .padding(.horizontal, 20)
         }
     }
@@ -272,17 +275,15 @@ struct HelpView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .subHelpRow()
             .padding(.horizontal, 20)
 
             Button(action: runSave100Calculation) {
                 Text("OK")
                     .font(.system(.body, design: .default, weight: .semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.subHelp(fullWidth: true))
             .padding(.horizontal, 20)
 
             // Only `saveTargetApplied` drives options below — editing the field does not recalculate until OK.
@@ -349,8 +350,7 @@ struct HelpView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .subHelpRow()
     }
 
     // MARK: - Remove entertainment (streaming savings)
@@ -416,10 +416,9 @@ struct HelpView: View {
                     .foregroundStyle(.white.opacity(0.8))
             }
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(sub.color)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .subHelpColorCard(sub.color)
     }
 
     // MARK: - Helpers

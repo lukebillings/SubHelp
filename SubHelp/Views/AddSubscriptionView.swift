@@ -89,6 +89,8 @@ struct AddSubscriptionView: View {
                                         .strokeBorder(.white, lineWidth: selectedColor == color ? 3 : 0)
                                 )
                                 .shadow(color: selectedColor == color ? color.opacity(0.5) : .clear, radius: 4)
+                                .scaleEffect(selectedColor == color ? 1.14 : 1)
+                                .animation(SubHelpTheme.bouncy, value: selectedColor)
                                 .onTapGesture {
                                     selectedColor = color
                                 }
@@ -117,23 +119,24 @@ struct AddSubscriptionView: View {
                                     .foregroundStyle(.white.opacity(0.8))
                             }
                         }
-                        .padding(16)
-                        .background(selectedColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .padding(18)
+                        .subHelpColorCard(selectedColor)
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
                     }
                 }
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
+            .animation(SubHelpTheme.smooth, value: name.isEmpty)
             .navigationTitle("Add Subscription")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    SubHelpCancelButton { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    SubHelpDoneButton(title: "Save") {
                         guard let price = price else { return }
                         let sub = Subscription(
                             name: name,
@@ -147,7 +150,6 @@ struct AddSubscriptionView: View {
                         dismiss()
                     }
                     .disabled(!canSave)
-                    .fontWeight(.semibold)
                 }
             }
         }
