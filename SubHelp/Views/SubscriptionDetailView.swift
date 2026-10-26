@@ -84,6 +84,7 @@ struct SubscriptionDetailView: View {
         ZStack {
             List {
                 subDetailsSection
+                markSection
                 cancellationHelpSection
                 unsubscribeSection
             }
@@ -162,6 +163,37 @@ struct SubscriptionDetailView: View {
                     .lineLimit(3...6)
             }
             .padding(.vertical, 4)
+        }
+    }
+
+    // MARK: - Mark
+
+    private var markSection: some View {
+        Section {
+            VStack(spacing: 10) {
+                ForEach(SubscriptionStage.markChoices) { stage in
+                    let isSelected = subscription.stage == stage
+                    Button {
+                        withAnimation(SubHelpTheme.snappy) {
+                            subscription.stage = isSelected ? .keep : stage
+                        }
+                        SubHelpHaptics.impact(.light)
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label(stage.rawValue, systemImage: isSelected ? "checkmark.circle.fill" : stage.symbolName)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.subHelp(isSelected ? .prominent : .glass, tint: stage.tint, fullWidth: true))
+                }
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+        } header: {
+            Text("Mark this subscription")
+        } footer: {
+            Text("Tap a mark again to clear it.")
         }
     }
 

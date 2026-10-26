@@ -3,6 +3,7 @@ import SwiftUI
 enum SubscriptionViewMode: String, CaseIterable {
     case list = "List"
     case calendar = "Calendar"
+    case board = "Board"
 }
 
 enum SortOption: String, CaseIterable {
@@ -240,21 +241,78 @@ final class HomeViewModel: ObservableObject {
     }
 
     func addSubscription(_ sub: Subscription) {
+        var sub = sub
+        let nextOrder = (subscriptions.filter { $0.stage == sub.stage }.map(\.boardOrder).max() ?? -1) + 1
+        sub.boardOrder = nextOrder
         subscriptions.append(sub)
         applySorting()
         persist()
         syncCategoryFilterWithSubscriptions()
     }
 
-    func updateSubscription(_ updated: Subscription) {
-        if let index = subscriptions.firstIndex(where: { $0.id == updated.id }) {
-            var merged = updated
-            merged.addedAt = subscriptions[index].addedAt
-            subscriptions[index] = merged
-            applySorting()
-            persist()
-            syncCategoryFilterWithSubscriptions()
+    /// Subscriptions in one board column, respecting the category filter.
+    func subscriptions(in stage: SubscriptionStage) -> [Subscription] {
+        subscriptionsForDisplay
+            .filter { $0.stage == stage }
+            .sorted { lhs, rhs in
+                if lhs.boardOrder != rhs.boardOrder { return lhs.boardOrder < rhs.boardOrder }
+                return lhs.addedAt < rhs.addedAt
+            }
+    }
+
+    /// Moves a subscription into `stage`, inserting it before `beforeID` or at the end of that column.
+    @discardableResult
+    func moveSubscription(_ id: UUID, to stage: SubscriptionStage, before beforeID: UUID?) -> Bool {
+        guard subscriptions.contains(where: { $0.id == id }) else { return false }
+        if beforeID == id { return false }
+
+        var updated = subscriptions
+        guard let movingIndex = updated.firstIndex(where: { $0.id == id }) else { return false }
+        updated[movingIndex].stage = stage
+
+        var columnIDs = updated
+            .filter { $0.stage == stage && $0.id != id }
+            .sorted { lhs, rhs in
+                if lhs.boardOrder != rhs.boardOrder { return lhs.boardOrder < rhs.boardOrder }
+                return lhs.addedAt < rhs.addedAt
+            }
+            .map(\.id)
+
+        if let beforeID, let insertAt = columnIDs.firstIndex(of: beforeID) {
+            columnIDs.insert(id, at: insertAt)
+        } else {
+            columnIDs.append(id)
         }
+
+        for (order, columnID) in columnIDs.enumerated() {
+            guard let index = updated.firstIndex(where: { $0.id == columnID }) else { continue }
+            updated[index].boardOrder = order
+        }
+
+        let before = subscriptions.map { "\($0.id.uuidString)|\($0.stage.rawValue)|\($0.boardOrder)" }
+        let after = updated.map { "\($0.id.uuidString)|\($0.stage.rawValue)|\($0.boardOrder)" }
+        guard before != after else { return false }
+
+        subscriptions = updated
+        persist()
+        return true
+    }
+
+    func updateSubscription(_ updated: Subscription) {
+        guard let index = subscriptions.firstIndex(where: { $0.id == updated.id }) else { return }
+        let previous = subscriptions[index]
+        var merged = updated
+        merged.addedAt = previous.addedAt
+        if merged.stage != previous.stage {
+            let nextOrder = (subscriptions.filter { $0.stage == merged.stage && $0.id != merged.id }.map(\.boardOrder).max() ?? -1) + 1
+            merged.boardOrder = nextOrder
+        } else {
+            merged.boardOrder = previous.boardOrder
+        }
+        subscriptions[index] = merged
+        applySorting()
+        persist()
+        syncCategoryFilterWithSubscriptions()
     }
 
     func removeSubscription(_ sub: Subscription) {

@@ -25,6 +25,10 @@ private struct PersistedSubscription: Codable {
     var notes: String?
     /// Older app versions did not store this; see `loadSubscriptions` migration.
     var addedAt: Date?
+    /// Older app versions did not store this; missing values stay in Keep.
+    var stage: String?
+    /// Older app versions did not store this; missing values use the saved list index.
+    var boardOrder: Int?
 
     init(from sub: Subscription) {
         self.id = sub.id
@@ -40,10 +44,12 @@ private struct PersistedSubscription: Codable {
         let trimmedNotes = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
         self.notes = trimmedNotes.isEmpty ? nil : sub.notes
         self.addedAt = sub.addedAt
+        self.stage = sub.stage.rawValue
+        self.boardOrder = sub.boardOrder
     }
 
-    func toSubscription(legacyListIndex: Int?) -> Subscription {
-        let resolvedAddedAt = addedAt ?? Date(timeIntervalSince1970: TimeInterval(legacyListIndex ?? 0))
+    func toSubscription(listIndex: Int) -> Subscription {
+        let resolvedAddedAt = addedAt ?? Date(timeIntervalSince1970: TimeInterval(listIndex))
         return Subscription(
             id: id,
             name: name,
@@ -53,7 +59,9 @@ private struct PersistedSubscription: Codable {
             frequency: BillingFrequency(rawValue: frequency) ?? .monthly,
             category: category,
             notes: notes ?? "",
-            addedAt: resolvedAddedAt
+            addedAt: resolvedAddedAt,
+            stage: SubscriptionStage(rawValue: stage ?? "") ?? .keep,
+            boardOrder: boardOrder ?? listIndex
         )
     }
 }
@@ -115,8 +123,7 @@ enum SubscriptionStorage {
             return []
         }
         return decoded.enumerated().map { index, p in
-            let legacyIndex = p.addedAt == nil ? index : nil
-            return p.toSubscription(legacyListIndex: legacyIndex)
+            p.toSubscription(listIndex: index)
         }
     }
 
@@ -126,8 +133,7 @@ enum SubscriptionStorage {
             return []
         }
         return decoded.enumerated().map { index, p in
-            let legacyIndex = p.addedAt == nil ? index : nil
-            return p.toSubscription(legacyListIndex: legacyIndex)
+            p.toSubscription(listIndex: index)
         }
     }
 

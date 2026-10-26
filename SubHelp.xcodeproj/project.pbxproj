@@ -28,6 +28,7 @@
 		5A00004D2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */; };
 		5A0000522B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */; };
 		5A0000552B8F4A0100C7D8E9 /* SubHelpHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000562B8F4A0100C7D8E9 /* SubHelpHaptics.swift */; };
+		5A0000582B8F4A0100C7D8E9 /* SubscriptionBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000572B8F4A0100C7D8E9 /* SubscriptionBoardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +55,7 @@
 		5A00004E2B8F4A0100C7D8E9 /* SubHelp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SubHelp.entitlements; sourceTree = "<group>"; };
 		5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpAppDelegate.swift; sourceTree = "<group>"; };
 		5A0000562B8F4A0100C7D8E9 /* SubHelpHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpHaptics.swift; sourceTree = "<group>"; };
+		5A0000572B8F4A0100C7D8E9 /* SubscriptionBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionBoardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +104,7 @@
 			isa = PBXGroup;
 			children = (
 				5A0000132B8F4A0100C7D8E9 /* HomeView.swift */,
+				5A0000572B8F4A0100C7D8E9 /* SubscriptionBoardView.swift */,
 				5A0000A02B8F4A0100C7D8E9 /* SubHelpStyle.swift */,
 				5A00003A2B8F4A0100C7D8E9 /* HistoryView.swift */,
 				5A00003C2B8F4A0100C7D8E9 /* AppleImportView.swift */,
@@ -209,6 +212,7 @@
 				5A0000522B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift in Sources */,
 				5A0000552B8F4A0100C7D8E9 /* SubHelpHaptics.swift in Sources */,
 				5A0000142B8F4A0100C7D8E9 /* HomeView.swift in Sources */,
+				5A0000582B8F4A0100C7D8E9 /* SubscriptionBoardView.swift in Sources */,
 				5A0000162B8F4A0100C7D8E9 /* HomeViewModel.swift in Sources */,
 				5A00001A2B8F4A0100C7D8E9 /* Subscription.swift in Sources */,
 				5A00001C2B8F4A0100C7D8E9 /* SettingsView.swift in Sources */,

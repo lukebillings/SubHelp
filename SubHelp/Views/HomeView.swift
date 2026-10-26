@@ -51,6 +51,15 @@ struct HomeView: View {
                     case .calendar:
                         calendarFilterBar
                         calendarSection
+                    case .board:
+                        calendarFilterBar
+                        SubscriptionBoardView(
+                            viewModel: viewModel,
+                            currencyCode: currencyCode,
+                            selectedSubscription: $selectedSubscription,
+                            cardTransition: cardTransition
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -397,6 +406,11 @@ struct HomeView: View {
                     .font(.system(.headline, design: .default, weight: .bold))
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
+                if sub.stage != .keep {
+                    Text(sub.stage.rawValue)
+                        .font(.system(.footnote, design: .default, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
                 Text("Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
