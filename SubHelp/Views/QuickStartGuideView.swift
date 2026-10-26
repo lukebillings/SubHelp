@@ -454,7 +454,9 @@ private struct AddPopularServiceSheetContent: View {
         let nextMonth = cal.date(byAdding: .month, value: 1, to: Date()) ?? Date()
         let comps = cal.dateComponents([.year, .month], from: nextMonth)
         let defaultNext = cal.date(from: comps) ?? Date()
-        _category = State(initialValue: service.category)
+        let startingCategory = SubscriptionCategory(rawValue: service.category)?.rawValue
+            ?? SubscriptionCategory.other.rawValue
+        _category = State(initialValue: startingCategory)
         _addPrice = State(initialValue: nil)
         _addFrequency = State(initialValue: .monthly)
         _addNextPayment = State(initialValue: defaultNext)
@@ -472,7 +474,6 @@ private struct AddPopularServiceSheetContent: View {
                     }
 
                     Picker("Category", selection: $category) {
-                        Label("None", systemImage: SubscriptionCategory.uncategorizedSymbolName).tag("")
                         ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
                             Label(cat, systemImage: SubscriptionCategory.symbolName(for: cat)).tag(cat)
                         }
@@ -519,7 +520,7 @@ private struct AddPopularServiceSheetContent: View {
                             price: price,
                             color: service.color,
                             frequency: addFrequency,
-                            category: category.isEmpty ? nil : category
+                            category: category
                         )
                         onAdd(sub)
                     }

@@ -7,7 +7,7 @@ struct AddSubscriptionView: View {
     var onAdd: (Subscription) -> Void
 
     @State private var name: String = ""
-    @State private var category: String? = nil
+    @State private var category: String = SubscriptionCategory.other.rawValue
     @State private var price: Decimal? = nil
     @State private var frequency: BillingFrequency = .monthly
     @State private var nextPaymentDate = Date()
@@ -48,13 +48,9 @@ struct AddSubscriptionView: View {
                 }
 
                 Section("Category") {
-                    Picker("Category", selection: Binding(
-                        get: { category ?? "" },
-                        set: { category = $0.isEmpty ? nil : $0 }
-                    )) {
-                        Text("None").tag("")
+                    Picker("Category", selection: $category) {
                         ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
-                            Text(cat).tag(cat)
+                            Label(cat, systemImage: SubscriptionCategory.symbolName(for: cat)).tag(cat)
                         }
                     }
                 }
@@ -104,7 +100,8 @@ struct AddSubscriptionView: View {
 
                 if !name.isEmpty {
                     Section("Preview") {
-                        HStack {
+                        HStack(alignment: .center, spacing: 12) {
+                            SubscriptionCategoryMark(category: category)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(name)
                                     .font(.system(.headline, design: .default, weight: .bold))

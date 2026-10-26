@@ -505,25 +505,45 @@ struct HelpView: View {
     // MARK: - Subscription card (same style as Subscriptions page)
 
     private func subscriptionCard(_ sub: Subscription) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        let note = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasStage = sub.stage != .keep
+        return HStack(alignment: .center, spacing: 12) {
             SubscriptionCategoryMark(category: sub.category)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sub.name)
-                    .font(.system(.headline, design: .default, weight: .bold))
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(sub.name)
+                        .font(.system(.headline, design: .default, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Spacer(minLength: 8)
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
+                            .font(.system(.headline, design: .default, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text(sub.frequency.shortLabel)
+                            .font(.system(.subheadline, design: .default, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
                 Text("Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
-                    .font(.system(.headline, design: .default, weight: .bold))
-                    .foregroundStyle(.white)
-                Text(sub.frequency.shortLabel)
-                    .font(.system(.caption, design: .default, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if hasStage || !note.isEmpty {
+                    HStack(spacing: 6) {
+                        if hasStage {
+                            cardLabelPill(sub.stage.rawValue)
+                        }
+                        if !note.isEmpty {
+                            cardLabelPill(note)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
             }
         }
         .padding(18)
@@ -531,14 +551,20 @@ struct HelpView: View {
         .subHelpColorCard(sub.color)
     }
 
+    private func cardLabelPill(_ text: String) -> some View {
+        Text(text)
+            .font(.system(.caption, design: .default, weight: .semibold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color.white.opacity(0.22), in: Capsule())
+    }
+
     // MARK: - Helpers
 
     private func yearlyAmount(for sub: Subscription) -> Decimal {
-        switch sub.frequency {
-        case .weekly: return sub.price * 52
-        case .monthly: return sub.price * 12
-        case .yearly: return sub.price
-        }
+        sub.frequency.yearlyAmount(for: sub.price)
     }
 
     private func yearlyTotal(for subs: [Subscription]) -> Decimal {

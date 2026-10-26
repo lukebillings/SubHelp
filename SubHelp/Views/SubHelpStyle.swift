@@ -117,6 +117,28 @@ struct SubHelpBackdrop: View {
     }
 }
 
+// MARK: - Category mark
+
+/// Generic category logo shown beside a subscription name.
+struct SubscriptionCategoryMark: View {
+    var category: String?
+    var size: CGFloat = 36
+    /// White glyph on a translucent chip, for coloured subscription cards.
+    var onColorCard: Bool = true
+
+    var body: some View {
+        Image(systemName: SubscriptionCategory.symbolName(for: category))
+            .font(.system(size: size * 0.46, weight: .semibold))
+            .foregroundStyle(onColorCard ? Color.white : Color.secondary)
+            .frame(width: size, height: size)
+            .background(
+                RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                    .fill(onColorCard ? Color.white.opacity(0.22) : Color.primary.opacity(0.08))
+            )
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Button styles
 
 /// Capsule button in the iOS 26 idiom: tinted Liquid Glass when prominent, clear glass otherwise.

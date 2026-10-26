@@ -56,32 +56,20 @@ final class HomeViewModel: ObservableObject {
 
     var totalPerMonth: Decimal {
         subscriptions.reduce(Decimal.zero) { total, sub in
-            switch sub.frequency {
-            case .weekly: return total + (sub.price * 52 / 12)
-            case .monthly: return total + sub.price
-            case .yearly: return total + (sub.price / 12)
-            }
+            total + sub.frequency.monthlyAmount(for: sub.price)
         }
     }
 
     var totalPerYear: Decimal {
         subscriptions.reduce(Decimal.zero) { total, sub in
-            switch sub.frequency {
-            case .weekly: return total + (sub.price * 52)
-            case .monthly: return total + (sub.price * 12)
-            case .yearly: return total + sub.price
-            }
+            total + sub.frequency.yearlyAmount(for: sub.price)
         }
     }
 
     /// Yearly amount saved from cancelled (unsubscribed) subscriptions.
     var unsubscribedSavedPerYear: Decimal {
         unsubscribed.reduce(Decimal.zero) { total, sub in
-            switch sub.frequency {
-            case .weekly: return total + (sub.price * 52)
-            case .monthly: return total + (sub.price * 12)
-            case .yearly: return total + sub.price
-            }
+            total + sub.frequency.yearlyAmount(for: sub.price)
         }
     }
 
@@ -89,43 +77,40 @@ final class HomeViewModel: ObservableObject {
 
     /// Subscriptions included in the current category filter (same order as `subscriptions`).
     var subscriptionsForDisplay: [Subscription] {
+        filtered(subscriptions)
+    }
+
+    /// Cancelled subscriptions included in the current category filter.
+    var unsubscribedForDisplay: [Subscription] {
+        filtered(unsubscribed)
+    }
+
+    private func filtered(_ subs: [Subscription]) -> [Subscription] {
         switch categoryFilter {
         case .all:
-            return subscriptions
+            return subs
         case .uncategorized:
-            return subscriptions.filter { ($0.category ?? "").isEmpty }
+            return subs.filter { ($0.category ?? "").isEmpty }
         case .category(let name):
-            return subscriptions.filter { $0.category == name }
+            return subs.filter { $0.category == name }
         }
     }
 
     func subscriptions(for date: Date) -> [Subscription] {
         let cal = Calendar.current
         return subscriptionsForDisplay.filter { sub in
-            let subDay = cal.component(.day, from: sub.nextPaymentDate)
-            let dateDay = cal.component(.day, from: date)
-            if sub.frequency == .monthly {
-                return subDay == dateDay
-            } else {
-                return cal.isDate(sub.nextPaymentDate, equalTo: date, toGranularity: .day)
-            }
+            sub.frequency.renews(on: date, anchor: sub.nextPaymentDate, calendar: cal)
         }
     }
 
     func subscriptionColors(forDay day: Int, inMonth month: Date) -> [Color] {
         let cal = Calendar.current
-        let monthComp = cal.component(.month, from: month)
-        let yearComp = cal.component(.year, from: month)
+        var parts = cal.dateComponents([.year, .month], from: month)
+        parts.day = day
+        guard let date = cal.date(from: parts) else { return [] }
 
         return subscriptionsForDisplay.compactMap { sub in
-            let subDay = cal.component(.day, from: sub.nextPaymentDate)
-            if sub.frequency == .monthly {
-                return subDay == day ? sub.color : nil
-            } else {
-                let subMonth = cal.component(.month, from: sub.nextPaymentDate)
-                let subYear = cal.component(.year, from: sub.nextPaymentDate)
-                return (subDay == day && subMonth == monthComp && subYear == yearComp) ? sub.color : nil
-            }
+            sub.frequency.renews(on: date, anchor: sub.nextPaymentDate, calendar: cal) ? sub.color : nil
         }
     }
 
@@ -199,11 +184,7 @@ final class HomeViewModel: ObservableObject {
 
     private static func calculateSavedAmount(from unsubscribed: [Subscription]) -> Decimal {
         unsubscribed.reduce(Decimal.zero) { total, sub in
-            switch sub.frequency {
-            case .weekly: return total + (sub.price * 52 / 12)
-            case .monthly: return total + sub.price
-            case .yearly: return total + (sub.price / 12)
-            }
+            total + sub.frequency.monthlyAmount(for: sub.price)
         }
     }
 
@@ -316,18 +297,56 @@ final class HomeViewModel: ObservableObject {
     }
 
     func removeSubscription(_ sub: Subscription) {
-        switch sub.frequency {
-        case .weekly: savedAmount += (sub.price * 52 / 12)
-        case .monthly: savedAmount += sub.price
-        case .yearly: savedAmount += (sub.price / 12)
-        }
+        let alreadyCancelled = unsubscribed.contains(where: { $0.id == sub.id })
         subscriptions.removeAll { $0.id == sub.id }
-        if !unsubscribed.contains(where: { $0.id == sub.id }) {
+        if !alreadyCancelled {
+            savedAmount += sub.frequency.monthlyAmount(for: sub.price)
             unsubscribed.append(sub)
         }
         applySorting()
         persist()
         syncCategoryFilterWithSubscriptions()
+    }
+
+    /// Puts a cancelled subscription back on the board in `stage`.
+    @discardableResult
+    func restoreSubscription(_ id: UUID, to stage: SubscriptionStage, before beforeID: UUID?) -> Bool {
+        guard let index = unsubscribed.firstIndex(where: { $0.id == id }) else { return false }
+        if beforeID == id { return false }
+        var sub = unsubscribed.remove(at: index)
+        savedAmount = Self.calculateSavedAmount(from: unsubscribed)
+        sub.stage = stage
+        sub.boardOrder = -1
+        subscriptions.append(sub)
+        if !moveSubscription(id, to: stage, before: beforeID) {
+            persist()
+        }
+        syncCategoryFilterWithSubscriptions()
+        return true
+    }
+
+    func updateUnsubscribed(_ updated: Subscription) {
+        guard let index = unsubscribed.firstIndex(where: { $0.id == updated.id }) else { return }
+        var merged = updated
+        merged.addedAt = unsubscribed[index].addedAt
+        unsubscribed[index] = merged
+        savedAmount = Self.calculateSavedAmount(from: unsubscribed)
+        persist()
+    }
+
+    /// Saves edits to an active subscription, or to a cancelled one. Changing a cancelled subscription’s stage puts it back on the board.
+    func saveSubscriptionEdits(_ updated: Subscription) {
+        if subscriptions.contains(where: { $0.id == updated.id }) {
+            updateSubscription(updated)
+            return
+        }
+        guard let previous = unsubscribed.first(where: { $0.id == updated.id }) else { return }
+        if updated.stage != previous.stage {
+            updateUnsubscribed(updated)
+            restoreSubscription(updated.id, to: updated.stage, before: nil)
+        } else {
+            updateUnsubscribed(updated)
+        }
     }
 
     func applySorting() {

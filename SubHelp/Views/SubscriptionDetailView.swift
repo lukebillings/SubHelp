@@ -73,11 +73,7 @@ struct SubscriptionDetailView: View {
     private var savingsText: String {
         let amount = subscription.price
         let formatted = CurrencyOptions.formatPresentation(amount: amount, currencyCode: currencyCode)
-        switch subscription.frequency {
-        case .weekly: return "\(formatted) per week"
-        case .monthly: return "\(formatted) per month"
-        case .yearly: return "\(formatted) per year"
-        }
+        return "\(formatted) \(subscription.frequency.periodPhrase)"
     }
 
     var body: some View {
@@ -97,6 +93,13 @@ struct SubscriptionDetailView: View {
                     SubHelpDoneButton { dismiss() }
                 }
             }
+            .onAppear {
+                if SubscriptionCategory(rawValue: subscription.category ?? "") == nil {
+                    var updated = subscription
+                    updated.category = SubscriptionCategory.other.rawValue
+                    subscription = updated
+                }
+            }
 
             if showCelebration {
                 celebrationOverlay
@@ -109,16 +112,18 @@ struct SubscriptionDetailView: View {
     private var subDetailsSection: some View {
         Section("Sub details") {
             Picker("Category", selection: Binding(
-                get: { subscription.category ?? "" },
+                get: {
+                    SubscriptionCategory(rawValue: subscription.category ?? "")?.rawValue
+                        ?? SubscriptionCategory.other.rawValue
+                },
                 set: { newVal in
                     var s = subscription
-                    s.category = newVal.isEmpty ? nil : newVal
+                    s.category = newVal
                     subscription = s
                 }
             )) {
-                Text("None").tag("")
                 ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
-                    Text(cat).tag(cat)
+                    Label(cat, systemImage: SubscriptionCategory.symbolName(for: cat)).tag(cat)
                 }
             }
 
