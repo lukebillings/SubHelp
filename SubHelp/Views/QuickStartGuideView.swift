@@ -37,19 +37,20 @@ struct QuickStartGuideView: View {
     @State private var showCopiedToast = false
     @State private var selectedTab: QuickStartTab = .popular
     @State private var selectedCategoryFilter: String? = nil
+    @State private var searchText = ""
 
     /// Builds services so each item carries the canonical category string (matches `SubscriptionCategory.rawValue`).
-    private static func makeCategory(_ name: String, icon: String, _ rows: [(String, Double, Color)]) -> ServiceCategory {
+    private static func makeCategory(_ name: String, _ rows: [(String, Double, Color)]) -> ServiceCategory {
         ServiceCategory(
             name: name,
-            icon: icon,
+            icon: SubscriptionCategory.symbolName(for: name),
             services: rows.map { PopularService(category: name, name: $0.0, suggestedMonthlyPrice: Decimal($0.1), color: $0.2) }
         )
     }
 
     // Grouped categories for Step 1
     private let serviceCategories: [ServiceCategory] = [
-        Self.makeCategory("Streaming", icon: "play.tv", [
+        Self.makeCategory("Streaming", [
             ("Netflix", 10.99, Color(red: 0.89, green: 0.15, blue: 0.21)),
             ("Disney+", 7.99, Color(red: 0.0, green: 0.48, blue: 0.9)),
             ("Spotify", 10.99, Color(red: 0.11, green: 0.84, blue: 0.38)),
@@ -59,33 +60,33 @@ struct QuickStartGuideView: View {
             ("DAZN", 19.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
             ("Crunchyroll", 7.99, Color(red: 0.96, green: 0.55, blue: 0.07)),
         ]),
-        Self.makeCategory("AI", icon: "brain", [
+        Self.makeCategory("AI", [
             ("ChatGPT Plus", 19.99, Color(red: 0.0, green: 0.68, blue: 0.58)),
             ("Claude Pro", 19.99, Color(red: 0.4, green: 0.2, blue: 0.6)),
             ("Copilot Pro", 19.99, Color(red: 0.0, green: 0.47, blue: 0.84)),
             ("Gemini Advanced", 19.99, Color(red: 0.26, green: 0.52, blue: 0.96)),
             ("Perplexity Pro", 19.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
         ]),
-        Self.makeCategory("Gaming", icon: "gamecontroller", [
+        Self.makeCategory("Gaming", [
             ("Xbox Game Pass", 12.99, Color(red: 0.13, green: 0.69, blue: 0.30)),
             ("PlayStation Plus", 6.99, Color(red: 0.0, green: 0.32, blue: 0.65)),
             ("Nintendo Switch Online", 3.49, Color(red: 0.89, green: 0.15, blue: 0.15)),
             ("EA Play", 4.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
             ("Discord Nitro", 8.99, Color(red: 0.4, green: 0.45, blue: 0.98)),
         ]),
-        Self.makeCategory("Ecommerce", icon: "cart", [
+        Self.makeCategory("Ecommerce", [
             ("Amazon Prime", 8.99, Color(red: 0.12, green: 0.53, blue: 0.9)),
             ("Uber One", 5.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
         ]),
-        Self.makeCategory("Home", icon: "house", [
+        Self.makeCategory("Home", [
             ("Ring Protect", 3.99, Color(red: 0.0, green: 0.48, blue: 0.9)),
             ("Nest Aware", 6.00, Color(red: 0.26, green: 0.52, blue: 0.96)),
         ]),
-        Self.makeCategory("Cloud & storage", icon: "externaldrive", [
+        Self.makeCategory("Cloud & storage", [
             ("Google One", 1.99, Color(red: 0.26, green: 0.52, blue: 0.96)),
             ("Dropbox", 9.99, Color(red: 0.0, green: 0.47, blue: 0.95)),
         ]),
-        Self.makeCategory("Productivity", icon: "briefcase", [
+        Self.makeCategory("Productivity", [
             ("Microsoft 365", 5.99, Color(red: 0.0, green: 0.47, blue: 0.84)),
             ("Adobe Creative Cloud", 54.99, Color(red: 0.95, green: 0.33, blue: 0.13)),
             ("Notion", 8.99, Color(red: 0.0, green: 0.0, blue: 0.0)),
@@ -94,13 +95,13 @@ struct QuickStartGuideView: View {
             ("Zoom", 12.99, Color(red: 0.27, green: 0.56, blue: 0.98)),
             ("Evernote", 7.99, Color(red: 0.13, green: 0.59, blue: 0.95)),
         ]),
-        Self.makeCategory("Health", icon: "heart", [
+        Self.makeCategory("Health", [
             ("Headspace", 9.99, Color(red: 0.96, green: 0.6, blue: 0.2)),
             ("Calm (Premium)", 9.99, Color(red: 0.15, green: 0.32, blue: 0.55)),
             ("MyFitnessPal Premium", 7.99, Color(red: 0.0, green: 0.6, blue: 0.4)),
             ("Strava", 5.99, Color(red: 0.94, green: 0.33, blue: 0.13)),
         ]),
-        Self.makeCategory("Learning", icon: "book", [
+        Self.makeCategory("Learning", [
             ("Duolingo Plus", 6.99, Color(red: 0.0, green: 0.82, blue: 0.52)),
             ("LinkedIn Premium", 29.99, Color(red: 0.0, green: 0.47, blue: 0.71)),
             ("Kindle Unlimited", 9.99, Color(red: 0.0, green: 0.48, blue: 0.0)),
@@ -110,9 +111,35 @@ struct QuickStartGuideView: View {
 
     private let emailSearchCopyText = "invoice subscription renewal"
 
+    private var searchQuery: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Category matches when a word in its name starts with the query, so “st” finds Streaming and “a” does not.
+    private func categoryMatchesQuery(_ category: String) -> Bool {
+        let query = searchQuery.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+        guard !query.isEmpty else { return false }
+        return category.split { !$0.isLetter && !$0.isNumber }.contains { word in
+            String(word)
+                .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                .hasPrefix(query)
+        }
+    }
+
+    private func visibleServices(in category: ServiceCategory) -> [PopularService] {
+        guard !searchQuery.isEmpty else { return category.services }
+        if categoryMatchesQuery(category.name) { return category.services }
+        return category.services.filter { $0.name.localizedStandardContains(searchQuery) }
+    }
+
     private var filteredCategories: [ServiceCategory] {
-        guard let name = selectedCategoryFilter else { return serviceCategories }
-        return serviceCategories.filter { $0.name == name }
+        let scoped: [ServiceCategory]
+        if let name = selectedCategoryFilter {
+            scoped = serviceCategories.filter { $0.name == name }
+        } else {
+            scoped = serviceCategories
+        }
+        return scoped.filter { !visibleServices(in: $0).isEmpty }
     }
 
     var body: some View {
@@ -130,6 +157,28 @@ struct QuickStartGuideView: View {
                 .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
 
                 if selectedTab == .popular {
+                    Section {
+                        HStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundStyle(.secondary)
+                            TextField("Search services", text: $searchText)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .submitLabel(.search)
+                            if !searchText.isEmpty {
+                                Button {
+                                    searchText = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Clear search")
+                            }
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
                     // Category filter pills – first, so cards sit underneath
                     Section {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -169,23 +218,36 @@ struct QuickStartGuideView: View {
                     }
 
                     // Intro paragraph – under pills, above cards
-                    Section {
-                        Text("Here are some common subscriptions you might already have. Just tap any you use to quickly add it.")
-                            .font(.system(.footnote, design: .default, weight: .regular))
-                            .foregroundStyle(.secondary)
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
+                    if searchQuery.isEmpty {
+                        Section {
+                            Text("Here are some common subscriptions you might already have. Just tap any you use to quickly add it.")
+                                .font(.system(.footnote, design: .default, weight: .regular))
+                                .foregroundStyle(.secondary)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                        }
+                        .listRowInsets(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16))
+                    } else if filteredCategories.isEmpty {
+                        Section {
+                            Text("No services match “\(searchQuery)”.")
+                                .font(.system(.footnote, design: .default, weight: .regular))
+                                .foregroundStyle(.secondary)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                        }
+                        .listRowInsets(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16))
                     }
-                    .listRowInsets(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16))
 
                     // Popular services cards – underneath pills
                     ForEach(filteredCategories) { category in
+                        let services = visibleServices(in: category)
                         Section {
-                            ForEach(Array(category.services.enumerated()), id: \.element.id) { index, service in
+                            ForEach(services) { service in
                                 Button {
                                     serviceToAdd = service
                                 } label: {
-                                    HStack {
+                                    HStack(spacing: 12) {
+                                        SubscriptionCategoryMark(category: service.category)
                                         Text(service.name)
                                             .font(.system(.headline, design: .default, weight: .bold))
                                             .foregroundStyle(.white)
@@ -340,6 +402,7 @@ struct QuickStartGuideView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollDismissesKeyboard(.interactively)
             .symbolRenderingMode(.hierarchical)
             .listSectionSpacing(.compact)
             .navigationTitle("Help Find Subscriptions")
@@ -409,9 +472,9 @@ private struct AddPopularServiceSheetContent: View {
                     }
 
                     Picker("Category", selection: $category) {
-                        Text("None").tag("")
+                        Label("None", systemImage: SubscriptionCategory.uncategorizedSymbolName).tag("")
                         ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
-                            Text(cat).tag(cat)
+                            Label(cat, systemImage: SubscriptionCategory.symbolName(for: cat)).tag(cat)
                         }
                     }
 
