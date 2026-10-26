@@ -400,6 +400,13 @@ struct HomeView: View {
                 Text("Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
+                if !sub.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(sub.notes)
+                        .font(.system(.footnote, design: .default, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {

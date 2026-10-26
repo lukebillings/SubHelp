@@ -12,6 +12,7 @@ struct AddSubscriptionView: View {
     @State private var frequency: BillingFrequency = .monthly
     @State private var nextPaymentDate = Date()
     @State private var selectedColor = Color(red: 0.0, green: 0.48, blue: 0.9)
+    @State private var notes = ""
 
     // 3 rows of colours (5 per row)
     private let colorOptions: [(String, Color)] = [
@@ -96,6 +97,11 @@ struct AddSubscriptionView: View {
                     }
                 }
 
+                Section("Notes") {
+                    TextField("e.g. Look into cancelling", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
+                }
+
                 if !name.isEmpty {
                     Section("Preview") {
                         HStack {
@@ -142,7 +148,8 @@ struct AddSubscriptionView: View {
                             price: price,
                             color: selectedColor,
                             frequency: frequency,
-                            category: category
+                            category: category,
+                            notes: notes
                         )
                         onAdd(sub)
                         dismiss()

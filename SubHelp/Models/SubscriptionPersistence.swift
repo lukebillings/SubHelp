@@ -21,6 +21,8 @@ private struct PersistedSubscription: Codable {
     var colorB: Double
     var frequency: String
     var category: String?
+    /// Older app versions did not store this; missing values decode as `nil`.
+    var notes: String?
     /// Older app versions did not store this; see `loadSubscriptions` migration.
     var addedAt: Date?
 
@@ -35,6 +37,8 @@ private struct PersistedSubscription: Codable {
         self.colorB = b
         self.frequency = sub.frequency.rawValue
         self.category = sub.category
+        let trimmedNotes = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.notes = trimmedNotes.isEmpty ? nil : sub.notes
         self.addedAt = sub.addedAt
     }
 
@@ -48,6 +52,7 @@ private struct PersistedSubscription: Codable {
             color: Color(red: colorR, green: colorG, blue: colorB),
             frequency: BillingFrequency(rawValue: frequency) ?? .monthly,
             category: category,
+            notes: notes ?? "",
             addedAt: resolvedAddedAt
         )
     }

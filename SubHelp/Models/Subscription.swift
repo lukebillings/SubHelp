@@ -37,6 +37,8 @@ struct Subscription: Identifiable {
     var color: Color
     var frequency: BillingFrequency
     var category: String?
+    /// Free-form reminder, such as “look into cancelling”. Empty when the user has not written one.
+    var notes: String
     /// Creation time; preserved when the user edits a subscription so “date added” order stays stable.
     var addedAt: Date
 
@@ -48,6 +50,7 @@ struct Subscription: Identifiable {
         color: Color,
         frequency: BillingFrequency = .monthly,
         category: String? = nil,
+        notes: String = "",
         addedAt: Date = Date()
     ) {
         self.id = id
@@ -57,6 +60,7 @@ struct Subscription: Identifiable {
         self.color = color
         self.frequency = frequency
         self.category = category
+        self.notes = notes
         self.addedAt = addedAt
     }
 }

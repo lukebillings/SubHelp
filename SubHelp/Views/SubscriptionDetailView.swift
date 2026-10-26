@@ -155,6 +155,13 @@ struct SubscriptionDetailView: View {
                     }
                 }
             }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Notes")
+                TextField("e.g. Look into cancelling", text: $subscription.notes, axis: .vertical)
+                    .lineLimit(3...6)
+            }
+            .padding(.vertical, 4)
         }
     }
 
