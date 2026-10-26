@@ -32,6 +32,8 @@ struct SubHelpApp: App {
     /// Skips one `didBecomeActive` bump so finishing onboarding doesn’t immediately show the session paywall.
     @State private var skipNextSessionPaywallActivateBump = false
     @State private var selectedTab: MainTab = .subscriptions
+    @State private var trialPrompt: Subscription?
+    @State private var deferredTrialIDs: Set<UUID> = []
 
     init() {
         SubscriptionStorage.registerForCloudUpdates()
@@ -95,6 +97,8 @@ struct SubHelpApp: App {
                 }
                 .onAppear {
                     RenewalNotificationScheduler.scheduleRenewalReminders()
+                    applyPendingTrialDecision()
+                    presentTrialPromptIfNeeded()
                     Task {
                         await premiumSubscriptionProducts.syncEntitlementsFromStore()
                         await MainActor.run {
@@ -106,6 +110,8 @@ struct SubHelpApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     SubscriptionStorage.mergeFromCloudOnLaunch()
                     RenewalNotificationScheduler.scheduleRenewalReminders()
+                    applyPendingTrialDecision()
+                    presentTrialPromptIfNeeded()
                     Task {
                         await premiumSubscriptionProducts.syncEntitlementsFromStore()
                         await MainActor.run {
@@ -119,11 +125,16 @@ struct SubHelpApp: App {
                     }
                     guard hasCompletedCurrencyOnboarding else { return }
                     guard !showCurrencyOnboarding else { return }
+                    applyPendingTrialDecision()
+                    presentTrialPromptIfNeeded()
                     if skipNextSessionPaywallActivateBump {
                         skipNextSessionPaywallActivateBump = false
                         return
                     }
                     maybePresentRetentionCheck()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: TrialPromptCenter.notification)) { _ in
+                    applyPendingTrialDecision()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .subhelpResetAllData)) { _ in
                     SubscriptionStorage.resetAllAppDataToFreshInstall()
@@ -207,6 +218,35 @@ struct SubHelpApp: App {
                     }
                 )
             }
+            .alert(
+                "Free trial",
+                isPresented: Binding(
+                    get: { trialPrompt != nil },
+                    set: { if !$0 { trialPrompt = nil } }
+                ),
+                presenting: trialPrompt
+            ) { sub in
+                Button("I kept it") {
+                    homeViewModel.keepTrial(id: sub.id)
+                    trialPrompt = nil
+                    presentTrialPromptIfNeeded()
+                }
+                Button("I cancelled", role: .destructive) {
+                    homeViewModel.removeSubscription(sub)
+                    trialPrompt = nil
+                    presentTrialPromptIfNeeded()
+                }
+                Button("Decide later") {
+                    deferredTrialIDs.insert(sub.id)
+                    trialPrompt = nil
+                }
+            } message: { sub in
+                let end = sub.trialEndDate ?? sub.nextPaymentDate
+                let ended = Calendar.current.startOfDay(for: end) <= Calendar.current.startOfDay(for: Date())
+                Text(ended
+                     ? "\(sub.name) trial has ended. Keep it on your list, or mark it cancelled?"
+                     : "\(sub.name) trial is still running. Keep it on your list, or mark it cancelled?")
+            }
             .alert("Is SubHelp going good?", isPresented: $showRetentionCheckAlert) {
                 Button("Yes") {
                     feedbackPromptShown = true
@@ -270,8 +310,41 @@ struct SubHelpApp: App {
         guard hasCompletedCurrencyOnboarding else { return }
         guard appOpenCount >= 3 else { return }
         guard !feedbackPromptShown else { return }
+        guard trialPrompt == nil else { return }
+        let dueTrials = homeViewModel.trialsNeedingDecision()
+        guard dueTrials.allSatisfy({ deferredTrialIDs.contains($0.id) }) else { return }
         guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil else { return }
         showRetentionCheckAlert = true
+    }
+
+    private func presentTrialPromptIfNeeded() {
+        guard hasCompletedCurrencyOnboarding else { return }
+        guard trialPrompt == nil else { return }
+        guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil && !showRetentionCheckAlert else { return }
+        guard let due = homeViewModel.trialsNeedingDecision().first(where: { !deferredTrialIDs.contains($0.id) }) else { return }
+        trialPrompt = due
+    }
+
+    private func applyPendingTrialDecision() {
+        guard let pending = TrialPromptCenter.pending else { return }
+        TrialPromptCenter.pending = nil
+        switch pending.decision {
+        case .keep:
+            homeViewModel.keepTrial(id: pending.id)
+            if trialPrompt?.id == pending.id { trialPrompt = nil }
+        case .cancel:
+            if let sub = homeViewModel.subscriptions.first(where: { $0.id == pending.id }) {
+                homeViewModel.removeSubscription(sub)
+            }
+            if trialPrompt?.id == pending.id { trialPrompt = nil }
+        case .ask:
+            if let sub = homeViewModel.subscriptions.first(where: { $0.id == pending.id && $0.isTrial }) {
+                deferredTrialIDs.remove(sub.id)
+                trialPrompt = sub
+                return
+            }
+        }
+        presentTrialPromptIfNeeded()
     }
 }
 

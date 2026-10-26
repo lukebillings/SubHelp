@@ -95,6 +95,36 @@ enum BillingFrequency: String, CaseIterable {
         }
     }
 
+    /// First charge on or after `day`, stepping forward from `anchor` by this cycle.
+    func nextChargeDate(onOrAfter day: Date, anchoredTo anchor: Date, calendar: Calendar = .current) -> Date {
+        let target = calendar.startOfDay(for: day)
+        var cursor = calendar.startOfDay(for: anchor)
+        var safety = 0
+        while cursor < target && safety < 600 {
+            guard let next = addingOneCycle(to: cursor, calendar: calendar), next > cursor else { break }
+            cursor = calendar.startOfDay(for: next)
+            safety += 1
+        }
+        return cursor
+    }
+
+    private func addingOneCycle(to date: Date, calendar: Calendar) -> Date? {
+        switch self {
+        case .weekly:
+            return calendar.date(byAdding: .day, value: 7, to: date)
+        case .everyFourWeeks:
+            return calendar.date(byAdding: .day, value: 28, to: date)
+        case .monthly:
+            return calendar.date(byAdding: .month, value: 1, to: date)
+        case .quarterly:
+            return calendar.date(byAdding: .month, value: 3, to: date)
+        case .semiannually:
+            return calendar.date(byAdding: .month, value: 6, to: date)
+        case .yearly:
+            return calendar.date(byAdding: .year, value: 1, to: date)
+        }
+    }
+
     /// Whether a charge anchored on `anchor` falls on `day`, including earlier and later cycles.
     func renews(on day: Date, anchor: Date, calendar: Calendar = .current) -> Bool {
         switch self {
@@ -184,6 +214,10 @@ struct Subscription: Identifiable {
     var stage: SubscriptionStage
     /// Order within `stage`. Lower comes first.
     var boardOrder: Int
+    /// Free until `trialEndDate`. Spend totals ignore it until the user keeps it.
+    var isTrial: Bool
+    /// When the free period ends and the first charge happens.
+    var trialEndDate: Date?
 
     init(
         id: UUID = UUID(),
@@ -196,7 +230,9 @@ struct Subscription: Identifiable {
         notes: String = "",
         addedAt: Date = Date(),
         stage: SubscriptionStage = .keep,
-        boardOrder: Int = 0
+        boardOrder: Int = 0,
+        isTrial: Bool = false,
+        trialEndDate: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -209,5 +245,15 @@ struct Subscription: Identifiable {
         self.addedAt = addedAt
         self.stage = stage
         self.boardOrder = boardOrder
+        self.isTrial = isTrial
+        self.trialEndDate = isTrial ? trialEndDate : nil
+    }
+
+    /// Trial end is a single day. A kept subscription uses its billing cycle.
+    func fallsOn(_ day: Date, calendar: Calendar = .current) -> Bool {
+        if isTrial, let trialEndDate {
+            return calendar.isDate(trialEndDate, inSameDayAs: day)
+        }
+        return frequency.renews(on: day, anchor: nextPaymentDate, calendar: calendar)
     }
 }

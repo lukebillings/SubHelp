@@ -29,6 +29,10 @@ private struct PersistedSubscription: Codable {
     var stage: String?
     /// Older app versions did not store this; missing values use the saved list index.
     var boardOrder: Int?
+    /// Older app versions did not store this; missing values are not trials.
+    var isTrial: Bool?
+    /// Older app versions did not store this.
+    var trialEndDate: Date?
 
     init(from sub: Subscription) {
         self.id = sub.id
@@ -46,10 +50,13 @@ private struct PersistedSubscription: Codable {
         self.addedAt = sub.addedAt
         self.stage = sub.stage.rawValue
         self.boardOrder = sub.boardOrder
+        self.isTrial = sub.isTrial
+        self.trialEndDate = sub.isTrial ? sub.trialEndDate : nil
     }
 
     func toSubscription(listIndex: Int) -> Subscription {
         let resolvedAddedAt = addedAt ?? Date(timeIntervalSince1970: TimeInterval(listIndex))
+        let trial = (isTrial ?? false) && trialEndDate != nil
         return Subscription(
             id: id,
             name: name,
@@ -61,7 +68,9 @@ private struct PersistedSubscription: Codable {
             notes: notes ?? "",
             addedAt: resolvedAddedAt,
             stage: SubscriptionStage(rawValue: stage ?? "") ?? .keep,
-            boardOrder: boardOrder ?? listIndex
+            boardOrder: boardOrder ?? listIndex,
+            isTrial: trial,
+            trialEndDate: trial ? trialEndDate : nil
         )
     }
 }

@@ -507,6 +507,7 @@ struct HelpView: View {
     private func subscriptionCard(_ sub: Subscription) -> some View {
         let note = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasStage = sub.stage != .keep
+        let showLabels = hasStage || !note.isEmpty || sub.isTrial
         return HStack(alignment: .center, spacing: 12) {
             SubscriptionCategoryMark(category: sub.category)
             VStack(alignment: .leading, spacing: 6) {
@@ -528,13 +529,18 @@ struct HelpView: View {
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
                 }
-                Text("Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
+                Text(sub.isTrial
+                     ? "Trial ends: \(viewModel.nextPaymentString(for: sub.trialEndDate ?? sub.nextPaymentDate))"
+                     : "Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                if hasStage || !note.isEmpty {
+                if showLabels {
                     HStack(spacing: 6) {
+                        if sub.isTrial {
+                            cardLabelPill("Free trial")
+                        }
                         if hasStage {
                             cardLabelPill(sub.stage.rawValue)
                         }

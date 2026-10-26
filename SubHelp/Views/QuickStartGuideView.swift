@@ -440,6 +440,8 @@ private struct AddPopularServiceSheetContent: View {
     @State private var addPrice: Decimal?
     @State private var addFrequency: BillingFrequency
     @State private var addNextPayment: Date
+    @State private var isTrial: Bool
+    @State private var trialEndDate: Date
 
     private var canAdd: Bool {
         (addPrice ?? 0) > 0
@@ -460,6 +462,8 @@ private struct AddPopularServiceSheetContent: View {
         _addPrice = State(initialValue: nil)
         _addFrequency = State(initialValue: .monthly)
         _addNextPayment = State(initialValue: defaultNext)
+        _isTrial = State(initialValue: false)
+        _trialEndDate = State(initialValue: cal.date(byAdding: .day, value: 7, to: Date()) ?? Date())
     }
 
     var body: some View {
@@ -496,11 +500,22 @@ private struct AddPopularServiceSheetContent: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        DatePicker("Next payment", selection: $addNextPayment, displayedComponents: .date)
-                        Text("Know when your next payment is? If not we will assume 1st of each month, you can always change later.")
-                            .font(.system(.caption, design: .default, weight: .regular))
-                            .foregroundStyle(.secondary)
+                    Toggle("Free trial", isOn: $isTrial)
+
+                    if isTrial {
+                        VStack(alignment: .leading, spacing: 6) {
+                            DatePicker("Trial ends", selection: $trialEndDate, displayedComponents: .date)
+                            Text("You'll get a reminder before this date. On the day, SubHelp asks if you cancelled or kept it.")
+                                .font(.system(.caption, design: .default, weight: .regular))
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 6) {
+                            DatePicker("Next payment", selection: $addNextPayment, displayedComponents: .date)
+                            Text("Know when your next payment is? If not we will assume 1st of each month, you can always change later.")
+                                .font(.system(.caption, design: .default, weight: .regular))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -516,11 +531,13 @@ private struct AddPopularServiceSheetContent: View {
                         guard let price = addPrice, price > 0 else { return }
                         let sub = Subscription(
                             name: service.name,
-                            nextPaymentDate: addNextPayment,
+                            nextPaymentDate: isTrial ? trialEndDate : addNextPayment,
                             price: price,
                             color: service.color,
                             frequency: addFrequency,
-                            category: category
+                            category: category,
+                            isTrial: isTrial,
+                            trialEndDate: isTrial ? trialEndDate : nil
                         )
                         onAdd(sub)
                     }

@@ -56,13 +56,13 @@ final class HomeViewModel: ObservableObject {
 
     var totalPerMonth: Decimal {
         subscriptions.reduce(Decimal.zero) { total, sub in
-            total + sub.frequency.monthlyAmount(for: sub.price)
+            sub.isTrial ? total : total + sub.frequency.monthlyAmount(for: sub.price)
         }
     }
 
     var totalPerYear: Decimal {
         subscriptions.reduce(Decimal.zero) { total, sub in
-            total + sub.frequency.yearlyAmount(for: sub.price)
+            sub.isTrial ? total : total + sub.frequency.yearlyAmount(for: sub.price)
         }
     }
 
@@ -99,7 +99,7 @@ final class HomeViewModel: ObservableObject {
     func subscriptions(for date: Date) -> [Subscription] {
         let cal = Calendar.current
         return subscriptionsForDisplay.filter { sub in
-            sub.frequency.renews(on: date, anchor: sub.nextPaymentDate, calendar: cal)
+            sub.fallsOn(date, calendar: cal)
         }
     }
 
@@ -110,7 +110,7 @@ final class HomeViewModel: ObservableObject {
         guard let date = cal.date(from: parts) else { return [] }
 
         return subscriptionsForDisplay.compactMap { sub in
-            sub.frequency.renews(on: date, anchor: sub.nextPaymentDate, calendar: cal) ? sub.color : nil
+            sub.fallsOn(date, calendar: cal) ? sub.color : nil
         }
     }
 
@@ -294,6 +294,27 @@ final class HomeViewModel: ObservableObject {
         applySorting()
         persist()
         syncCategoryFilterWithSubscriptions()
+    }
+
+    /// Trials whose end date is today or earlier, still waiting for keep or cancel.
+    func trialsNeedingDecision(on day: Date = Date()) -> [Subscription] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: day)
+        return subscriptions.filter { sub in
+            guard sub.isTrial, let end = sub.trialEndDate else { return false }
+            return calendar.startOfDay(for: end) <= today
+        }
+    }
+
+    /// Clears the trial and leaves the subscription on the list, with the next charge on or after today.
+    func keepTrial(id: UUID) {
+        guard let current = subscriptions.first(where: { $0.id == id }), current.isTrial else { return }
+        var updated = current
+        let end = updated.trialEndDate ?? updated.nextPaymentDate
+        updated.isTrial = false
+        updated.trialEndDate = nil
+        updated.nextPaymentDate = updated.frequency.nextChargeDate(onOrAfter: Date(), anchoredTo: end)
+        updateSubscription(updated)
     }
 
     func removeSubscription(_ sub: Subscription) {

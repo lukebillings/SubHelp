@@ -264,13 +264,14 @@ struct SubscriptionBoardView: View {
     }
 
     private func priceText(for sub: Subscription) -> String {
-        CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode) + sub.frequency.shortLabel
+        let amount = CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode) + sub.frequency.shortLabel
+        return sub.isTrial ? "Trial \(amount)" : amount
     }
 
     /// Monthly total for this column, so weekly and yearly prices can be added together.
     private func columnTotalText(for cards: [Subscription]) -> String {
         let monthly = cards.reduce(Decimal.zero) { total, sub in
-            total + sub.frequency.monthlyAmount(for: sub.price)
+            sub.isTrial ? total : total + sub.frequency.monthlyAmount(for: sub.price)
         }
         return CurrencyOptions.formatPresentation(amount: monthly, currencyCode: currencyCode) + "/mo"
     }

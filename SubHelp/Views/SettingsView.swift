@@ -75,7 +75,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Notifications")
                 } footer: {
-                    Text("Turn off App notifications to stop all SubHelp alerts. Reminder timing controls how early you get subscription renewal reminders; choose Never to keep notifications on without renewal alerts.")
+                    Text("Turn off App notifications to stop all SubHelp alerts. Reminder timing controls how early you get renewal and free-trial reminders; choose Never to keep notifications on without those alerts.")
                         .font(.system(.caption, design: .default, weight: .regular))
                 }
 

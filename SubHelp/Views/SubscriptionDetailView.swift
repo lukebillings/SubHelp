@@ -139,7 +139,35 @@ struct SubscriptionDetailView: View {
                 CurrencyAmountField(placeholder: "Price", amount: $subscription.price, currencyCode: currencyCode)
             }
 
-            DatePicker("When it renews", selection: $subscription.nextPaymentDate, displayedComponents: .date)
+            Toggle("Free trial", isOn: Binding(
+                get: { subscription.isTrial },
+                set: { on in
+                    var updated = subscription
+                    updated.isTrial = on
+                    if on {
+                        let end = updated.trialEndDate ?? updated.nextPaymentDate
+                        updated.trialEndDate = end
+                        updated.nextPaymentDate = end
+                    } else {
+                        updated.trialEndDate = nil
+                    }
+                    subscription = updated
+                }
+            ))
+
+            if subscription.isTrial {
+                DatePicker("Trial ends", selection: Binding(
+                    get: { subscription.trialEndDate ?? subscription.nextPaymentDate },
+                    set: { date in
+                        var updated = subscription
+                        updated.trialEndDate = date
+                        updated.nextPaymentDate = date
+                        subscription = updated
+                    }
+                ), displayedComponents: .date)
+            } else {
+                DatePicker("When it renews", selection: $subscription.nextPaymentDate, displayedComponents: .date)
+            }
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Background colour")

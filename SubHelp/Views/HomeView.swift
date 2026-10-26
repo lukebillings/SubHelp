@@ -406,12 +406,18 @@ struct HomeView: View {
                     .font(.system(.headline, design: .default, weight: .bold))
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
-                if sub.stage != .keep {
+                if sub.isTrial {
+                    Text("Free trial")
+                        .font(.system(.footnote, design: .default, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                } else if sub.stage != .keep {
                     Text(sub.stage.rawValue)
                         .font(.system(.footnote, design: .default, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.9))
                 }
-                Text("Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
+                Text(sub.isTrial
+                     ? "Trial ends: \(viewModel.nextPaymentString(for: sub.trialEndDate ?? sub.nextPaymentDate))"
+                     : "Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
                 if !sub.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -599,7 +605,7 @@ struct HomeView: View {
             Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
                 .font(.system(.headline, design: .default, weight: .bold))
                 .foregroundStyle(.white)
-            Text(sub.frequency.rawValue)
+            Text(sub.isTrial ? "Free trial" : sub.frequency.rawValue)
                 .font(.system(.caption, design: .default, weight: .medium))
                 .foregroundStyle(.white.opacity(0.8))
         }
