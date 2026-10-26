@@ -62,9 +62,7 @@ struct AddSubscriptionView: View {
                     HStack {
                         Text("Amount")
                         Spacer()
-                        TextField("0.00", value: $price, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
+                        CurrencyAmountField(placeholder: "0.00", amount: $price, currencyCode: currencyCode)
                     }
 
                     Picker("Frequency", selection: $frequency) {

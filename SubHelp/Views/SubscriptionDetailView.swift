@@ -130,9 +130,7 @@ struct SubscriptionDetailView: View {
             HStack {
                 Text("Amount")
                 Spacer()
-                TextField("Price", value: $subscription.price, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
+                CurrencyAmountField(placeholder: "Price", amount: $subscription.price, currencyCode: currencyCode)
             }
 
             DatePicker("When it renews", selection: $subscription.nextPaymentDate, displayedComponents: .date)

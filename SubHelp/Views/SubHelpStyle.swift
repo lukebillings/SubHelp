@@ -244,3 +244,124 @@ extension View {
         }
     }
 }
+
+// MARK: - Currency amount field
+
+/// Edits an amount as plain text. A currency `FormatStyle` rewrites the field on every
+/// keystroke, so backspacing the last digit of "£9.90" is immediately undone.
+struct CurrencyAmountField: View {
+    var placeholder: String = "0.00"
+    @Binding private var amount: Decimal?
+    var currencyCode: String
+
+    @FocusState private var isFocused: Bool
+    @State private var text = ""
+
+    init(placeholder: String = "0.00", amount: Binding<Decimal?>, currencyCode: String) {
+        self.placeholder = placeholder
+        self._amount = amount
+        self.currencyCode = currencyCode
+    }
+
+    init(placeholder: String = "0.00", amount: Binding<Decimal>, currencyCode: String) {
+        self.placeholder = placeholder
+        self.currencyCode = currencyCode
+        self._amount = Binding(
+            get: { amount.wrappedValue },
+            set: { amount.wrappedValue = $0 ?? 0 }
+        )
+    }
+
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.trailing)
+            .focused($isFocused)
+            .onAppear { showFormattedAmount() }
+            .onChange(of: isFocused) { _, focused in
+                if focused {
+                    text = editableString(from: amount)
+                } else {
+                    showFormattedAmount()
+                }
+            }
+            .onChange(of: text) { _, newValue in
+                guard isFocused else { return }
+                let cleaned = Self.sanitized(newValue, fractionDigits: fractionDigits)
+                if cleaned != newValue {
+                    text = cleaned
+                    return
+                }
+                amount = Self.parsed(cleaned)
+            }
+            .onChange(of: amount) { _, _ in
+                guard !isFocused else { return }
+                showFormattedAmount()
+            }
+            .onChange(of: currencyCode) { _, _ in
+                guard !isFocused else { return }
+                showFormattedAmount()
+            }
+    }
+
+    private var fractionDigits: Int {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.locale = .autoupdatingCurrent
+        return max(formatter.maximumFractionDigits, 0)
+    }
+
+    private func showFormattedAmount() {
+        guard let amount else {
+            text = ""
+            return
+        }
+        text = CurrencyOptions.formatPresentation(amount: amount, currencyCode: currencyCode)
+    }
+
+    private func editableString(from amount: Decimal?) -> String {
+        guard let amount else { return "" }
+        let formatter = NumberFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
+        return formatter.string(from: NSDecimalNumber(decimal: amount)) ?? ""
+    }
+
+    static func sanitized(_ raw: String, fractionDigits: Int) -> String {
+        let separator = Locale.autoupdatingCurrent.decimalSeparator ?? "."
+        var result = ""
+        var seenDecimal = false
+        var fractionCount = 0
+        for character in raw {
+            if character.isNumber {
+                if seenDecimal {
+                    guard fractionCount < fractionDigits else { continue }
+                    fractionCount += 1
+                }
+                result.append(character)
+            } else if fractionDigits > 0, String(character) == separator, !seenDecimal {
+                seenDecimal = true
+                result.append(character)
+            }
+        }
+        return result
+    }
+
+    static func parsed(_ raw: String) -> Decimal? {
+        let separator = Locale.autoupdatingCurrent.decimalSeparator ?? "."
+        if raw.isEmpty || raw == separator { return nil }
+        var candidate = raw
+        if candidate.hasSuffix(separator) {
+            candidate.removeLast()
+        }
+        guard !candidate.isEmpty else { return nil }
+        let formatter = NumberFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.numberStyle = .decimal
+        return formatter.number(from: candidate)?.decimalValue
+    }
+}

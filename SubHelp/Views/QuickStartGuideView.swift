@@ -425,9 +425,7 @@ private struct AddPopularServiceSheetContent: View {
                         HStack {
                             Text("Amount")
                             Spacer()
-                            TextField("0.00", value: $addPrice, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
+                            CurrencyAmountField(placeholder: "0.00", amount: $addPrice, currencyCode: currencyCode)
                         }
                         Text("How much do you pay? If not estimate.")
                             .font(.system(.caption, design: .default, weight: .regular))
