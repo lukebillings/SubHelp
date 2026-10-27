@@ -387,3 +387,59 @@ struct CurrencyAmountField: View {
         return formatter.number(from: candidate)?.decimalValue
     }
 }
+
+/// Colored capsule for a free trial, a board stage, or a note. Each kind keeps its own color on list cards and the board.
+struct SubscriptionLabelPill: View {
+    enum Kind {
+        case trial
+        case note
+        case stage(SubscriptionStage)
+    }
+
+    var text: String
+    var kind: Kind
+
+    private var fill: Color {
+        switch kind {
+        case .trial:
+            return Color(red: 0.55, green: 0.28, blue: 0.95)
+        case .note:
+            return Color(red: 1.0, green: 0.86, blue: 0.35)
+        case .stage(let stage):
+            return stage.tint
+        }
+    }
+
+    private var foreground: Color {
+        switch kind {
+        case .trial:
+            return .white
+        case .note:
+            return .black.opacity(0.85)
+        case .stage(let stage):
+            switch stage {
+            case .needsCancel, .discount:
+                return .black.opacity(0.85)
+            case .keep, .switchProvider:
+                return .white
+            }
+        }
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(.caption, design: .default, weight: .semibold))
+            .foregroundStyle(foreground)
+            .lineLimit(truncates ? 1 : nil)
+            .fixedSize(horizontal: !truncates, vertical: false)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(fill, in: Capsule())
+    }
+
+    /// Notes can be long. Trial and stage labels stay fully visible.
+    private var truncates: Bool {
+        if case .note = kind { return true }
+        return false
+    }
+}

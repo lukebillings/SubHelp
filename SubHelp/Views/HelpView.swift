@@ -539,13 +539,13 @@ struct HelpView: View {
                 if showLabels {
                     HStack(spacing: 6) {
                         if sub.isTrial {
-                            cardLabelPill("Free trial")
+                            SubscriptionLabelPill(text: "On free trial", kind: .trial)
                         }
                         if hasStage {
-                            cardLabelPill(sub.stage.rawValue)
+                            SubscriptionLabelPill(text: sub.stage.rawValue, kind: .stage(sub.stage))
                         }
                         if !note.isEmpty {
-                            cardLabelPill(note)
+                            SubscriptionLabelPill(text: note, kind: .note)
                         }
                         Spacer(minLength: 0)
                     }
@@ -555,16 +555,6 @@ struct HelpView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .subHelpColorCard(sub.color)
-    }
-
-    private func cardLabelPill(_ text: String) -> some View {
-        Text(text)
-            .font(.system(.caption, design: .default, weight: .semibold))
-            .foregroundStyle(.white)
-            .lineLimit(1)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Color.white.opacity(0.22), in: Capsule())
     }
 
     // MARK: - Helpers

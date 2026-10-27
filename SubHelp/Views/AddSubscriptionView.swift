@@ -72,7 +72,7 @@ struct AddSubscriptionView: View {
                 }
 
                 Section {
-                    Toggle("Free trial", isOn: $isTrial)
+                    Toggle("Currently on free trial", isOn: $isTrial)
                         .onChange(of: isTrial) { _, on in
                             guard on else { return }
                             let today = Calendar.current.startOfDay(for: Date())

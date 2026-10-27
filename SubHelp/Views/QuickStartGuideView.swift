@@ -500,7 +500,7 @@ private struct AddPopularServiceSheetContent: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Toggle("Free trial", isOn: $isTrial)
+                    Toggle("Currently on free trial", isOn: $isTrial)
 
                     if isTrial {
                         VStack(alignment: .leading, spacing: 6) {

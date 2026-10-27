@@ -139,7 +139,7 @@ struct SubscriptionDetailView: View {
                 CurrencyAmountField(placeholder: "Price", amount: $subscription.price, currencyCode: currencyCode)
             }
 
-            Toggle("Free trial", isOn: Binding(
+            Toggle("Currently on free trial", isOn: Binding(
                 get: { subscription.isTrial },
                 set: { on in
                     var updated = subscription

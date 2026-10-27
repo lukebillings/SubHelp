@@ -196,30 +196,61 @@ struct HomeView: View {
     // MARK: - Summary
 
     private var summarySection: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Subscription Spend")
-                    .font(.system(.title3, design: .default, weight: .bold))
-                    .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .bottom, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Subscription Spend")
+                        .font(.system(.title3, design: .default, weight: .bold))
+                        .foregroundStyle(.primary)
 
-                (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerMonth, currencyCode: currencyCode)) ")
-                    .font(.system(.title, design: .rounded, weight: .bold))
-                 + Text("/month")
-                    .font(.system(.title3, design: .default, weight: .medium))
-                    .foregroundStyle(.secondary))
-                    .subHelpNumeric(value: viewModel.totalPerMonth)
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
+                    (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerMonth, currencyCode: currencyCode)) ")
+                        .font(.system(.title, design: .rounded, weight: .bold))
+                     + Text("/month")
+                        .font(.system(.title3, design: .default, weight: .medium))
+                        .foregroundStyle(.secondary))
+                        .subHelpNumeric(value: viewModel.totalPerMonth)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
 
-                (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerYear, currencyCode: currencyCode)) ")
-                    .font(.system(.title, design: .rounded, weight: .bold))
-                 + Text("/year")
-                    .font(.system(.title3, design: .default, weight: .medium))
-                    .foregroundStyle(.secondary))
-                    .subHelpNumeric(value: viewModel.totalPerYear)
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
+                    (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerYear, currencyCode: currencyCode)) ")
+                        .font(.system(.title, design: .rounded, weight: .bold))
+                     + Text("/year")
+                        .font(.system(.title3, design: .default, weight: .medium))
+                        .foregroundStyle(.secondary))
+                        .subHelpNumeric(value: viewModel.totalPerYear)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
+                Button {
+                    showSavingsCard = true
+                } label: {
+                    ZStack(alignment: .bottom) {
+                        Image("ShibaMascot")
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 72, height: 72)
+                            .clipShape(Circle())
+                            .offset(y: -22)
+
+                        VStack(spacing: 1) {
+                            Text(CurrencyOptions.formatPresentation(amount: viewModel.savedAmount * 12, currencyCode: currencyCode))
+                                .font(.system(.caption, design: .rounded, weight: .bold))
+                                .subHelpNumeric(value: viewModel.savedAmount)
+                            Text("Yearly Savings")
+                                .font(.system(.caption2, design: .default, weight: .bold))
+                        }
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .subHelpGlass(in: RoundedRectangle(cornerRadius: 14, style: .continuous), tint: SubHelpTheme.savingsGold)
+                    }
+                }
+                .buttonStyle(.subHelpPressable)
+            }
+
+            HStack(spacing: 8) {
                 Button {
                     if canAddMore {
                         showAddSheet = true
@@ -228,9 +259,11 @@ struct HomeView: View {
                     }
                 } label: {
                     Label("Add Subscription", systemImage: "plus")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-                .buttonStyle(.subHelp(compact: true))
-                .padding(.top, 6)
+                .buttonStyle(.subHelp(compact: true, fullWidth: true))
+                .frame(maxWidth: .infinity)
 
                 Button {
                     if canAddMore {
@@ -240,37 +273,12 @@ struct HomeView: View {
                     }
                 } label: {
                     Text("Help Find Subscriptions")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-                .buttonStyle(.subHelp(.glass, compact: true))
+                .buttonStyle(.subHelp(.glass, compact: true, fullWidth: true))
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Button {
-                showSavingsCard = true
-            } label: {
-                ZStack(alignment: .bottom) {
-                    Image("ShibaMascot")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-
-                    VStack(spacing: 2) {
-                        Text(CurrencyOptions.formatPresentation(amount: viewModel.savedAmount * 12, currencyCode: currencyCode))
-                            .font(.system(.subheadline, design: .rounded, weight: .bold))
-                            .subHelpNumeric(value: viewModel.savedAmount)
-                        Text("Yearly Savings")
-                            .font(.system(.caption2, design: .default, weight: .bold))
-                    }
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .subHelpGlass(in: RoundedRectangle(cornerRadius: 16, style: .continuous), tint: SubHelpTheme.savingsGold)
-                    .padding(.bottom, 2)
-                    .offset(y: 20)
-                }
-            }
-            .buttonStyle(.subHelpPressable)
         }
         .padding(20)
         .padding(.bottom, 8)
@@ -400,42 +408,51 @@ struct HomeView: View {
     }
 
     private func subscriptionCard(_ sub: Subscription) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sub.name)
-                    .font(.system(.headline, design: .default, weight: .bold))
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-                if sub.isTrial {
-                    Text("Free trial")
-                        .font(.system(.footnote, design: .default, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.9))
-                } else if sub.stage != .keep {
-                    Text(sub.stage.rawValue)
-                        .font(.system(.footnote, design: .default, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.9))
+        let note = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasStage = sub.stage != .keep
+        let showLabels = hasStage || !note.isEmpty || sub.isTrial
+        return HStack(alignment: .center, spacing: 12) {
+            SubscriptionCategoryMark(category: sub.category)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(sub.name)
+                        .font(.system(.headline, design: .default, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Spacer(minLength: 8)
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
+                            .font(.system(.headline, design: .default, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text(sub.frequency.shortLabel)
+                            .font(.system(.subheadline, design: .default, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 }
                 Text(sub.isTrial
                      ? "Trial ends: \(viewModel.nextPaymentString(for: sub.trialEndDate ?? sub.nextPaymentDate))"
                      : "Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
-                if !sub.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(sub.notes)
-                        .font(.system(.footnote, design: .default, weight: .regular))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if showLabels {
+                    HStack(spacing: 6) {
+                        if sub.isTrial {
+                            SubscriptionLabelPill(text: "On free trial", kind: .trial)
+                        }
+                        if hasStage {
+                            SubscriptionLabelPill(text: sub.stage.rawValue, kind: .stage(sub.stage))
+                        }
+                        if !note.isEmpty {
+                            SubscriptionLabelPill(text: note, kind: .note)
+                        }
+                        Spacer(minLength: 0)
+                    }
                 }
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
-                    .font(.system(.headline, design: .default, weight: .bold))
-                    .foregroundStyle(.white)
-                Text(sub.frequency.shortLabel)
-                    .font(.system(.caption, design: .default, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
             }
         }
         .padding(18)
@@ -597,6 +614,7 @@ struct HomeView: View {
 
     private func calendarCard(_ sub: Subscription) -> some View {
         VStack(spacing: 6) {
+            SubscriptionCategoryMark(category: sub.category, size: 32)
             Text(sub.name)
                 .font(.system(.subheadline, design: .default, weight: .bold))
                 .foregroundStyle(.white)
@@ -605,9 +623,16 @@ struct HomeView: View {
             Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
                 .font(.system(.headline, design: .default, weight: .bold))
                 .foregroundStyle(.white)
-            Text(sub.isTrial ? "Free trial" : sub.frequency.rawValue)
-                .font(.system(.caption, design: .default, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
+            Text(sub.isTrial ? "On free trial" : sub.frequency.rawValue)
+                .font(.system(.caption, design: .default, weight: .semibold))
+                .foregroundStyle(sub.isTrial ? Color(red: 0.55, green: 0.28, blue: 0.95) : .white.opacity(0.8))
+                .padding(.horizontal, sub.isTrial ? 8 : 0)
+                .padding(.vertical, sub.isTrial ? 3 : 0)
+                .background {
+                    if sub.isTrial {
+                        Capsule().fill(.white)
+                    }
+                }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)

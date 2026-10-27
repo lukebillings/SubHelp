@@ -46,9 +46,12 @@ struct SubscriptionBoardView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(stage.rawValue)
-                    .font(.system(.subheadline, design: .default, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .font(.system(.caption, design: .default, weight: .bold))
+                    .foregroundStyle(stageLabelForeground(stage))
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(stage.tint, in: Capsule())
                 Text(columnTotalText(for: cards))
                     .font(.system(.caption, design: .default, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -170,6 +173,7 @@ struct SubscriptionBoardView: View {
                         Text(priceText(for: sub))
                             .font(.system(.caption, design: .default, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.9))
+                        boardLabels(for: sub)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -264,8 +268,36 @@ struct SubscriptionBoardView: View {
     }
 
     private func priceText(for sub: Subscription) -> String {
-        let amount = CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode) + sub.frequency.shortLabel
-        return sub.isTrial ? "Trial \(amount)" : amount
+        CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode) + sub.frequency.shortLabel
+    }
+
+    /// Stage color, a note, and a free-trial label. The stage pill is omitted in Keep, where the column already says that.
+    @ViewBuilder
+    private func boardLabels(for sub: Subscription) -> some View {
+        let note = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let showsStage = sub.stage != .keep
+        if sub.isTrial || showsStage || !note.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                if sub.isTrial {
+                    SubscriptionLabelPill(text: "On free trial", kind: .trial)
+                }
+                if showsStage {
+                    SubscriptionLabelPill(text: sub.stage.rawValue, kind: .stage(sub.stage))
+                }
+                if !note.isEmpty {
+                    SubscriptionLabelPill(text: note, kind: .note)
+                }
+            }
+        }
+    }
+
+    private func stageLabelForeground(_ stage: SubscriptionStage) -> Color {
+        switch stage {
+        case .needsCancel, .discount:
+            return .black.opacity(0.85)
+        case .keep, .switchProvider:
+            return .white
+        }
     }
 
     /// Monthly total for this column, so weekly and yearly prices can be added together.
