@@ -174,14 +174,7 @@ struct PaywallView: View {
     private func yearlyPerMonthPrice() -> String? {
         guard let yearly = premiumProducts.yearlyProduct else { return nil }
         let formatted = PaywallPricing.narrow(yearly.price / Decimal(12), product: yearly)
-        return String(format: String(localized: "%@/mo"), formatted as CVarArg)
-    }
-
-    /// Monthly plan's own price, shown struck through next to the yearly per-month price.
-    private func monthlyComparePrice() -> String? {
-        guard let monthly = premiumProducts.monthlyProduct else { return nil }
-        let formatted = PaywallPricing.narrow(monthly.price, product: monthly)
-        return String(format: String(localized: "%@/mo"), formatted as CVarArg)
+        return String(format: String(localized: "~%@/mo"), formatted as CVarArg)
     }
 
     private func yearlySavingsTag() -> String {
@@ -189,7 +182,7 @@ struct PaywallView: View {
             yearly: premiumProducts.yearlyProduct,
             monthly: premiumProducts.monthlyProduct
         ) {
-            return String(format: String(localized: "SAVE %d%%"), percent)
+            return String(format: String(localized: "SAVE %d%% vs Monthly"), percent)
         }
         return String(localized: "BEST VALUE")
     }
@@ -237,7 +230,6 @@ struct PaywallView: View {
                     title: String(localized: "Yearly"),
                     price: premiumProducts.yearlyPlanTitle(),
                     subtitle: yearlyPerMonthPrice(),
-                    comparePrice: monthlyComparePrice(),
                     goldTag: yearlySavingsTag(),
                     tier: .yearly,
                     emphasized: true,
@@ -249,7 +241,6 @@ struct PaywallView: View {
                     title: String(localized: "Monthly"),
                     price: premiumProducts.monthlyPlanTitle(),
                     subtitle: nil,
-                    comparePrice: nil,
                     goldTag: nil,
                     tier: .monthly,
                     emphasized: false,
@@ -298,7 +289,6 @@ struct PaywallView: View {
         title: String,
         price: String,
         subtitle: String?,
-        comparePrice: String? = nil,
         goldTag: String? = nil,
         tier: SubscriptionTier,
         emphasized: Bool,
@@ -311,14 +301,6 @@ struct PaywallView: View {
             }
             return .system(.title2, design: .default, weight: .bold)
         }()
-        // Monthly plan price (regular weight; yearly card no longer shows this price).
-        let priceFont: Font = {
-            if compact {
-                return .system(.callout, design: .default, weight: .regular)
-            }
-            return .system(.subheadline, design: .default, weight: .regular)
-        }()
-        // Same text style size as `priceFont`, regular weight (yearly renewal line only).
         let yearlyRenewalFont: Font = {
             if compact {
                 return .system(.callout, design: .default, weight: .regular)
@@ -336,16 +318,11 @@ struct PaywallView: View {
                     let yearlySubtitle = subtitle ?? ""
                     VStack(alignment: .leading, spacing: compact ? 4 : 8) {
                         HStack(alignment: .center, spacing: 10) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(title)
-                                    .font(titleFont)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.82)
-                                Text("1 year")
-                                    .font(.system(.caption, design: .default, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                            }
+                            Text(title)
+                                .font(titleFont)
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
                             Spacer(minLength: 0)
                             VStack(alignment: .trailing, spacing: compact ? 2 : 4) {
                                 Text(price)
@@ -354,20 +331,12 @@ struct PaywallView: View {
                                     .multilineTextAlignment(.trailing)
                                     .lineLimit(2)
                                     .minimumScaleFactor(0.75)
-                                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                    if let comparePrice, !comparePrice.isEmpty {
-                                        Text(comparePrice)
-                                            .font(priceFont)
-                                            .foregroundStyle(.secondary)
-                                            .strikethrough(true, color: .secondary)
-                                    }
-                                    Text(yearlySubtitle)
-                                        .font(yearlyRenewalFont)
-                                        .foregroundStyle(.primary.opacity(0.78))
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.78)
-                                        .opacity(yearlySubtitle.isEmpty ? 0 : 1)
-                                }
+                                Text(yearlySubtitle)
+                                    .font(yearlyRenewalFont)
+                                    .foregroundStyle(.primary.opacity(0.78))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.78)
+                                    .opacity(yearlySubtitle.isEmpty ? 0 : 1)
                             }
                         }
                     }
@@ -375,16 +344,11 @@ struct PaywallView: View {
                     HStack(alignment: .top, spacing: 10) {
                         VStack(alignment: .leading, spacing: compact ? 2 : 4) {
                             HStack(alignment: .center, spacing: 8) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(title)
-                                        .font(titleFont)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.82)
-                                    Text("1 month")
-                                        .font(.system(.caption, design: .default, weight: .medium))
-                                        .foregroundStyle(.secondary)
-                                }
+                                Text(title)
+                                    .font(titleFont)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.82)
                                 if let goldTag, !goldTag.isEmpty {
                                     Text(goldTag)
                                         .font(.system(compact ? .caption2 : .caption, design: .default, weight: .bold))
@@ -487,7 +451,7 @@ private struct SubscriptionLegalFooterView: View {
     private let legalTextColor = Color.primary.opacity(0.7)
 
     private var subscriptionDisclosureText: String {
-        "Payment will be charged to your Apple Account at confirmation of purchase.\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.\nYour account will be charged for renewal within 24 hours prior to the end of the current period.\nManage or cancel anytime in your Apple Account settings."
+        "Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless you cancel at least 24 hours before the period ends in Apple Account settings, and your account is charged for renewal within those 24 hours."
     }
 
     var body: some View {
@@ -656,7 +620,7 @@ struct UpgradePaywallView: View {
             yearly: premiumProducts.yearlyProduct,
             monthly: premiumProducts.monthlyProduct
         ) {
-            return String(format: String(localized: "SAVE %d%%"), percent)
+            return String(format: String(localized: "SAVE %d%% vs Monthly"), percent)
         }
         return String(localized: "BEST VALUE")
     }
@@ -667,23 +631,10 @@ struct UpgradePaywallView: View {
                 return premiumProducts.yearlyPlanTitle()
             }
             let formatted = PaywallPricing.narrow(yearly.price / Decimal(12), product: yearly)
-            return String(format: String(localized: "%@/mo"), formatted as CVarArg)
+            return String(format: String(localized: "~%@/mo"), formatted as CVarArg)
         }()
-        let compare: String? = {
-            guard let monthly = premiumProducts.monthlyProduct else { return nil }
-            let formatted = PaywallPricing.narrow(monthly.price, product: monthly)
-            return String(format: String(localized: "%@/mo"), formatted as CVarArg)
-        }()
-        return HStack(alignment: .firstTextBaseline, spacing: 6) {
-            if let compare {
-                Text(compare)
-                    .font(.system(.subheadline, design: .default, weight: .regular))
-                    .foregroundStyle(.secondary)
-                    .strikethrough(true, color: .secondary)
-            }
-            Text(hero)
-                .font(.system(.title3, design: .default, weight: .bold))
-        }
+        return Text(hero)
+            .font(.system(.title3, design: .default, weight: .bold))
     }
 
     private var yearlyUpgradeSubtitle: String {
