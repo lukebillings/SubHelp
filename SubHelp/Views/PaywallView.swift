@@ -13,7 +13,6 @@ enum SubscriptionTier: String, CaseIterable {
 
 struct PaywallView: View {
     @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
-    @AppStorage("onboardingPrimaryGoal") private var onboardingPrimaryGoal: String = ""
     @Binding var hasCompletedPaywall: Bool
     @Binding var selectedTier: SubscriptionTier
     var onSelect: (SubscriptionTier) -> Void
@@ -23,8 +22,7 @@ struct PaywallView: View {
     var allowsDismiss: Bool = false
 
     @State private var purchaseInfoMessage: String?
-    @State private var selectedOffer: SubscriptionTier = .monthly
-    @State private var activeBenefitIndex: Int = 0
+    @State private var selectedOffer: SubscriptionTier = .yearly
 
     private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
     private let ctaHorizontalPadding: CGFloat = 22
@@ -48,14 +46,18 @@ struct PaywallView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ViewThatFits(in: .vertical) {
-                paywallScrollableColumn(spacing: 22)
-                    .padding(.bottom, 6)
-                ScrollView(showsIndicators: false) {
-                    paywallScrollableColumn(spacing: 24)
-                }
-                .scrollContentBackground(.hidden)
+            ScrollView(showsIndicators: false) {
+                paywallOffers
             }
+            .scrollContentBackground(.hidden)
+
+            VStack(spacing: 4) {
+                subscriptionLegalSection(includeRestoreButton: true, includePolicyLinks: false)
+                SubscriptionPolicyLinksRow()
+            }
+            .padding(.horizontal, ctaHorizontalPadding)
+            .padding(.top, 10)
+            .padding(.bottom, 2)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .tint(.primary)
@@ -78,6 +80,11 @@ struct PaywallView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: skipRowHeight)
                 }
+                Text(ctaCaption)
+                    .font(.system(.caption, design: .default, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
                 Button {
                     SubHelpHaptics.impact(.medium)
                     Task { await purchasePremium(tier: selectedOffer) }
@@ -124,60 +131,67 @@ struct PaywallView: View {
             Text(purchaseInfoMessage ?? "")
         }
         .task {
-            selectedOffer = .monthly
             await premiumProducts.refresh()
-        }
-        .onReceive(Timer.publish(every: 2.1, on: .main, in: .common).autoconnect()) { _ in
-            guard rotatingBenefits.count > 1 else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
-                activeBenefitIndex = (activeBenefitIndex + 1) % rotatingBenefits.count
-            }
         }
     }
 
     private var ctaButtonTitle: String {
-        String(localized: "Continue")
+        switch selectedOffer {
+        case .yearly:
+            return String(localized: "Continue with yearly")
+        case .monthly:
+            return String(localized: "Continue with monthly")
+        case .free:
+            return String(localized: "Continue")
+        }
     }
 
-    private var rotatingBenefits: [String] {
-        var benefits: [String] = []
-        let trimmedPrimary = onboardingPrimaryGoal.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedPrimary.isEmpty {
-            benefits.append(trimmedPrimary)
+    /// Sits on the purchase button so the App Store sheet matches what they just read.
+    private var ctaCaption: String {
+        switch selectedOffer {
+        case .yearly:
+            if let amount = PaywallPricing.narrowAmount(premiumProducts.yearlyProduct) {
+                return String(format: String(localized: "%@ per year · cancel anytime"), amount as CVarArg)
+            }
+            return String(localized: "Billed annually · cancel anytime")
+        case .monthly:
+            return String(localized: "Billed monthly · cancel anytime")
+        case .free:
+            return String(localized: "Cancel anytime")
         }
-        let defaults = [
-            String(localized: "Track unlimited subscriptions"),
-            String(localized: "Subscription renewal reminders"),
-            String(localized: "No ads")
+    }
+
+    /// Features the app actually offers. Goals such as spending less are not promised here.
+    private var paywallFeatures: [(icon: String, text: String)] {
+        [
+            ("infinity", String(localized: "Track unlimited subscriptions")),
+            ("bell.badge", String(localized: "Subscription renewal reminders")),
+            ("apps.iphone", String(localized: "Upcoming payments widget"))
         ]
-        for value in defaults where !benefits.contains(value) {
-            benefits.append(value)
-        }
-        return benefits
     }
 
-    private func yearlyMonthlyEquivalentSubtitle() -> String? {
+    /// Unit price of the yearly plan. The amount charged is the yearly price on the card.
+    private func yearlyPerMonthPrice() -> String? {
         guard let yearly = premiumProducts.yearlyProduct else { return nil }
-        let monthlyEquivalent = yearly.price / Decimal(12)
-        let formatted = monthlyEquivalent.formatted(
-            yearly.priceFormatStyle
-                .locale(.autoupdatingCurrent)
-                .presentation(.narrow)
-        )
-        return String(format: String(localized: "~%@ per month"), formatted as CVarArg)
+        let formatted = PaywallPricing.narrow(yearly.price / Decimal(12), product: yearly)
+        return String(format: String(localized: "%@/mo"), formatted as CVarArg)
     }
 
-    private func yearlySavingsTag() -> String? {
-        guard let yearly = premiumProducts.yearlyProduct,
-              let monthly = premiumProducts.monthlyProduct else { return nil }
-        let yearlyAtMonthlyRate = monthly.price * Decimal(12)
-        guard yearlyAtMonthlyRate > 0, yearlyAtMonthlyRate > yearly.price else { return nil }
-        let savingsRatio = (yearlyAtMonthlyRate - yearly.price) / yearlyAtMonthlyRate
-        let savingsPercentDecimal = NSDecimalNumber(decimal: savingsRatio * Decimal(100))
-            .rounding(accordingToBehavior: nil)
-        let savingsPercent = savingsPercentDecimal.intValue
-        guard savingsPercent > 0 else { return nil }
-        return String(format: String(localized: "SAVE ~%d%% vs monthly"), savingsPercent)
+    /// Monthly plan's own price, shown struck through next to the yearly per-month price.
+    private func monthlyComparePrice() -> String? {
+        guard let monthly = premiumProducts.monthlyProduct else { return nil }
+        let formatted = PaywallPricing.narrow(monthly.price, product: monthly)
+        return String(format: String(localized: "%@/mo"), formatted as CVarArg)
+    }
+
+    private func yearlySavingsTag() -> String {
+        if let percent = PaywallPricing.savingsPercent(
+            yearly: premiumProducts.yearlyProduct,
+            monthly: premiumProducts.monthlyProduct
+        ) {
+            return String(format: String(localized: "SAVE %d%%"), percent)
+        }
+        return String(localized: "BEST VALUE")
     }
 
     private var paywallProgressBar: some View {
@@ -192,9 +206,8 @@ struct PaywallView: View {
         .padding(.vertical, 2)
     }
 
-    @ViewBuilder
-    private func paywallScrollableColumn(spacing: CGFloat) -> some View {
-        VStack(spacing: spacing) {
+    private var paywallOffers: some View {
+        VStack(spacing: 18) {
             Text("Take control of your subscriptions")
                 .font(.system(.title, design: .default, weight: .bold))
                 .multilineTextAlignment(.center)
@@ -203,68 +216,64 @@ struct PaywallView: View {
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 0) {
-                benefitRow(
-                    rotatingBenefits[min(activeBenefitIndex, rotatingBenefits.count - 1)],
-                    iconName: "sparkles",
-                    compact: false
-                )
-                .id("benefit-\(activeBenefitIndex)")
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(paywallFeatures.enumerated()), id: \.offset) { _, feature in
+                    benefitRow(feature.text, iconName: feature.icon, compact: false)
+                }
             }
-            .frame(minHeight: 28, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .background {
                 PaywallGlassPanel(cornerRadius: 20, borderEmphasized: false)
             }
-            .animation(.easeInOut(duration: 0.25), value: activeBenefitIndex)
+
+            Text("SubHelp Premium")
+                .font(.system(.subheadline, design: .default, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
 
             VStack(spacing: 12) {
                 selectablePlanButton(
-                    title: String(localized: "Monthly"),
-                    price: premiumProducts.monthlyPlanTitle(),
-                    subtitle: nil,
-                    goldTag: nil,
-                    tier: .monthly,
-                    emphasized: false,
-                    compact: false
-                )
-
-                selectablePlanButton(
                     title: String(localized: "Yearly"),
                     price: premiumProducts.yearlyPlanTitle(),
-                    subtitle: yearlyMonthlyEquivalentSubtitle(),
+                    subtitle: yearlyPerMonthPrice(),
+                    comparePrice: monthlyComparePrice(),
                     goldTag: yearlySavingsTag(),
                     tier: .yearly,
                     emphasized: true,
                     compact: false
                 )
                 .padding(.top, 14)
-            }
 
-            VStack(spacing: 6) {
-                subscriptionLegalSection(includeRestoreButton: true, includePolicyLinks: false, compact: false)
-                    .foregroundStyle(.primary.opacity(0.85))
-                SubscriptionPolicyLinksRow()
+                selectablePlanButton(
+                    title: String(localized: "Monthly"),
+                    price: premiumProducts.monthlyPlanTitle(),
+                    subtitle: nil,
+                    comparePrice: nil,
+                    goldTag: nil,
+                    tier: .monthly,
+                    emphasized: false,
+                    compact: false
+                )
             }
-            .padding(.top, 22)
-            .padding(.bottom, 32)
         }
         .padding(.horizontal, ctaHorizontalPadding)
-        .padding(.top, -30)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
     }
 
     private func benefitRow(_ text: String, iconName: String = "checkmark.circle.fill", compact: Bool = false) -> some View {
         HStack(alignment: .center, spacing: compact ? 6 : 10) {
             Image(systemName: iconName)
-                .font(compact ? .callout : .title3)
+                .font(compact ? .callout : .body)
                 .foregroundStyle(brandGold)
+                .frame(width: compact ? 18 : 24, alignment: .center)
             Text(text)
-                .font(.system(compact ? .caption : .body, design: .default, weight: .semibold))
+                .font(.system(compact ? .caption : .subheadline, design: .default, weight: .semibold))
                 .foregroundStyle(.primary.opacity(0.85))
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .minimumScaleFactor(0.9)
+                .minimumScaleFactor(0.85)
             Spacer(minLength: 0)
         }
     }
@@ -289,6 +298,7 @@ struct PaywallView: View {
         title: String,
         price: String,
         subtitle: String?,
+        comparePrice: String? = nil,
         goldTag: String? = nil,
         tier: SubscriptionTier,
         emphasized: Bool,
@@ -326,25 +336,38 @@ struct PaywallView: View {
                     let yearlySubtitle = subtitle ?? ""
                     VStack(alignment: .leading, spacing: compact ? 4 : 8) {
                         HStack(alignment: .center, spacing: 10) {
-                            Text(title)
-                                .font(titleFont)
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.82)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(title)
+                                    .font(titleFont)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.82)
+                                Text("1 year")
+                                    .font(.system(.caption, design: .default, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
                             Spacer(minLength: 0)
                             VStack(alignment: .trailing, spacing: compact ? 2 : 4) {
                                 Text(price)
-                                    .font(priceFont)
+                                    .font(compact ? .system(.headline, design: .default, weight: .bold) : .system(.headline, design: .default, weight: .bold))
                                     .foregroundStyle(.primary)
                                     .multilineTextAlignment(.trailing)
-                                    .layoutPriority(1)
-                                Text(yearlySubtitle)
-                                    .font(yearlyRenewalFont)
-                                    .foregroundStyle(.primary.opacity(0.78))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.78)
-                                    .multilineTextAlignment(.trailing)
-                                    .opacity(yearlySubtitle.isEmpty ? 0 : 1)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.75)
+                                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                    if let comparePrice, !comparePrice.isEmpty {
+                                        Text(comparePrice)
+                                            .font(priceFont)
+                                            .foregroundStyle(.secondary)
+                                            .strikethrough(true, color: .secondary)
+                                    }
+                                    Text(yearlySubtitle)
+                                        .font(yearlyRenewalFont)
+                                        .foregroundStyle(.primary.opacity(0.78))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.78)
+                                        .opacity(yearlySubtitle.isEmpty ? 0 : 1)
+                                }
                             }
                         }
                     }
@@ -352,11 +375,16 @@ struct PaywallView: View {
                     HStack(alignment: .top, spacing: 10) {
                         VStack(alignment: .leading, spacing: compact ? 2 : 4) {
                             HStack(alignment: .center, spacing: 8) {
-                                Text(title)
-                                    .font(titleFont)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.82)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(title)
+                                        .font(titleFont)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.82)
+                                    Text("1 month")
+                                        .font(.system(.caption, design: .default, weight: .medium))
+                                        .foregroundStyle(.secondary)
+                                }
                                 if let goldTag, !goldTag.isEmpty {
                                     Text(goldTag)
                                         .font(.system(compact ? .caption2 : .caption, design: .default, weight: .bold))
@@ -384,7 +412,7 @@ struct PaywallView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                         Text(price)
-                            .font(priceFont)
+                            .font(compact ? .system(.headline, design: .default, weight: .bold) : .system(.headline, design: .default, weight: .bold))
                             .foregroundStyle(.primary)
                             .multilineTextAlignment(.trailing)
                             .layoutPriority(1)
@@ -425,8 +453,8 @@ struct PaywallView: View {
         .disabled(premiumProducts.isPurchasing)
     }
 
-    private func subscriptionLegalSection(includeRestoreButton: Bool = false, includePolicyLinks: Bool = true, compact: Bool = false) -> some View {
-        SubscriptionLegalFooterView(includeRestoreButton: includeRestoreButton, includePolicyLinks: includePolicyLinks, compact: compact)
+    private func subscriptionLegalSection(includeRestoreButton: Bool = false, includePolicyLinks: Bool = true) -> some View {
+        SubscriptionLegalFooterView(includeRestoreButton: includeRestoreButton, includePolicyLinks: includePolicyLinks)
     }
 }
 
@@ -454,21 +482,16 @@ private struct SubscriptionLegalFooterView: View {
     @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
     var includeRestoreButton: Bool = false
     var includePolicyLinks: Bool = true
-    var compact: Bool = false
     @State private var restoreAlertMessage: String?
     private let legalFont: Font = .system(.caption2, design: .default, weight: .regular)
     private let legalTextColor = Color.primary.opacity(0.7)
 
     private var subscriptionDisclosureText: String {
-        if compact {
-            "Cancel anytime in App Store settings.\nPayment will be charged to your Apple Account at confirmation of purchase.\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period."
-        } else {
-            "Cancel anytime in App Store settings.\n\nPayment will be charged to your Apple Account at confirmation of purchase.\n\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period."
-        }
+        "Payment will be charged to your Apple Account at confirmation of purchase.\nSubscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.\nYour account will be charged for renewal within 24 hours prior to the end of the current period.\nManage or cancel anytime in your Apple Account settings."
     }
 
     var body: some View {
-        VStack(spacing: compact ? 6 : 16) {
+        VStack(spacing: 4) {
             if includeRestoreButton {
                 Button("Restore Purchases") {
                     SubHelpHaptics.impact(.light)
@@ -483,13 +506,14 @@ private struct SubscriptionLegalFooterView: View {
                 .font(legalFont)
                 .foregroundStyle(legalTextColor)
                 .disabled(premiumProducts.isPurchasing)
-                .padding(.bottom, compact ? 2 : 8)
             }
 
             Text(subscriptionDisclosureText)
                 .font(legalFont)
                 .foregroundStyle(legalTextColor)
                 .multilineTextAlignment(.center)
+                .lineSpacing(1)
+                .fixedSize(horizontal: false, vertical: true)
 
             if includePolicyLinks {
                 SubscriptionPolicyLinksRow()
@@ -538,44 +562,59 @@ struct UpgradePaywallView: View {
                 }
                 .padding(32)
 
-                VStack(spacing: 12) {
+                VStack(spacing: 14) {
                     Button {
-                        SubHelpHaptics.impact(.light)
+                        SubHelpHaptics.impact(.medium)
                         Task { await purchasePlan(.yearly) }
                     } label: {
-                        HStack {
-                            Text(premiumProducts.yearlyPlanTitle())
-                                .font(.system(.headline, design: .default, weight: .semibold))
-                            Spacer()
-                            Text("Add unlimited subscriptions")
-                                .font(.system(.subheadline, design: .default, weight: .medium))
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text("Yearly")
+                                    .font(.system(.title3, design: .default, weight: .bold))
+                                Spacer(minLength: 8)
+                                yearlyUpgradePrice
+                            }
+                            Text(yearlyUpgradeSubtitle)
+                                .font(.system(.subheadline, design: .default, weight: .regular))
                                 .foregroundStyle(.secondary)
                         }
                         .padding(18)
-                        .subHelpPanel(cornerRadius: 24)
+                        .padding(.top, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            PaywallGlassPanel(cornerRadius: 24, borderEmphasized: true)
+                        }
+                        .overlay(alignment: .top) {
+                            Text(yearlyUpgradeBadge)
+                                .font(.system(.caption2, design: .default, weight: .bold))
+                                .foregroundStyle(.black.opacity(0.88))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background {
+                                    Capsule(style: .continuous)
+                                        .fill(Color(red: 0.96, green: 0.78, blue: 0.22))
+                                }
+                                .offset(y: -10)
+                        }
                     }
-                    .buttonStyle(.subHelpPressable)
+                    .buttonStyle(.plain)
                     .disabled(premiumProducts.isPurchasing)
 
                     Button {
                         SubHelpHaptics.impact(.light)
                         Task { await purchasePlan(.monthly) }
                     } label: {
-                        HStack {
-                            Text(premiumProducts.monthlyPlanTitle())
-                                .font(.system(.headline, design: .default, weight: .semibold))
-                            Spacer()
-                            Text("Add unlimited subscriptions")
-                                .font(.system(.subheadline, design: .default, weight: .medium))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(18)
-                        .subHelpPanel(cornerRadius: 24)
+                        Text(monthlyUpgradeTitle)
+                            .font(.system(.subheadline, design: .default, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
                     }
-                    .buttonStyle(.subHelpPressable)
+                    .buttonStyle(.plain)
                     .disabled(premiumProducts.isPurchasing)
                 }
                 .padding(.horizontal, 24)
+                .padding(.top, 8)
 
                 Spacer(minLength: 0)
 
@@ -612,6 +651,53 @@ struct UpgradePaywallView: View {
         }
     }
 
+    private var yearlyUpgradeBadge: String {
+        if let percent = PaywallPricing.savingsPercent(
+            yearly: premiumProducts.yearlyProduct,
+            monthly: premiumProducts.monthlyProduct
+        ) {
+            return String(format: String(localized: "SAVE %d%%"), percent)
+        }
+        return String(localized: "BEST VALUE")
+    }
+
+    private var yearlyUpgradePrice: some View {
+        let hero: String = {
+            guard let yearly = premiumProducts.yearlyProduct else {
+                return premiumProducts.yearlyPlanTitle()
+            }
+            let formatted = PaywallPricing.narrow(yearly.price / Decimal(12), product: yearly)
+            return String(format: String(localized: "%@/mo"), formatted as CVarArg)
+        }()
+        let compare: String? = {
+            guard let monthly = premiumProducts.monthlyProduct else { return nil }
+            let formatted = PaywallPricing.narrow(monthly.price, product: monthly)
+            return String(format: String(localized: "%@/mo"), formatted as CVarArg)
+        }()
+        return HStack(alignment: .firstTextBaseline, spacing: 6) {
+            if let compare {
+                Text(compare)
+                    .font(.system(.subheadline, design: .default, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .strikethrough(true, color: .secondary)
+            }
+            Text(hero)
+                .font(.system(.title3, design: .default, weight: .bold))
+        }
+    }
+
+    private var yearlyUpgradeSubtitle: String {
+        if let amount = PaywallPricing.narrowAmount(premiumProducts.yearlyProduct) {
+            return String(format: String(localized: "Billed %@ per year · cancel anytime"), amount as CVarArg)
+        }
+        return String(localized: "Billed annually · cancel anytime")
+    }
+
+    private var monthlyUpgradeTitle: String {
+        let price = premiumProducts.monthlyPlanTitle()
+        return String(format: String(localized: "Or %@"), price as CVarArg)
+    }
+
     private func purchasePlan(_ tier: SubscriptionTier) async {
         let result = await premiumProducts.purchase(tier)
         switch result {
@@ -625,6 +711,34 @@ struct UpgradePaywallView: View {
         case .failed(let message):
             purchaseInfoMessage = message
         }
+    }
+}
+
+// MARK: - Plan price framing
+
+private enum PaywallPricing {
+    static func narrow(_ amount: Decimal, product: Product) -> String {
+        amount.formatted(
+            product.priceFormatStyle
+                .locale(.autoupdatingCurrent)
+                .presentation(.narrow)
+        )
+    }
+
+    static func narrowAmount(_ product: Product?) -> String? {
+        guard let product else { return nil }
+        return narrow(product.price, product: product)
+    }
+
+    static func savingsPercent(yearly: Product?, monthly: Product?) -> Int? {
+        guard let yearly, let monthly else { return nil }
+        let yearlyAtMonthlyRate = monthly.price * Decimal(12)
+        guard yearlyAtMonthlyRate > 0, yearlyAtMonthlyRate > yearly.price else { return nil }
+        let savingsRatio = (yearlyAtMonthlyRate - yearly.price) / yearlyAtMonthlyRate
+        let savingsPercent = NSDecimalNumber(decimal: savingsRatio * Decimal(100))
+            .rounding(accordingToBehavior: nil)
+            .intValue
+        return savingsPercent > 0 ? savingsPercent : nil
     }
 }
 
