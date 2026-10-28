@@ -13,9 +13,11 @@ struct HomeView: View {
     @State private var showUpgradePaywall = false
     @Namespace private var cardTransition
 
-    /// Free accounts can track one subscription. The paywall appears when they try to add a second.
+    /// Free accounts can track up to three subscriptions. The paywall appears when they try to add a fourth.
+    private static let freeSubscriptionLimit = 3
+
     private var subscriptionLimit: Int {
-        subscriptionTier == .free ? 1 : .max
+        subscriptionTier == .free ? Self.freeSubscriptionLimit : .max
     }
 
     private var canAddMore: Bool {

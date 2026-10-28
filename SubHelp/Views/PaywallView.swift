@@ -18,7 +18,7 @@ struct PaywallView: View {
     var onSelect: (SubscriptionTier) -> Void
     /// Onboarding uses the step dots. The add-subscription paywall does not.
     var showsOnboardingProgress: Bool = true
-    /// Lets someone stay on the free plan with their first subscription.
+    /// Lets someone stay on the free plan with their first three subscriptions.
     var allowsDismiss: Bool = false
 
     @State private var purchaseInfoMessage: String?
@@ -517,7 +517,7 @@ struct UpgradePaywallView: View {
                     Text("Subscription limit reached")
                         .font(.system(.title2, design: .default, weight: .bold))
 
-                    Text("Subscribe to SubHelp Premium to add a second subscription.")
+                    Text("Subscribe to SubHelp Premium to add more than three subscriptions.")
                         .font(.system(.body, design: .default, weight: .regular))
                         .foregroundStyle(.primary.opacity(0.85))
                         .multilineTextAlignment(.center)
