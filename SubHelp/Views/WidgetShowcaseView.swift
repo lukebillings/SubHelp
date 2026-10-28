@@ -254,9 +254,11 @@ private struct LockScreenWidgetMock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Next 7 days")
+                Text("Total due next 7 days")
                     .font(.system(.caption, design: .default, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Spacer(minLength: 0)
                 if !content.payments.isEmpty {
                     Text(content.totalText)

@@ -339,10 +339,11 @@ struct UpcomingPaymentsWidgetView: View {
     private var rectangular: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("Next 7 days")
+                Text("Total due next 7 days")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 Spacer(minLength: 0)
                 if !payments.isEmpty {
                     Text(totalText)
