@@ -675,13 +675,13 @@ private struct SavingsHologramCardView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(white: 0.08).ignoresSafeArea()
-
                 VStack(spacing: 28) {
                     tradingCard
                         .frame(width: cardWidth, height: cardHeight)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(cardBackground.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -689,7 +689,10 @@ private struct SavingsHologramCardView: View {
                 }
             }
         }
+        .presentationBackground(cardBackground)
     }
+
+    private var cardBackground: Color { Color(white: 0.08) }
 
     // MARK: - Trading Card
 

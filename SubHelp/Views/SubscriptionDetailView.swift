@@ -93,14 +93,6 @@ struct SubscriptionDetailView: View {
                     SubHelpDoneButton { dismiss() }
                 }
             }
-            .onAppear {
-                if SubscriptionCategory(rawValue: subscription.category ?? "") == nil {
-                    var updated = subscription
-                    updated.category = SubscriptionCategory.other.rawValue
-                    subscription = updated
-                }
-            }
-
             if showCelebration {
                 celebrationOverlay
             }
@@ -114,7 +106,6 @@ struct SubscriptionDetailView: View {
             Picker("Category", selection: Binding(
                 get: {
                     SubscriptionCategory(rawValue: subscription.category ?? "")?.rawValue
-                        ?? SubscriptionCategory.other.rawValue
                 },
                 set: { newVal in
                     var s = subscription
@@ -122,8 +113,10 @@ struct SubscriptionDetailView: View {
                     subscription = s
                 }
             )) {
+                Label("None", systemImage: SubscriptionCategory.uncategorizedSymbolName)
+                    .tag(String?.none)
                 ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
-                    Label(cat, systemImage: SubscriptionCategory.symbolName(for: cat)).tag(cat)
+                    Label(cat, systemImage: SubscriptionCategory.symbolName(for: cat)).tag(String?.some(cat))
                 }
             }
 
