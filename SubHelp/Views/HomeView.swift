@@ -1,27 +1,102 @@
 import SwiftUI
+import StoreKit
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
     var subscriptionTier: SubscriptionTier
     var onTierChange: (SubscriptionTier) -> Void
 
+    @Environment(\.requestReview) private var requestReview
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     @State private var selectedSubscription: Subscription?
     @State private var showAddSheet = false
     @State private var showQuickStartGuide = false
     @State private var showSavingsCard = false
     @State private var showUpgradePaywall = false
+    @State private var showLimitNudge = false
+    /// True after this session’s first successful add, so existing installs are not prompted on launch.
+    @State private var addedSubscriptionThisSession = false
+    @AppStorage(SubHelpAppStorageKey.didShowFreeLimitNudge) private var didShowFreeLimitNudge = false
+    @AppStorage(SubHelpAppStorageKey.didDismissFreeLimitBanner) private var didDismissFreeLimitBanner = false
+    @AppStorage(SubHelpAppStorageKey.didRequestReviewAfterFirstSubscriptions) private var didRequestReviewAfterFirstSubscriptions = false
     @Namespace private var cardTransition
 
     /// Free accounts can track up to three subscriptions. The paywall appears when they try to add a fourth.
-    private static let freeSubscriptionLimit = 3
-
     private var subscriptionLimit: Int {
-        subscriptionTier == .free ? Self.freeSubscriptionLimit : .max
+        subscriptionTier == .free ? FreePlanLimits.subscriptionCount : .max
     }
 
     private var canAddMore: Bool {
         viewModel.subscriptions.count < subscriptionLimit
+    }
+
+    private var isAtFreeLimit: Bool {
+        subscriptionTier == .free && viewModel.subscriptions.count >= FreePlanLimits.subscriptionCount
+    }
+
+    private var shouldShowLimitBanner: Bool {
+        isAtFreeLimit && !didDismissFreeLimitBanner
+    }
+
+    private func addTrackedSubscriptionOrPaywall(_ newSub: Subscription, dismissing: () -> Void) {
+        if canAddMore {
+            viewModel.addSubscription(newSub)
+            addedSubscriptionThisSession = true
+        } else {
+            dismissing()
+            requestHardPaywall()
+        }
+    }
+
+    private var isBlockingReviewPrompt: Bool {
+        showAddSheet
+            || showQuickStartGuide
+            || showLimitNudge
+            || showUpgradePaywall
+            || showSavingsCard
+            || selectedSubscription != nil
+    }
+
+    /// Asks for an App Store rating once the add flow is gone and the new list is on screen.
+    private func presentReviewAfterFirstSubscriptionsIfNeeded() {
+        guard !didRequestReviewAfterFirstSubscriptions else { return }
+        guard addedSubscriptionThisSession else { return }
+        guard viewModel.subscriptions.count >= 1 else { return }
+        guard !isBlockingReviewPrompt else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            guard !didRequestReviewAfterFirstSubscriptions else { return }
+            guard addedSubscriptionThisSession else { return }
+            guard viewModel.subscriptions.count >= 1 else { return }
+            guard !isBlockingReviewPrompt else { return }
+            didRequestReviewAfterFirstSubscriptions = true
+            requestReview()
+        }
+    }
+
+    private func requestHardPaywall() {
+        didShowFreeLimitNudge = true
+        showLimitNudge = false
+        showUpgradePaywall = true
+    }
+
+    private func presentLimitNudgeWhenReady() {
+        guard subscriptionTier == .free else { return }
+        guard viewModel.subscriptions.count >= FreePlanLimits.subscriptionCount else { return }
+        guard !didShowFreeLimitNudge else { return }
+        guard !showAddSheet, !showQuickStartGuide, !showUpgradePaywall else { return }
+        didShowFreeLimitNudge = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            guard subscriptionTier == .free else { return }
+            guard !showAddSheet, !showQuickStartGuide, !showUpgradePaywall else { return }
+            showLimitNudge = true
+        }
+    }
+
+    private func presentUpgradePaywallAfterNudge() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            showUpgradePaywall = true
+        }
     }
 
     var body: some View {
@@ -70,23 +145,24 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showAddSheet) {
             AddSubscriptionView { newSub in
-                if canAddMore {
-                    viewModel.addSubscription(newSub)
-                } else {
-                    showAddSheet = false
-                    showUpgradePaywall = true
-                }
+                addTrackedSubscriptionOrPaywall(newSub, dismissing: { showAddSheet = false })
             }
         }
         .sheet(isPresented: $showQuickStartGuide) {
             QuickStartGuideView { newSub in
-                if canAddMore {
-                    viewModel.addSubscription(newSub)
-                } else {
-                    showQuickStartGuide = false
-                    showUpgradePaywall = true
-                }
+                addTrackedSubscriptionOrPaywall(newSub, dismissing: { showQuickStartGuide = false })
             }
+        }
+        .sheet(isPresented: $showLimitNudge) {
+            FreePlanLimitNudgeView(
+                onUpgrade: {
+                    showLimitNudge = false
+                    presentUpgradePaywallAfterNudge()
+                },
+                onDismiss: {
+                    showLimitNudge = false
+                }
+            )
         }
         .sheet(isPresented: $showUpgradePaywall) {
             PaywallView(
@@ -105,6 +181,30 @@ struct HomeView: View {
                 }
             )
         }
+        .onChange(of: showAddSheet) { _, showing in
+            if !showing {
+                presentLimitNudgeWhenReady()
+                presentReviewAfterFirstSubscriptionsIfNeeded()
+            }
+        }
+        .onChange(of: showQuickStartGuide) { _, showing in
+            if !showing {
+                presentLimitNudgeWhenReady()
+                presentReviewAfterFirstSubscriptionsIfNeeded()
+            }
+        }
+        .onChange(of: showLimitNudge) { _, showing in
+            if !showing { presentReviewAfterFirstSubscriptionsIfNeeded() }
+        }
+        .onChange(of: showUpgradePaywall) { _, showing in
+            if !showing { presentReviewAfterFirstSubscriptionsIfNeeded() }
+        }
+        .onChange(of: subscriptionTier) { _, tier in
+            if tier != .free {
+                showLimitNudge = false
+                showUpgradePaywall = false
+            }
+        }
         .sheet(isPresented: $showSavingsCard) {
             SavingsHologramCardView(
                 savedAmountPerMonth: viewModel.savedAmount,
@@ -119,7 +219,7 @@ struct HomeView: View {
                             viewModel.subscriptions.first(where: { $0.id == sub.id }) ?? sub
                         },
                         set: { updated in
-                            viewModel.updateSubscription(updated)
+                            viewModel.saveSubscriptionEdits(updated)
                         }
                     ),
                     onUnsubscribe: { cancelled in
@@ -163,7 +263,7 @@ struct HomeView: View {
                         if canAddMore {
                             showAddSheet = true
                         } else {
-                            showUpgradePaywall = true
+                            requestHardPaywall()
                         }
                     } label: {
                         Label("Add Subscription", systemImage: "plus")
@@ -181,7 +281,7 @@ struct HomeView: View {
                         if canAddMore {
                             showQuickStartGuide = true
                         } else {
-                            showUpgradePaywall = true
+                            requestHardPaywall()
                         }
                     } label: {
                         Text("Help Find Subscriptions")
@@ -252,12 +352,16 @@ struct HomeView: View {
                 .buttonStyle(.subHelpPressable)
             }
 
+            if shouldShowLimitBanner {
+                freeLimitBanner
+            }
+
             HStack(spacing: 8) {
                 Button {
                     if canAddMore {
                         showAddSheet = true
                     } else {
-                        showUpgradePaywall = true
+                        requestHardPaywall()
                     }
                 } label: {
                     Label("Add Subscription", systemImage: "plus")
@@ -271,7 +375,7 @@ struct HomeView: View {
                     if canAddMore {
                         showQuickStartGuide = true
                     } else {
-                        showUpgradePaywall = true
+                        requestHardPaywall()
                     }
                 } label: {
                     Text("Help Find Subscriptions")
@@ -288,6 +392,43 @@ struct HomeView: View {
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 4)
+    }
+
+    private var freeLimitBanner: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Button {
+                SubHelpHaptics.impact(.light)
+                requestHardPaywall()
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(String(format: String(localized: "You've used your %d free slots"), FreePlanLimits.subscriptionCount))
+                        .font(.system(.subheadline, design: .default, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("Upgrade to add more.")
+                        .font(.system(.caption, design: .default, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                SubHelpHaptics.impact(.light)
+                didDismissFreeLimitBanner = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(.caption, design: .default, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss")
+        }
+        .padding(12)
+        .background {
+            PaywallGlassPanel(cornerRadius: 16, borderEmphasized: true)
+        }
     }
 
     // MARK: - Segment

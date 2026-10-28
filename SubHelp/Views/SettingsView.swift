@@ -37,8 +37,20 @@ struct SettingsView: View {
                     .font(.system(.body, design: .default, weight: .regular))
                     .onChange(of: currencyCode) { _, _ in
                         RenewalNotificationScheduler.scheduleRenewalReminders()
+                        WidgetSnapshotPublisher.refreshFromStorage()
                     }
                 }
+
+                Section("Widgets") {
+                    NavigationLink {
+                        WidgetShowcaseView(showsTitle: false, embedsBackdrop: true)
+                            .navigationTitle("Widgets")
+                            .navigationBarTitleDisplayMode(.inline)
+                    } label: {
+                        Label("Upcoming payments", systemImage: "apps.iphone")
+                    }
+                }
+                .font(.system(.body, design: .default, weight: .regular))
 
                 Section {
                     Toggle("App notifications", isOn: $notificationsEnabled)

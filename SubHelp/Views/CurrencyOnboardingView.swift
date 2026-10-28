@@ -37,6 +37,8 @@ struct CurrencyOnboardingView: View {
                         currencyStep
                     } else if step == 2 {
                         notificationStep
+                    } else if step == 3 {
+                        WidgetShowcaseView()
                     } else {
                         paywallStep
                     }
@@ -46,7 +48,7 @@ struct CurrencyOnboardingView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        if step >= 1 && step <= 3 {
+                        if step >= 1 && step <= 4 {
                             Button("Back") {
                                 SubHelpHaptics.impact(.light)
                                 step -= 1
@@ -56,7 +58,7 @@ struct CurrencyOnboardingView: View {
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if step < 3 {
+                    if step < 4 {
                         onboardingBottomChrome
                     }
                 }
@@ -70,7 +72,7 @@ struct CurrencyOnboardingView: View {
 
     /// Dot-style progress shown above the primary CTA.
     private var onboardingProgressBar: some View {
-        let pageCount = 3
+        let pageCount = 4
         return HStack(spacing: 8) {
             ForEach(0..<pageCount, id: \.self) { index in
                 Circle()
@@ -93,7 +95,7 @@ struct CurrencyOnboardingView: View {
                     SubHelpHaptics.impact(.medium)
                     UserDefaults.standard.set(false, forKey: RenewalNotificationScheduler.notificationsEnabledKey)
                     UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
-                    continueToFinalStepOrComplete()
+                    continueToWidgetStep()
                 } label: {
                     Text("Skip")
                         .font(.system(.subheadline, design: .default, weight: .semibold))
@@ -149,19 +151,21 @@ struct CurrencyOnboardingView: View {
             step = 1
         } else if step == 1 {
             step = 2
-        } else {
+        } else if step == 2 {
             Task {
                 _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
                 UserDefaults.standard.set(true, forKey: RenewalNotificationScheduler.notificationsEnabledKey)
                 await MainActor.run {
-                    continueToFinalStepOrComplete()
+                    continueToWidgetStep()
                 }
             }
+        } else {
+            completeOnboarding()
         }
     }
 
-    private func continueToFinalStepOrComplete() {
-        completeOnboarding()
+    private func continueToWidgetStep() {
+        step = 3
     }
 
     private func onboardingHeader(title: String, subtitle: String) -> some View {

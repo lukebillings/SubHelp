@@ -121,7 +121,8 @@ struct HistoryView: View {
     // MARK: - Row (same style as homepage cards, greyed-out background)
 
     private func historyRow(_ sub: Subscription) -> some View {
-        HStack {
+        HStack(alignment: .center, spacing: 12) {
+            SubscriptionCategoryMark(category: sub.category)
             VStack(alignment: .leading, spacing: 4) {
                 Text(sub.name)
                     .font(.system(.headline, design: .default, weight: .bold))

@@ -94,6 +94,14 @@ private extension Color {
 enum SubHelpAppStorageKey {
     /// Set when the user finishes the current onboarding (benefits → currency → reminders). Used to migrate pre–onboarding-v2 installs once.
     static let hasCompletedOnboardingV2 = "subhelp.hasCompletedOnboardingV2"
+    /// Return-visit paywall has been shown once for this install.
+    static let didShowSessionPaywall = "subhelp.didShowSessionPaywall"
+    /// Soft “used your free slots” sheet has been shown after hitting the free limit.
+    static let didShowFreeLimitNudge = "subhelp.didShowFreeLimitNudge"
+    /// Home banner under the free-plan limit was dismissed.
+    static let didDismissFreeLimitBanner = "subhelp.didDismissFreeLimitBanner"
+    /// System App Store review was requested after the user added their first subscriptions.
+    static let didRequestReviewAfterFirstSubscriptions = "subhelp.didRequestReviewAfterFirstSubscriptions"
 }
 
 enum SubscriptionStorage {
@@ -159,6 +167,7 @@ enum SubscriptionStorage {
         }
         bumpRevision()
         ubiquitous.synchronize()
+        WidgetSnapshotPublisher.refreshFromStorage()
     }
 
     private static func applyIncomingCloudChangesIfNeeded() {
@@ -185,6 +194,7 @@ enum SubscriptionStorage {
         }
 
         NotificationCenter.default.post(name: .subhelpSubscriptionsDidChangeExternally, object: nil)
+        WidgetSnapshotPublisher.refreshFromStorage()
     }
 
     /// Clears subscription data, iCloud copies, and common user defaults (full reset from Settings).
@@ -208,5 +218,10 @@ enum SubscriptionStorage {
         UserDefaults.standard.removeObject(forKey: SubHelpHaptics.userDefaultsKey)
         UserDefaults.standard.set(SubscriptionTier.free.rawValue, forKey: "subscriptionTier")
         UserDefaults.standard.removeObject(forKey: "subhelp.sessionPaywallActivateCount")
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.didShowSessionPaywall)
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.didShowFreeLimitNudge)
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.didDismissFreeLimitBanner)
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.didRequestReviewAfterFirstSubscriptions)
+        WidgetSnapshotPublisher.refreshFromStorage()
     }
 }

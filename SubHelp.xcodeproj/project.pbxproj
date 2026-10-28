@@ -26,9 +26,17 @@
 		5A0000492B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */; };
 		5A00004C2B8F4A0100C7D8E9 /* CurrencyOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00004A2B8F4A0100C7D8E9 /* CurrencyOptions.swift */; };
 		5A00004D2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */; };
+		5B0000292B8F4A0100C7D8E9 /* WidgetShowcaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B0000182B8F4A0100C7D8E9 /* WidgetShowcaseView.swift */; };
 		5A0000522B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */; };
 		5A0000552B8F4A0100C7D8E9 /* SubHelpHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000562B8F4A0100C7D8E9 /* SubHelpHaptics.swift */; };
 		5A0000582B8F4A0100C7D8E9 /* SubscriptionBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0000572B8F4A0100C7D8E9 /* SubscriptionBoardView.swift */; };
+		5B0000212B8F4A0100C7D8E9 /* SubHelpWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B0000112B8F4A0100C7D8E9 /* SubHelpWidgets.swift */; };
+		5B0000222B8F4A0100C7D8E9 /* UpcomingPaymentsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B0000122B8F4A0100C7D8E9 /* UpcomingPaymentsWidget.swift */; };
+		5B0000232B8F4A0100C7D8E9 /* UpcomingPayments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B0000142B8F4A0100C7D8E9 /* UpcomingPayments.swift */; };
+		5B0000242B8F4A0100C7D8E9 /* CurrencyOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00004A2B8F4A0100C7D8E9 /* CurrencyOptions.swift */; };
+		5B0000252B8F4A0100C7D8E9 /* UpcomingPayments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B0000142B8F4A0100C7D8E9 /* UpcomingPayments.swift */; };
+		5B0000262B8F4A0100C7D8E9 /* WidgetSnapshotPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B0000152B8F4A0100C7D8E9 /* WidgetSnapshotPublisher.swift */; };
+		5B0000272B8F4A0100C7D8E9 /* SubHelpWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5B0000022B8F4A0100C7D8E9 /* SubHelpWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,10 +60,18 @@
 		5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumSubscriptionProducts.swift; sourceTree = "<group>"; };
 		5A00004A2B8F4A0100C7D8E9 /* CurrencyOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyOptions.swift; sourceTree = "<group>"; };
 		5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyOnboardingView.swift; sourceTree = "<group>"; };
+		5B0000182B8F4A0100C7D8E9 /* WidgetShowcaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetShowcaseView.swift; sourceTree = "<group>"; };
 		5A00004E2B8F4A0100C7D8E9 /* SubHelp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SubHelp.entitlements; sourceTree = "<group>"; };
 		5A0000512B8F4A0100C7D8E9 /* SubHelpAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpAppDelegate.swift; sourceTree = "<group>"; };
 		5A0000562B8F4A0100C7D8E9 /* SubHelpHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpHaptics.swift; sourceTree = "<group>"; };
 		5A0000572B8F4A0100C7D8E9 /* SubscriptionBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionBoardView.swift; sourceTree = "<group>"; };
+		5B0000022B8F4A0100C7D8E9 /* SubHelpWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SubHelpWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B0000112B8F4A0100C7D8E9 /* SubHelpWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHelpWidgets.swift; sourceTree = "<group>"; };
+		5B0000122B8F4A0100C7D8E9 /* UpcomingPaymentsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpcomingPaymentsWidget.swift; sourceTree = "<group>"; };
+		5B0000132B8F4A0100C7D8E9 /* SubHelpWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SubHelpWidgets.entitlements; sourceTree = "<group>"; };
+		5B0000142B8F4A0100C7D8E9 /* UpcomingPayments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpcomingPayments.swift; sourceTree = "<group>"; };
+		5B0000152B8F4A0100C7D8E9 /* WidgetSnapshotPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotPublisher.swift; sourceTree = "<group>"; };
+		5B0000162B8F4A0100C7D8E9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,13 +82,45 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5B0000042B8F4A0100C7D8E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		5B0000312B8F4A0100C7D8E9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5A0000012B8F4A0100C7D8E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5B0000012B8F4A0100C7D8E9;
+			remoteInfo = SubHelpWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5B0000302B8F4A0100C7D8E9 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5B0000272B8F4A0100C7D8E9 /* SubHelpWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXGroup section */
 		5A0000022B8F4A0100C7D8E9 = {
 			isa = PBXGroup;
 			children = (
 				5A0000032B8F4A0100C7D8E9 /* SubHelp */,
+				5B0000102B8F4A0100C7D8E9 /* SubHelpWidgets */,
 				5A0000042B8F4A0100C7D8E9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -96,6 +144,7 @@
 			isa = PBXGroup;
 			children = (
 				5A0000192B8F4A0100C7D8E9 /* SubHelp.app */,
+				5B0000022B8F4A0100C7D8E9 /* SubHelpWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,6 +164,7 @@
 				5A0000402B8F4A0100C7D8E9 /* HelpView.swift */,
 				5A0000432B8F4A0100C7D8E9 /* PaywallView.swift */,
 				5A00004B2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift */,
+				5B0000182B8F4A0100C7D8E9 /* WidgetShowcaseView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -135,8 +185,21 @@
 				5A0000472B8F4A0100C7D8E9 /* RenewalNotificationScheduler.swift */,
 				5A0000482B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift */,
 				5A00004A2B8F4A0100C7D8E9 /* CurrencyOptions.swift */,
+				5B0000142B8F4A0100C7D8E9 /* UpcomingPayments.swift */,
+				5B0000152B8F4A0100C7D8E9 /* WidgetSnapshotPublisher.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		5B0000102B8F4A0100C7D8E9 /* SubHelpWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				5B0000112B8F4A0100C7D8E9 /* SubHelpWidgets.swift */,
+				5B0000122B8F4A0100C7D8E9 /* UpcomingPaymentsWidget.swift */,
+				5B0000162B8F4A0100C7D8E9 /* Info.plist */,
+				5B0000132B8F4A0100C7D8E9 /* SubHelpWidgets.entitlements */,
+			);
+			path = SubHelpWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -149,15 +212,34 @@
 				5A0000212B8F4A0100C7D8E9 /* Sources */,
 				5A0000222B8F4A0100C7D8E9 /* Frameworks */,
 				5A0000232B8F4A0100C7D8E9 /* Resources */,
+				5B0000302B8F4A0100C7D8E9 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5B0000322B8F4A0100C7D8E9 /* PBXTargetDependency */,
 			);
 			name = SubHelp;
 			productName = SubHelp;
 			productReference = 5A0000192B8F4A0100C7D8E9 /* SubHelp.app */;
 			productType = "com.apple.product-type.application";
+		};
+		5B0000012B8F4A0100C7D8E9 /* SubHelpWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5B0000062B8F4A0100C7D8E9 /* Build configuration list for PBXNativeTarget "SubHelpWidgets" */;
+			buildPhases = (
+				5B0000032B8F4A0100C7D8E9 /* Sources */,
+				5B0000042B8F4A0100C7D8E9 /* Frameworks */,
+				5B0000052B8F4A0100C7D8E9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SubHelpWidgets;
+			productName = SubHelpWidgets;
+			productReference = 5B0000022B8F4A0100C7D8E9 /* SubHelpWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -170,6 +252,9 @@
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					5A0000242B8F4A0100C7D8E9 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					5B0000012B8F4A0100C7D8E9 = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
@@ -188,6 +273,7 @@
 			projectRoot = "";
 			targets = (
 				5A0000242B8F4A0100C7D8E9 /* SubHelp */,
+				5B0000012B8F4A0100C7D8E9 /* SubHelpWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -198,6 +284,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				5A0000182B8F4A0100C7D8E9 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5B0000052B8F4A0100C7D8E9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -229,10 +322,32 @@
 				5A0000492B8F4A0100C7D8E9 /* PremiumSubscriptionProducts.swift in Sources */,
 				5A00004C2B8F4A0100C7D8E9 /* CurrencyOptions.swift in Sources */,
 				5A00004D2B8F4A0100C7D8E9 /* CurrencyOnboardingView.swift in Sources */,
+				5B0000292B8F4A0100C7D8E9 /* WidgetShowcaseView.swift in Sources */,
+				5B0000252B8F4A0100C7D8E9 /* UpcomingPayments.swift in Sources */,
+				5B0000262B8F4A0100C7D8E9 /* WidgetSnapshotPublisher.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5B0000032B8F4A0100C7D8E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5B0000212B8F4A0100C7D8E9 /* SubHelpWidgets.swift in Sources */,
+				5B0000222B8F4A0100C7D8E9 /* UpcomingPaymentsWidget.swift in Sources */,
+				5B0000232B8F4A0100C7D8E9 /* UpcomingPayments.swift in Sources */,
+				5B0000242B8F4A0100C7D8E9 /* CurrencyOptions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5B0000322B8F4A0100C7D8E9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5B0000012B8F4A0100C7D8E9 /* SubHelpWidgets */;
+			targetProxy = 5B0000312B8F4A0100C7D8E9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5A0000312B8F4A0100C7D8E9 /* Debug */ = {
@@ -365,7 +480,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = SubHelp/SubHelp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -378,7 +493,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7;
+				MARKETING_VERSION = 2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.subhelp.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -395,7 +510,7 @@
 				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = SubHelp/SubHelp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -408,9 +523,65 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7;
+				MARKETING_VERSION = 2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.subhelp.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5B0000072B8F4A0100C7D8E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_ENTITLEMENTS = SubHelpWidgets/SubHelpWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 13;
+				DEVELOPMENT_TEAM = 66VA8628J7;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SubHelpWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Upcoming payments";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.subhelp.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5B0000082B8F4A0100C7D8E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
+				CODE_SIGN_ENTITLEMENTS = SubHelpWidgets/SubHelpWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 13;
+				DEVELOPMENT_TEAM = 66VA8628J7;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SubHelpWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Upcoming payments";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.subhelp.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -434,6 +605,15 @@
 			buildConfigurations = (
 				5A0000332B8F4A0100C7D8E9 /* Debug */,
 				5A0000342B8F4A0100C7D8E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5B0000062B8F4A0100C7D8E9 /* Build configuration list for PBXNativeTarget "SubHelpWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B0000072B8F4A0100C7D8E9 /* Debug */,
+				5B0000082B8F4A0100C7D8E9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

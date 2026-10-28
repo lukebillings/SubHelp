@@ -9,6 +9,10 @@ enum SubscriptionTier: String, CaseIterable {
     case free = "free"
 }
 
+enum FreePlanLimits {
+    static let subscriptionCount = 3
+}
+
 // MARK: - Paywall View
 
 struct PaywallView: View {
@@ -20,6 +24,10 @@ struct PaywallView: View {
     var showsOnboardingProgress: Bool = true
     /// Lets someone stay on the free plan with their first three subscriptions.
     var allowsDismiss: Bool = false
+    /// Overrides the default “Take control of your subscriptions” title.
+    var headline: String? = nil
+    /// Optional line under the title, used for return-visit copy.
+    var subheadline: String? = nil
 
     @State private var purchaseInfoMessage: String?
     @State private var selectedOffer: SubscriptionTier = .yearly
@@ -34,12 +42,16 @@ struct PaywallView: View {
         selectedTier: Binding<SubscriptionTier>,
         showsOnboardingProgress: Bool = true,
         allowsDismiss: Bool = false,
+        headline: String? = nil,
+        subheadline: String? = nil,
         onSelect: @escaping (SubscriptionTier) -> Void
     ) {
         self._hasCompletedPaywall = hasCompletedPaywall
         self._selectedTier = selectedTier
         self.showsOnboardingProgress = showsOnboardingProgress
         self.allowsDismiss = allowsDismiss
+        self.headline = headline
+        self.subheadline = subheadline
         self.onSelect = onSelect
         self._purchaseInfoMessage = State(initialValue: nil)
     }
@@ -201,13 +213,24 @@ struct PaywallView: View {
 
     private var paywallOffers: some View {
         VStack(spacing: 18) {
-            Text("Take control of your subscriptions")
-                .font(.system(.title, design: .default, weight: .bold))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.primary)
-                .minimumScaleFactor(0.88)
-                .frame(maxWidth: .infinity)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 8) {
+                Text(headline ?? String(localized: "Take control of your subscriptions"))
+                    .font(.system(.title, design: .default, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.primary)
+                    .minimumScaleFactor(0.88)
+                    .frame(maxWidth: .infinity)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let subheadline, !subheadline.isEmpty {
+                    Text(subheadline)
+                        .font(.system(.body, design: .default, weight: .regular))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.primary.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(Array(paywallFeatures.enumerated()), id: \.offset) { _, feature in
@@ -494,7 +517,66 @@ private struct SubscriptionLegalFooterView: View {
     }
 }
 
-// MARK: - Upgrade Paywall (shown when free user tries to add 4th sub)
+// MARK: - Soft limit nudge (shown when a free user adds their 3rd subscription)
+
+struct FreePlanLimitNudgeView: View {
+    var onUpgrade: () -> Void
+    var onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image("ShibaMascot")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 72, height: 72)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+                .padding(.top, 8)
+
+            Text(String(format: String(localized: "You've used your %d free slots"), FreePlanLimits.subscriptionCount))
+                .font(.system(.title2, design: .default, weight: .bold))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("Upgrade to add more subscriptions, plus renewal reminders and the upcoming payments widget.")
+                .font(.system(.body, design: .default, weight: .regular))
+                .foregroundStyle(.primary.opacity(0.85))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                SubHelpHaptics.impact(.medium)
+                onUpgrade()
+            } label: {
+                Text("Upgrade")
+                    .font(.system(.title3, design: .default, weight: .bold))
+                    .foregroundStyle(.black.opacity(0.85))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background {
+                        ShinyGoldCTABackground()
+                    }
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
+
+            Button("Not now") {
+                SubHelpHaptics.impact(.light)
+                onDismiss()
+            }
+            .font(.system(.subheadline, design: .default, weight: .semibold))
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background { SubHelpBackdrop() }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Upgrade Paywall (shown when free user tries to add a 4th subscription)
 
 struct UpgradePaywallView: View {
     @EnvironmentObject private var premiumProducts: PremiumSubscriptionProducts
@@ -856,4 +938,8 @@ struct ShinyGoldCTABackground: View {
 #Preview("Upgrade Paywall") {
     UpgradePaywallView(onSelectPlan: { _ in })
         .environmentObject(PremiumSubscriptionProducts())
+}
+
+#Preview("Limit nudge") {
+    FreePlanLimitNudgeView(onUpgrade: {}, onDismiss: {})
 }

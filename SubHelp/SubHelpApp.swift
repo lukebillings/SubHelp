@@ -6,7 +6,7 @@ private enum MainTab: Hashable {
 }
 
 private enum SubHelpLaunchStorageKey {
-    /// After onboarding, increments on each `didBecomeActive`; paywall shows when count ≥ 2 while still on free tier.
+    /// After onboarding, increments on each `didBecomeActive`; used so the first return visit can show a paywall.
     static let sessionPaywallActivateCount = "subhelp.sessionPaywallActivateCount"
     static let appOpenCount = "subhelp.appOpenCount"
     static let feedbackPromptShown = "subhelp.feedbackPromptShown"
@@ -23,6 +23,7 @@ struct SubHelpApp: App {
     @AppStorage(SubHelpLaunchStorageKey.appOpenCount) private var appOpenCount = 0
     @AppStorage(SubHelpLaunchStorageKey.feedbackPromptShown) private var feedbackPromptShown = false
     @AppStorage(SubHelpLaunchStorageKey.didShowPostPaywallTutorial) private var didShowPostPaywallTutorial = false
+    @AppStorage(SubHelpAppStorageKey.didShowSessionPaywall) private var didShowSessionPaywall = false
     @State private var showCurrencyOnboarding = false
     @State private var showSessionPaywall = false
     @State private var showRetentionCheckAlert = false
@@ -60,6 +61,7 @@ struct SubHelpApp: App {
             defaults.set(1, forKey: SubHelpLaunchStorageKey.sessionPaywallActivateCount)
         }
         _homeViewModel = StateObject(wrappedValue: HomeViewModel())
+        WidgetSnapshotPublisher.refreshFromStorage()
     }
 
     private var subscriptionTier: SubscriptionTier {
@@ -109,6 +111,7 @@ struct SubHelpApp: App {
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     SubscriptionStorage.mergeFromCloudOnLaunch()
+                    WidgetSnapshotPublisher.refreshFromStorage()
                     RenewalNotificationScheduler.scheduleRenewalReminders()
                     applyPendingTrialDecision()
                     presentTrialPromptIfNeeded()
@@ -131,6 +134,7 @@ struct SubHelpApp: App {
                         skipNextSessionPaywallActivateBump = false
                         return
                     }
+                    maybePresentSessionPaywall()
                     maybePresentRetentionCheck()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: TrialPromptCenter.notification)) { _ in
@@ -141,6 +145,7 @@ struct SubHelpApp: App {
                     homeViewModel.resetToFreshInstallState()
                     selectedTab = .subscriptions
                     showSessionPaywall = false
+                    didShowSessionPaywall = false
                     showCurrencyOnboarding = true
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .subhelpTriggerRetentionCheck)) { _ in
@@ -163,6 +168,10 @@ struct SubHelpApp: App {
                             get: { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free },
                             set: { subscriptionTierRaw = $0.rawValue }
                         ),
+                        showsOnboardingProgress: false,
+                        allowsDismiss: true,
+                        headline: sessionPaywallHeadline,
+                        subheadline: String(localized: "Unlock unlimited plus reminders."),
                         onSelect: { tier in
                             UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
                             presentPostPaywallTutorialIfNeeded()
@@ -298,6 +307,36 @@ struct SubHelpApp: App {
         showCurrencyOnboarding = false
     }
 
+    /// First return visit after onboarding, once the user has actually tracked something.
+    private func maybePresentSessionPaywall() {
+        guard subscriptionTier == .free else { return }
+        guard hasCompletedCurrencyOnboarding else { return }
+        guard !didShowSessionPaywall else { return }
+        guard appOpenCount >= 2 else { return }
+        let trackedCount = homeViewModel.subscriptions.count
+        guard (1...FreePlanLimits.subscriptionCount).contains(trackedCount) else { return }
+        guard trialPrompt == nil else { return }
+        guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil && !showRetentionCheckAlert else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            guard subscriptionTier == .free else { return }
+            guard !didShowSessionPaywall else { return }
+            guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil && !showRetentionCheckAlert else { return }
+            guard trialPrompt == nil else { return }
+            guard (1...FreePlanLimits.subscriptionCount).contains(homeViewModel.subscriptions.count) else { return }
+            didShowSessionPaywall = true
+            showSessionPaywall = true
+        }
+    }
+
+    private var sessionPaywallHeadline: String {
+        let count = homeViewModel.subscriptions.count
+        if count == 1 {
+            return String(localized: "You're tracking 1 subscription")
+        }
+        return String(format: String(localized: "You're tracking %d"), count)
+    }
+
     private func presentPostPaywallTutorialIfNeeded() {
         guard hasCompletedCurrencyOnboarding else { return }
         guard !didShowPostPaywallTutorial else { return }
@@ -314,6 +353,11 @@ struct SubHelpApp: App {
         let dueTrials = homeViewModel.trialsNeedingDecision()
         guard dueTrials.allSatisfy({ deferredTrialIDs.contains($0.id) }) else { return }
         guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil else { return }
+        if subscriptionTier == .free,
+           !didShowSessionPaywall,
+           (1...FreePlanLimits.subscriptionCount).contains(homeViewModel.subscriptions.count) {
+            return
+        }
         showRetentionCheckAlert = true
     }
 
