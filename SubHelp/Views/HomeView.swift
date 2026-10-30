@@ -1,5 +1,6 @@
 import SwiftUI
 import StoreKit
+import UIKit
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
@@ -99,18 +100,37 @@ struct HomeView: View {
         }
     }
 
+    /// Clear band kept empty so nothing is drawn across the Duo’s horizontal hinge.
+    private let laptopHingeGutter: CGFloat = 44
+
+    /// The Duo folded as a laptop: taller than wide, and wider than any iPhone portrait.
+    private func isLaptopFold(_ size: CGSize) -> Bool {
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return false }
+        return size.height > size.width && size.width >= 560
+    }
+
     var body: some View {
         GeometryReader { geo in
-            // Wider than tall covers rotated iPhones and the opened iPhone Duo inner screen.
-            screen(landscape: geo.size.width > geo.size.height)
+            let laptop = isLaptopFold(geo.size)
+            let fullHeight = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
+            let hingeY = fullHeight / 2 - geo.safeAreaInsets.top
+            let rawTop = hingeY - laptopHingeGutter / 2
+            let laptopTopHeight = min(max(160, rawTop), max(160, geo.size.height - laptopHingeGutter - 160))
+            screen(
+                landscape: geo.size.width > geo.size.height && !laptop,
+                laptop: laptop,
+                laptopTopHeight: laptopTopHeight
+            )
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
     }
 
-    private func screen(landscape: Bool) -> some View {
+    private func screen(landscape: Bool, laptop: Bool, laptopTopHeight: CGFloat) -> some View {
         Group {
             if viewModel.subscriptions.isEmpty {
                 welcomeState
+            } else if laptop {
+                laptopScreen(topHeight: laptopTopHeight)
             } else {
                 VStack(spacing: 0) {
                     if landscape {
@@ -249,6 +269,72 @@ struct HomeView: View {
         }
     }
 
+    /// Laptop fold. Chrome and the selected subscription stay on the top screen. The calendar, list, or board stays on the flat half.
+    private func laptopScreen(topHeight: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 0) {
+                summarySection
+                segmentControl
+                switch viewModel.viewMode {
+                case .list:
+                    sortBar
+                case .calendar:
+                    calendarFilterBar
+                    ScrollView {
+                        calendarPortraitDueCards
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                case .board:
+                    calendarFilterBar
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .frame(height: topHeight, alignment: .top)
+            .clipped()
+
+            Color.clear
+                .frame(height: laptopHingeGutter)
+                .accessibilityHidden(true)
+
+            Group {
+                switch viewModel.viewMode {
+                case .list:
+                    ScrollView {
+                        if viewModel.subscriptionsForDisplay.isEmpty, !viewModel.subscriptions.isEmpty {
+                            Text("No subscriptions in this category.")
+                                .font(.system(.subheadline, design: .default, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 24)
+                        } else {
+                            cardsList(landscape: false)
+                        }
+                    }
+                case .calendar:
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            calendarMonthNavigation
+                            calendarWeekdayHeader
+                            calendarDayGrid
+                        }
+                        .padding(.bottom, 12)
+                    }
+                case .board:
+                    SubscriptionBoardView(
+                        viewModel: viewModel,
+                        currencyCode: currencyCode,
+                        selectedSubscription: $selectedSubscription,
+                        cardTransition: cardTransition
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .clipped()
+        }
+        .background { SubHelpBackdrop() }
+    }
+
     // MARK: - Welcome / Empty State
 
     private var welcomeState: some View {
@@ -346,26 +432,35 @@ struct HomeView: View {
         .padding(.bottom, 4)
     }
 
-    /// Landscape: stats on the left of the panel, controls and actions on the right, so the list starts immediately underneath.
+    /// Landscape: stats on the left. The mode switch, filters, and actions each get their own row on the right.
     private var landscapeSummary: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 14) {
+            HStack(alignment: .top, spacing: 16) {
                 spendStats(
                     titleFont: .system(.headline, design: .default, weight: .bold),
                     amountFont: .system(.title3, design: .rounded, weight: .bold),
                     suffixFont: .system(.subheadline, design: .default, weight: .medium),
                     spacing: 2
                 )
-                .frame(maxWidth: 230, alignment: .leading)
-                .layoutPriority(1)
+                .frame(maxWidth: 240, alignment: .leading)
 
                 VStack(alignment: .leading, spacing: 8) {
+                    viewModePicker
+                        .frame(maxWidth: .infinity)
+
                     HStack(spacing: 8) {
                         savingsButton(compact: true)
+                        Spacer(minLength: 8)
+                        categoryFilterMenu
+                        if viewModel.viewMode == .list {
+                            sortMenu
+                        }
+                    }
+
+                    HStack(spacing: 8) {
                         addSubscriptionButton(fullWidth: true)
                         helpFindButton(fullWidth: true)
                     }
-                    landscapeControls
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -380,20 +475,6 @@ struct HomeView: View {
         .padding(.horizontal, 12)
         .padding(.top, 6)
         .padding(.bottom, 4)
-    }
-
-    private var landscapeControls: some View {
-        HStack(spacing: 8) {
-            viewModePicker
-                .frame(maxWidth: .infinity)
-            categoryFilterMenu
-                .frame(width: 132, alignment: .leading)
-            sortMenu
-                .frame(width: 132, alignment: .trailing)
-                .opacity(viewModel.viewMode == .list ? 1 : 0)
-                .allowsHitTesting(viewModel.viewMode == .list)
-                .accessibilityHidden(viewModel.viewMode != .list)
-        }
     }
 
     private func spendStats(titleFont: Font, amountFont: Font, suffixFont: Font, spacing: CGFloat) -> some View {
