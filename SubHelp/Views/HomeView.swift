@@ -432,7 +432,7 @@ struct HomeView: View {
         .padding(.bottom, 4)
     }
 
-    /// Landscape: stats on the left. The mode switch, filters, and actions each get their own row on the right.
+    /// Landscape: stats on the left. The mode switch and filters sit on the right. The two actions span the full panel so their labels fit.
     private var landscapeSummary: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 16) {
@@ -442,7 +442,7 @@ struct HomeView: View {
                     suffixFont: .system(.subheadline, design: .default, weight: .medium),
                     spacing: 2
                 )
-                .frame(maxWidth: 240, alignment: .leading)
+                .frame(maxWidth: 220, alignment: .leading)
 
                 VStack(alignment: .leading, spacing: 8) {
                     viewModePicker
@@ -456,13 +456,13 @@ struct HomeView: View {
                             sortMenu
                         }
                     }
-
-                    HStack(spacing: 8) {
-                        addSubscriptionButton(fullWidth: true)
-                        helpFindButton(fullWidth: true)
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            HStack(spacing: 8) {
+                addSubscriptionButton(fullWidth: true)
+                helpFindButton(fullWidth: true)
             }
 
             if shouldShowLimitBanner {
