@@ -269,12 +269,11 @@ struct HomeView: View {
         }
     }
 
-    /// Laptop fold. Chrome and the selected subscription stay on the top screen. The calendar, list, or board stays on the flat half.
+    /// Laptop fold. The spend summary and the selected subscription stay on the top screen. List, Calendar, and Board sit on the flat half, under the mode switch.
     private func laptopScreen(topHeight: CGFloat) -> some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 summarySection
-                segmentControl
                 switch viewModel.viewMode {
                 case .list:
                     sortBar
@@ -297,37 +296,41 @@ struct HomeView: View {
                 .frame(height: laptopHingeGutter)
                 .accessibilityHidden(true)
 
-            Group {
-                switch viewModel.viewMode {
-                case .list:
-                    ScrollView {
-                        if viewModel.subscriptionsForDisplay.isEmpty, !viewModel.subscriptions.isEmpty {
-                            Text("No subscriptions in this category.")
-                                .font(.system(.subheadline, design: .default, weight: .medium))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 24)
-                        } else {
-                            cardsList(landscape: false)
+            VStack(spacing: 0) {
+                segmentControl
+                Group {
+                    switch viewModel.viewMode {
+                    case .list:
+                        ScrollView {
+                            if viewModel.subscriptionsForDisplay.isEmpty, !viewModel.subscriptions.isEmpty {
+                                Text("No subscriptions in this category.")
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.top, 24)
+                            } else {
+                                cardsList(landscape: false)
+                            }
                         }
-                    }
-                case .calendar:
-                    ScrollView {
-                        VStack(spacing: 8) {
-                            calendarMonthNavigation
-                            calendarWeekdayHeader
-                            calendarDayGrid
+                    case .calendar:
+                        ScrollView {
+                            VStack(spacing: 8) {
+                                calendarMonthNavigation
+                                calendarWeekdayHeader
+                                calendarDayGrid
+                            }
+                            .padding(.bottom, 12)
                         }
-                        .padding(.bottom, 12)
+                    case .board:
+                        SubscriptionBoardView(
+                            viewModel: viewModel,
+                            currencyCode: currencyCode,
+                            selectedSubscription: $selectedSubscription,
+                            cardTransition: cardTransition
+                        )
                     }
-                case .board:
-                    SubscriptionBoardView(
-                        viewModel: viewModel,
-                        currencyCode: currencyCode,
-                        selectedSubscription: $selectedSubscription,
-                        cardTransition: cardTransition
-                    )
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .clipped()
