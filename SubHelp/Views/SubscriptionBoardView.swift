@@ -26,7 +26,7 @@ struct SubscriptionBoardView: View {
                 .padding(.top, 24)
         } else {
             GeometryReader { geo in
-                let columnWidth = min(300, max(240, geo.size.width * 0.78))
+                let columnWidth = boardColumnWidth(for: geo.size)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 12) {
                         ForEach(SubscriptionStage.allCases) { stage in
@@ -39,6 +39,27 @@ struct SubscriptionBoardView: View {
                 }
             }
         }
+    }
+
+    /// Landscape is wide enough for two or three stages at once. Portrait keeps one wide column.
+    private func boardColumnWidth(for size: CGSize) -> CGFloat {
+        let singleColumn = min(300, max(240, size.width * 0.78))
+        guard size.width > size.height else { return singleColumn }
+
+        let inset: CGFloat = 32
+        let spacing: CGFloat = 12
+        let inner = size.width - inset
+        let candidates: [(count: CGFloat, minimum: CGFloat)] = [
+            (3, 220),
+            (2, 200)
+        ]
+        for candidate in candidates {
+            let width = (inner - spacing * (candidate.count - 1)) / candidate.count
+            if width >= candidate.minimum {
+                return min(width, 320)
+            }
+        }
+        return singleColumn
     }
 
     private func column(_ stage: SubscriptionStage, width: CGFloat, height: CGFloat) -> some View {
