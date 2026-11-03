@@ -201,9 +201,9 @@ struct PaywallView: View {
 
     private var paywallProgressBar: some View {
         HStack(spacing: 8) {
-            ForEach(0..<4, id: \.self) { index in
+            ForEach(0..<5, id: \.self) { index in
                 Circle()
-                    .fill(index == 3 ? brandGold : Color.primary.opacity(0.14))
+                    .fill(index == 4 ? brandGold : Color.primary.opacity(0.14))
                     .frame(width: 8, height: 8)
             }
         }

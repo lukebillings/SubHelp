@@ -72,7 +72,7 @@ struct CurrencyOnboardingView: View {
 
     /// Dot-style progress shown above the primary CTA.
     private var onboardingProgressBar: some View {
-        let pageCount = 4
+        let pageCount = 5
         return HStack(spacing: 8) {
             ForEach(0..<pageCount, id: \.self) { index in
                 Circle()
@@ -159,8 +159,8 @@ struct CurrencyOnboardingView: View {
                     continueToWidgetStep()
                 }
             }
-        } else {
-            completeOnboarding()
+        } else if step == 3 {
+            step = 4
         }
     }
 
@@ -321,7 +321,8 @@ struct CurrencyOnboardingView: View {
             selectedTier: Binding(
                 get: { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free },
                 set: { subscriptionTierRaw = $0.rawValue }
-            ), 
+            ),
+            allowsDismiss: true,
             onSelect: { tier in
                 subscriptionTierRaw = tier.rawValue
             }
