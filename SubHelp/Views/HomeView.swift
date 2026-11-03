@@ -752,7 +752,7 @@ struct HomeView: View {
     private func subscriptionCardButtons(pinToTop: Bool) -> some View {
         ForEach(viewModel.subscriptionsForDisplay) { sub in
             Button { selectedSubscription = sub } label: {
-                subscriptionCard(sub)
+                subscriptionCard(sub, reservesLabelRow: pinToTop)
             }
             .buttonStyle(.subHelpPressable)
             .matchedTransitionSource(id: sub.id, in: cardTransition)
@@ -762,7 +762,7 @@ struct HomeView: View {
         }
     }
 
-    private func subscriptionCard(_ sub: Subscription) -> some View {
+    private func subscriptionCard(_ sub: Subscription, reservesLabelRow: Bool = false) -> some View {
         let note = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasStage = sub.stage != .keep
         let showLabels = hasStage || !note.isEmpty || sub.isTrial
@@ -794,7 +794,7 @@ struct HomeView: View {
                     .foregroundStyle(.white.opacity(0.9))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                if showLabels {
+                if showLabels || reservesLabelRow {
                     HStack(spacing: 6) {
                         if sub.isTrial {
                             SubscriptionLabelPill(text: "On free trial", kind: .trial)
@@ -804,6 +804,10 @@ struct HomeView: View {
                         }
                         if !note.isEmpty {
                             SubscriptionLabelPill(text: note, kind: .note)
+                        }
+                        if !showLabels {
+                            SubscriptionLabelPill(text: "Label", kind: .note)
+                                .hidden()
                         }
                         Spacer(minLength: 0)
                     }
@@ -1285,7 +1289,14 @@ private struct SavingsHologramCardView: View {
 }
 
 private struct MainTabsPreview: View {
-    @StateObject private var homeViewModel = HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions)
+    @StateObject private var homeViewModel: HomeViewModel = {
+        let model = HomeViewModel(
+            subscriptions: HomeViewModel.sampleSubscriptions,
+            unsubscribed: HomeViewModel.sampleCancelledSubscriptions
+        )
+        model.viewMode = .board
+        return model
+    }()
     @StateObject private var premiumProducts = PremiumSubscriptionProducts()
 
     var body: some View {
@@ -1293,7 +1304,7 @@ private struct MainTabsPreview: View {
             Tab("Subscriptions", systemImage: "creditcard") {
                 HomeView(
                     viewModel: homeViewModel,
-                    subscriptionTier: .free,
+                    subscriptionTier: .yearly,
                     onTierChange: { _ in }
                 )
             }

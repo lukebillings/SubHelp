@@ -137,11 +137,11 @@ final class HomeViewModel: ObservableObject {
         return f.string(from: selectedDate)
     }
 
-    init(subscriptions: [Subscription]? = nil) {
+    init(subscriptions: [Subscription]? = nil, unsubscribed explicitUnsubscribed: [Subscription]? = nil) {
         if let subs = subscriptions {
             self.subscriptions = subs
-            self.unsubscribed = []
-            self.savedAmount = 0
+            self.unsubscribed = explicitUnsubscribed ?? []
+            self.savedAmount = Self.calculateSavedAmount(from: self.unsubscribed)
         } else {
             self.subscriptions = SubscriptionStorage.loadSubscriptions()
             self.unsubscribed = SubscriptionStorage.loadUnsubscribed()
@@ -197,26 +197,95 @@ final class HomeViewModel: ObservableObject {
         Calendar.current.date(from: DateComponents(year: year, month: month, day: day)) ?? Date()
     }
 
+    /// Preview data. Every category has at least three subscriptions, and every board column has at least three.
     static var sampleSubscriptions: [Subscription] {
-        let rows: [(String, Date, Decimal, Color, BillingFrequency?)] = [
-            ("Spotify", date(2025, 6, 3), 9.99, Color(red: 0.11, green: 0.84, blue: 0.38), nil),
-            ("Netflix", date(2025, 6, 12), 15.99, Color(red: 0.89, green: 0.15, blue: 0.21), nil),
-            ("Disney+", date(2025, 6, 18), 7.99, Color(red: 0.0, green: 0.48, blue: 0.9), nil),
-            ("Prime", date(2025, 9, 22), 95.00, Color(red: 0.24, green: 0.6, blue: 0.87), .yearly),
-            ("YouTube Premium", date(2025, 6, 7), 12.99, Color(red: 0.93, green: 0.11, blue: 0.14), nil),
-            ("iCloud+", date(2025, 6, 1), 2.99, Color(red: 0.35, green: 0.78, blue: 0.98), nil),
-            ("Gym", date(2025, 6, 15), 29.99, Color(red: 0.6, green: 0.35, blue: 0.71), nil),
-            ("ChatGPT Plus", date(2025, 6, 24), 19.99, Color(red: 0.29, green: 0.65, blue: 0.55), nil),
-            ("Xbox Game Pass", date(2025, 6, 10), 14.99, Color(red: 0.07, green: 0.49, blue: 0.17), nil)
-        ]
+        makeSamples(sampleRows)
+    }
+
+    /// Cancelled column on the board. Kept separate so they stay off the active list.
+    static var sampleCancelledSubscriptions: [Subscription] {
+        makeSamples(sampleCancelledRows)
+    }
+
+    private struct SampleRow {
+        var name: String
+        var day: Date
+        var price: Decimal
+        var color: Color
+        var frequency: BillingFrequency = .monthly
+        var category: SubscriptionCategory
+        var stage: SubscriptionStage
+        var notes: String = ""
+        var isTrial: Bool = false
+    }
+
+    private static let sampleRows: [SampleRow] = [
+        SampleRow(name: "Spotify", day: date(2026, 11, 3), price: 10.99, color: Color(red: 0.11, green: 0.84, blue: 0.38), category: .streaming, stage: .keep),
+        SampleRow(name: "Netflix", day: date(2026, 11, 12), price: 15.99, color: Color(red: 0.89, green: 0.15, blue: 0.21), category: .streaming, stage: .needsCancel),
+        SampleRow(name: "Disney+", day: date(2026, 11, 18), price: 7.99, color: Color(red: 0.0, green: 0.48, blue: 0.9), category: .streaming, stage: .switchProvider),
+        SampleRow(name: "YouTube Premium", day: date(2026, 11, 7), price: 12.99, color: Color(red: 0.93, green: 0.11, blue: 0.14), category: .streaming, stage: .discount),
+
+        SampleRow(name: "ChatGPT Plus", day: date(2026, 11, 24), price: 19.99, color: Color(red: 0.0, green: 0.68, blue: 0.58), category: .ai, stage: .keep),
+        SampleRow(name: "Claude Pro", day: date(2026, 11, 8), price: 19.99, color: Color(red: 0.4, green: 0.2, blue: 0.6), category: .ai, stage: .needsCancel, isTrial: true),
+        SampleRow(name: "Gemini Advanced", day: date(2026, 11, 16), price: 19.99, color: Color(red: 0.26, green: 0.52, blue: 0.96), category: .ai, stage: .switchProvider),
+
+        SampleRow(name: "PlayStation Plus", day: date(2026, 11, 4), price: 6.99, color: Color(red: 0.0, green: 0.32, blue: 0.65), category: .gaming, stage: .keep),
+        SampleRow(name: "Nintendo Switch Online", day: date(2026, 11, 19), price: 3.49, color: Color(red: 0.89, green: 0.15, blue: 0.15), category: .gaming, stage: .needsCancel),
+        SampleRow(name: "Xbox Game Pass", day: date(2026, 11, 10), price: 14.99, color: Color(red: 0.13, green: 0.69, blue: 0.30), category: .gaming, stage: .discount),
+
+        SampleRow(name: "Instacart+", day: date(2026, 11, 21), price: 9.99, color: Color(red: 0.0, green: 0.62, blue: 0.38), category: .ecommerce, stage: .keep),
+        SampleRow(name: "Amazon Prime", day: date(2026, 9, 22), price: 95.00, color: Color(red: 0.24, green: 0.6, blue: 0.87), frequency: .yearly, category: .ecommerce, stage: .switchProvider),
+        SampleRow(name: "Uber One", day: date(2026, 11, 6), price: 5.99, color: Color(red: 0.12, green: 0.12, blue: 0.12), category: .ecommerce, stage: .discount),
+
+        SampleRow(name: "Ring Protect", day: date(2026, 11, 2), price: 3.99, color: Color(red: 0.0, green: 0.48, blue: 0.9), category: .home, stage: .needsCancel),
+        SampleRow(name: "Nest Aware", day: date(2026, 11, 14), price: 6.00, color: Color(red: 0.26, green: 0.52, blue: 0.96), category: .home, stage: .switchProvider),
+        SampleRow(name: "SimpliSafe", day: date(2026, 11, 27), price: 17.99, color: Color(red: 0.85, green: 0.22, blue: 0.28), category: .home, stage: .discount),
+
+        SampleRow(name: "OneDrive", day: date(2026, 11, 1), price: 1.99, color: Color(red: 0.0, green: 0.47, blue: 0.84), category: .cloudStorage, stage: .keep),
+        SampleRow(name: "Google One", day: date(2026, 11, 9), price: 1.99, color: Color(red: 0.26, green: 0.52, blue: 0.96), category: .cloudStorage, stage: .needsCancel),
+        SampleRow(name: "Dropbox", day: date(2026, 11, 23), price: 9.99, color: Color(red: 0.0, green: 0.47, blue: 0.95), category: .cloudStorage, stage: .switchProvider),
+
+        SampleRow(name: "Notion", day: date(2026, 11, 5), price: 8.99, color: Color(red: 0.15, green: 0.15, blue: 0.15), category: .productivity, stage: .keep),
+        SampleRow(name: "Adobe Creative Cloud", day: date(2026, 11, 11), price: 54.99, color: Color(red: 0.95, green: 0.33, blue: 0.13), category: .productivity, stage: .needsCancel, notes: "Only using Photoshop"),
+        SampleRow(name: "Microsoft 365", day: date(2026, 11, 17), price: 5.99, color: Color(red: 0.0, green: 0.47, blue: 0.84), category: .productivity, stage: .discount),
+
+        SampleRow(name: "Strava", day: date(2026, 11, 13), price: 5.99, color: Color(red: 0.94, green: 0.33, blue: 0.13), category: .health, stage: .keep),
+        SampleRow(name: "Gym", day: date(2026, 11, 15), price: 29.99, color: Color(red: 0.6, green: 0.35, blue: 0.71), category: .health, stage: .switchProvider, notes: "Haven't been in months"),
+        SampleRow(name: "Headspace", day: date(2026, 11, 20), price: 9.99, color: Color(red: 0.96, green: 0.6, blue: 0.2), category: .health, stage: .discount),
+
+        SampleRow(name: "Duolingo Plus", day: date(2026, 11, 25), price: 6.99, color: Color(red: 0.0, green: 0.82, blue: 0.52), category: .learning, stage: .needsCancel),
+        SampleRow(name: "Coursera Plus", day: date(2026, 3, 4), price: 399.00, color: Color(red: 0.0, green: 0.45, blue: 0.74), frequency: .yearly, category: .learning, stage: .switchProvider),
+        SampleRow(name: "Kindle Unlimited", day: date(2026, 11, 28), price: 9.99, color: Color(red: 0.0, green: 0.48, blue: 0.0), category: .learning, stage: .discount),
+
+        SampleRow(name: "1Password", day: date(2026, 11, 2), price: 2.99, color: Color(red: 0.05, green: 0.45, blue: 0.95), category: .other, stage: .keep),
+        SampleRow(name: "New York Times", day: date(2026, 11, 26), price: 17.00, color: Color(red: 0.12, green: 0.12, blue: 0.12), category: .other, stage: .needsCancel),
+        SampleRow(name: "Patreon", day: date(2026, 11, 22), price: 5.00, color: Color(red: 0.98, green: 0.32, blue: 0.27), category: .other, stage: .switchProvider)
+    ]
+
+    private static let sampleCancelledRows: [SampleRow] = [
+        SampleRow(name: "Hulu", day: date(2026, 8, 14), price: 7.99, color: Color(red: 0.11, green: 0.78, blue: 0.35), category: .streaming, stage: .needsCancel),
+        SampleRow(name: "EA Play", day: date(2026, 7, 2), price: 4.99, color: Color(red: 0.12, green: 0.12, blue: 0.12), category: .gaming, stage: .keep),
+        SampleRow(name: "Calm", day: date(2026, 5, 19), price: 9.99, color: Color(red: 0.15, green: 0.32, blue: 0.55), category: .health, stage: .discount)
+    ]
+
+    private static func makeSamples(_ rows: [SampleRow]) -> [Subscription] {
+        var orderByStage: [SubscriptionStage: Int] = [:]
         return rows.enumerated().map { index, row in
-            Subscription(
-                name: row.0,
-                nextPaymentDate: row.1,
-                price: row.2,
-                color: row.3,
-                frequency: row.4 ?? .monthly,
-                addedAt: Date(timeIntervalSince1970: TimeInterval(index))
+            let order = orderByStage[row.stage, default: 0]
+            orderByStage[row.stage] = order + 1
+            return Subscription(
+                name: row.name,
+                nextPaymentDate: row.day,
+                price: row.price,
+                color: row.color,
+                frequency: row.frequency,
+                category: row.category.rawValue,
+                notes: row.notes,
+                addedAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                stage: row.stage,
+                boardOrder: order,
+                isTrial: row.isTrial,
+                trialEndDate: row.isTrial ? row.day : nil
             )
         }
     }
