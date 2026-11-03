@@ -572,11 +572,7 @@ struct HomeView: View {
 
     private func helpFindButton(fullWidth: Bool) -> some View {
         Button {
-            if canAddMore {
-                showQuickStartGuide = true
-            } else {
-                requestHardPaywall()
-            }
+            showQuickStartGuide = true
         } label: {
             Text("Help Find Subscriptions")
                 .lineLimit(1)
