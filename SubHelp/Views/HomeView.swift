@@ -186,7 +186,11 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showQuickStartGuide) {
-            QuickStartGuideView { newSub in
+            QuickStartGuideView(
+                canAddSubscription: canAddMore,
+                subscriptionTier: subscriptionTier,
+                onTierChange: onTierChange
+            ) { newSub in
                 addTrackedSubscriptionOrPaywall(newSub, dismissing: { showQuickStartGuide = false })
             }
         }
@@ -384,11 +388,7 @@ struct HomeView: View {
                         .padding(.bottom, 10)
 
                     Button {
-                        if canAddMore {
-                            showQuickStartGuide = true
-                        } else {
-                            requestHardPaywall()
-                        }
+                        showQuickStartGuide = true
                     } label: {
                         Text("Help Find Subscriptions")
                     }
@@ -571,11 +571,7 @@ struct HomeView: View {
 
     private func helpFindButton(fullWidth: Bool) -> some View {
         Button {
-            if canAddMore {
-                showQuickStartGuide = true
-            } else {
-                requestHardPaywall()
-            }
+            showQuickStartGuide = true
         } label: {
             Text("Help Find Subscriptions")
                 .lineLimit(1)

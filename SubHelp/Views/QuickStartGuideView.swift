@@ -31,9 +31,14 @@ struct QuickStartGuideView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
 
+    /// Free accounts at the three-subscription cap can still browse. Tapping a premade service opens the paywall.
+    var canAddSubscription: Bool = true
+    var subscriptionTier: SubscriptionTier = .free
+    var onTierChange: (SubscriptionTier) -> Void = { _ in }
     var onAdd: (Subscription) -> Void
 
     @State private var serviceToAdd: PopularService?
+    @State private var showServicePaywall = false
     @State private var showCopiedToast = false
     @State private var selectedTab: QuickStartTab = .popular
     @State private var selectedCategoryFilter: String? = nil
@@ -244,7 +249,11 @@ struct QuickStartGuideView: View {
                         Section {
                             ForEach(services) { service in
                                 Button {
-                                    serviceToAdd = service
+                                    if canAddSubscription {
+                                        serviceToAdd = service
+                                    } else {
+                                        showServicePaywall = true
+                                    }
                                 } label: {
                                     HStack(spacing: 12) {
                                         SubscriptionCategoryMark(category: service.category)
@@ -423,6 +432,28 @@ struct QuickStartGuideView: View {
                     onDismiss: { serviceToAdd = nil }
                 )
                 .id(service.id)
+            }
+        }
+        .sheet(isPresented: $showServicePaywall) {
+            PaywallView(
+                hasCompletedPaywall: Binding(
+                    get: { !showServicePaywall },
+                    set: { if $0 { showServicePaywall = false } }
+                ),
+                selectedTier: Binding(
+                    get: { subscriptionTier },
+                    set: { onTierChange($0) }
+                ),
+                showsOnboardingProgress: false,
+                allowsDismiss: true,
+                onSelect: { tier in
+                    onTierChange(tier)
+                }
+            )
+        }
+        .onChange(of: subscriptionTier) { _, tier in
+            if tier != .free {
+                showServicePaywall = false
             }
         }
     }
