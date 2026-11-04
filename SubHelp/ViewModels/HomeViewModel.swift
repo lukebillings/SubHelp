@@ -290,7 +290,10 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    func addSubscription(_ sub: Subscription) {
+    /// Returns false when a free account is already at the tracked-subscription cap.
+    @discardableResult
+    func addSubscription(_ sub: Subscription) -> Bool {
+        guard Self.canTrackAnotherSubscription(currentCount: subscriptions.count) else { return false }
         var sub = sub
         let nextOrder = (subscriptions.filter { $0.stage == sub.stage }.map(\.boardOrder).max() ?? -1) + 1
         sub.boardOrder = nextOrder
@@ -298,6 +301,16 @@ final class HomeViewModel: ObservableObject {
         applySorting()
         persist()
         syncCategoryFilterWithSubscriptions()
+        return true
+    }
+
+    private static func canTrackAnotherSubscription(currentCount: Int) -> Bool {
+        let raw = UserDefaults.standard.string(forKey: "subscriptionTier") ?? SubscriptionTier.free.rawValue
+        let tier = SubscriptionTier(rawValue: raw) ?? .free
+        if tier == .free {
+            return currentCount < FreePlanLimits.subscriptionCount
+        }
+        return true
     }
 
     /// Subscriptions in one board column, respecting the category filter.

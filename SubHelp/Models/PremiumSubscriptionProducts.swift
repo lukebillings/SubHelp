@@ -64,21 +64,8 @@ final class PremiumSubscriptionProducts: ObservableObject {
 
     /// Aligns local tier with active App Store subscriptions (call on launch / foreground / after restore).
     func syncEntitlementsFromStore() async {
-        var chosenTier: SubscriptionTier = .free
-        for await result in Transaction.currentEntitlements {
-            guard case .verified(let transaction) = result else { continue }
-            guard transaction.productType == .autoRenewable else { continue }
-            if transaction.revocationDate != nil { continue }
-            switch transaction.productID {
-            case PremiumSubscriptionProductID.yearly.rawValue:
-                chosenTier = .yearly
-            case PremiumSubscriptionProductID.monthly.rawValue:
-                if chosenTier != .yearly { chosenTier = .monthly }
-            default:
-                break
-            }
-        }
-        Self.persistTier(chosenTier)
+        let tier = await Self.currentPremiumTier()
+        Self.persistTier(tier)
     }
 
     /// StoreKit 2 purchase — presents the system payment sheet when products are available.
@@ -168,32 +155,43 @@ final class PremiumSubscriptionProducts: ObservableObject {
 
     private nonisolated static func applyVerifiedSubscriptionTransactionIfNeeded(_ verificationResult: VerificationResult<Transaction>) async {
         guard case .verified(let transaction) = verificationResult else { return }
-        guard transaction.productType == .autoRenewable else {
-            await transaction.finish()
-            return
-        }
-
-        if transaction.revocationDate != nil {
-            await MainActor.run { persistTier(.free) }
-        } else if isPremiumProductID(transaction.productID) {
-            await MainActor.run { persistTier(forProductID: transaction.productID) }
-        }
+        let shouldRefreshTier = transaction.productType == .autoRenewable && isPremiumProductID(transaction.productID)
         await transaction.finish()
+        // Grant from current entitlements only. A finished or expired transaction must not unlock Premium by itself.
+        guard shouldRefreshTier else { return }
+        let tier = await currentPremiumTier()
+        await MainActor.run { persistTier(tier) }
+    }
+
+    /// Yearly wins over monthly. Revoked and expired subscriptions stay on the free plan.
+    private nonisolated static func currentPremiumTier() async -> SubscriptionTier {
+        var chosenTier: SubscriptionTier = .free
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result else { continue }
+            guard let tier = premiumTier(for: transaction) else { continue }
+            if tier == .yearly { return .yearly }
+            chosenTier = .monthly
+        }
+        return chosenTier
+    }
+
+    private nonisolated static func premiumTier(for transaction: Transaction) -> SubscriptionTier? {
+        guard transaction.productType == .autoRenewable else { return nil }
+        guard isPremiumProductID(transaction.productID) else { return nil }
+        guard transaction.revocationDate == nil else { return nil }
+        if let expiration = transaction.expirationDate, expiration <= Date() { return nil }
+        switch transaction.productID {
+        case PremiumSubscriptionProductID.yearly.rawValue:
+            return .yearly
+        case PremiumSubscriptionProductID.monthly.rawValue:
+            return .monthly
+        default:
+            return nil
+        }
     }
 
     private nonisolated static func isPremiumProductID(_ id: String) -> Bool {
         id == PremiumSubscriptionProductID.yearly.rawValue || id == PremiumSubscriptionProductID.monthly.rawValue
-    }
-
-    private nonisolated static func persistTier(forProductID productID: String) {
-        switch productID {
-        case PremiumSubscriptionProductID.yearly.rawValue:
-            persistTier(.yearly)
-        case PremiumSubscriptionProductID.monthly.rawValue:
-            persistTier(.monthly)
-        default:
-            break
-        }
     }
 
     private nonisolated static func persistTier(_ tier: SubscriptionTier) {

@@ -40,8 +40,7 @@ struct HomeView: View {
     }
 
     private func addTrackedSubscriptionOrPaywall(_ newSub: Subscription, dismissing: () -> Void) {
-        if canAddMore {
-            viewModel.addSubscription(newSub)
+        if canAddMore, viewModel.addSubscription(newSub) {
             addedSubscriptionThisSession = true
         } else {
             dismissing()
@@ -572,7 +571,11 @@ struct HomeView: View {
 
     private func helpFindButton(fullWidth: Bool) -> some View {
         Button {
-            showQuickStartGuide = true
+            if canAddMore {
+                showQuickStartGuide = true
+            } else {
+                requestHardPaywall()
+            }
         } label: {
             Text("Help Find Subscriptions")
                 .lineLimit(1)

@@ -24,6 +24,26 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                if subscriptionTier == .yearly || subscriptionTier == .monthly {
+                    Section {
+                        HStack(alignment: .center, spacing: 14) {
+                            Image("ShibaMascot")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 56, height: 56)
+                                .clipShape(Circle())
+                                .accessibilityHidden(true)
+                            Text("You are currently subscribed to SubHelp Premium")
+                                .font(.system(.subheadline, design: .default, weight: .semibold))
+                                .foregroundStyle(.black.opacity(0.88))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 6)
+                        .listRowBackground(SubHelpTheme.brandGold)
+                        .listRowSeparator(.hidden)
+                    }
+                }
+
                 Section("Currency") {
                     Picker("Currency", selection: $currencyCode) {
                         ForEach(CurrencyOptions.topCurrencies, id: \.code) { currency in
