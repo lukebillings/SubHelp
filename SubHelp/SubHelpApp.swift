@@ -39,6 +39,15 @@ struct SubHelpApp: App {
     init() {
         SubscriptionStorage.registerForCloudUpdates()
         SubscriptionStorage.mergeFromCloudOnLaunch()
+        #if DEBUG
+        // Simulator launches with this argument replace saved subscriptions with the board sample set.
+        if ProcessInfo.processInfo.arguments.contains("-SubHelpSeedSampleData") {
+            SubscriptionStorage.saveAll(
+                subscriptions: HomeViewModel.sampleSubscriptions,
+                unsubscribed: HomeViewModel.sampleCancelledSubscriptions
+            )
+        }
+        #endif
         let defaults = UserDefaults.standard
         // One-time after this release: show the new onboarding for everyone who is not already on a paid tier.
         // Subscriptions stay in UserDefaults / iCloud; only flags change. Subscribed users skip the sheet.
@@ -171,7 +180,7 @@ struct SubHelpApp: App {
                         showsOnboardingProgress: false,
                         allowsDismiss: true,
                         headline: sessionPaywallHeadline,
-                        subheadline: String(localized: "Unlock unlimited plus reminders."),
+                        subheadline: String(localized: "Unlock unlimited subscriptions."),
                         onSelect: { tier in
                             UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
                             presentPostPaywallTutorialIfNeeded()
