@@ -9,6 +9,7 @@ private struct AppleService: Identifiable {
     let price: Decimal
     let frequency: BillingFrequency
     let color: Color
+    let category: String
 
     var displayName: String { tier.isEmpty ? name : "\(name) · \(tier)" }
 }
@@ -28,27 +29,27 @@ struct AppleImportView: View {
 
     private let services: [AppleService] = [
         // Apple One bundles
-        AppleService(name: "Apple One", tier: "Individual",  price: 19.95, frequency: .monthly, color: Color(red: 0.0,  green: 0.48, blue: 0.9)),
-        AppleService(name: "Apple One", tier: "Family",      price: 24.95, frequency: .monthly, color: Color(red: 0.0,  green: 0.48, blue: 0.9)),
-        AppleService(name: "Apple One", tier: "Premier",     price: 32.95, frequency: .monthly, color: Color(red: 0.0,  green: 0.48, blue: 0.9)),
+        AppleService(name: "Apple One", tier: "Individual",  price: 19.95, frequency: .monthly, color: Color(red: 0.0,  green: 0.48, blue: 0.9), category: SubscriptionCategory.streaming.rawValue),
+        AppleService(name: "Apple One", tier: "Family",      price: 24.95, frequency: .monthly, color: Color(red: 0.0,  green: 0.48, blue: 0.9), category: SubscriptionCategory.streaming.rawValue),
+        AppleService(name: "Apple One", tier: "Premier",     price: 32.95, frequency: .monthly, color: Color(red: 0.0,  green: 0.48, blue: 0.9), category: SubscriptionCategory.streaming.rawValue),
         // TV+
-        AppleService(name: "Apple TV+",  tier: "",           price: 8.99,  frequency: .monthly, color: Color(red: 0.07, green: 0.07, blue: 0.07)),
+        AppleService(name: "Apple TV+",  tier: "",           price: 8.99,  frequency: .monthly, color: Color(red: 0.07, green: 0.07, blue: 0.07), category: SubscriptionCategory.streaming.rawValue),
         // Music
-        AppleService(name: "Apple Music", tier: "Individual", price: 10.99, frequency: .monthly, color: Color(red: 0.98, green: 0.23, blue: 0.37)),
-        AppleService(name: "Apple Music", tier: "Family",     price: 16.99, frequency: .monthly, color: Color(red: 0.98, green: 0.23, blue: 0.37)),
-        AppleService(name: "Apple Music", tier: "Student",    price: 5.99,  frequency: .monthly, color: Color(red: 0.98, green: 0.23, blue: 0.37)),
+        AppleService(name: "Apple Music", tier: "Individual", price: 10.99, frequency: .monthly, color: Color(red: 0.98, green: 0.23, blue: 0.37), category: SubscriptionCategory.streaming.rawValue),
+        AppleService(name: "Apple Music", tier: "Family",     price: 16.99, frequency: .monthly, color: Color(red: 0.98, green: 0.23, blue: 0.37), category: SubscriptionCategory.streaming.rawValue),
+        AppleService(name: "Apple Music", tier: "Student",    price: 5.99,  frequency: .monthly, color: Color(red: 0.98, green: 0.23, blue: 0.37), category: SubscriptionCategory.streaming.rawValue),
         // iCloud+
-        AppleService(name: "iCloud+", tier: "50 GB",          price: 0.99,  frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97)),
-        AppleService(name: "iCloud+", tier: "200 GB",         price: 2.99,  frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97)),
-        AppleService(name: "iCloud+", tier: "2 TB",           price: 8.99,  frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97)),
-        AppleService(name: "iCloud+", tier: "6 TB",           price: 29.99, frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97)),
-        AppleService(name: "iCloud+", tier: "12 TB",          price: 59.99, frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97)),
+        AppleService(name: "iCloud+", tier: "50 GB",          price: 0.99,  frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97), category: SubscriptionCategory.cloudStorage.rawValue),
+        AppleService(name: "iCloud+", tier: "200 GB",         price: 2.99,  frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97), category: SubscriptionCategory.cloudStorage.rawValue),
+        AppleService(name: "iCloud+", tier: "2 TB",           price: 8.99,  frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97), category: SubscriptionCategory.cloudStorage.rawValue),
+        AppleService(name: "iCloud+", tier: "6 TB",           price: 29.99, frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97), category: SubscriptionCategory.cloudStorage.rawValue),
+        AppleService(name: "iCloud+", tier: "12 TB",          price: 59.99, frequency: .monthly, color: Color(red: 0.36, green: 0.70, blue: 0.97), category: SubscriptionCategory.cloudStorage.rawValue),
         // Arcade
-        AppleService(name: "Apple Arcade", tier: "",          price: 6.99,  frequency: .monthly, color: Color(red: 0.55, green: 0.24, blue: 0.90)),
+        AppleService(name: "Apple Arcade", tier: "",          price: 6.99,  frequency: .monthly, color: Color(red: 0.55, green: 0.24, blue: 0.90), category: SubscriptionCategory.gaming.rawValue),
         // News+
-        AppleService(name: "Apple News+", tier: "",           price: 12.99, frequency: .monthly, color: Color(red: 0.95, green: 0.23, blue: 0.21)),
+        AppleService(name: "Apple News+", tier: "",           price: 12.99, frequency: .monthly, color: Color(red: 0.95, green: 0.23, blue: 0.21), category: SubscriptionCategory.streaming.rawValue),
         // Fitness+
-        AppleService(name: "Apple Fitness+", tier: "",        price: 9.99,  frequency: .monthly, color: Color(red: 0.25, green: 0.75, blue: 0.45)),
+        AppleService(name: "Apple Fitness+", tier: "",        price: 9.99,  frequency: .monthly, color: Color(red: 0.25, green: 0.75, blue: 0.45), category: SubscriptionCategory.health.rawValue),
     ]
 
     var body: some View {
@@ -77,6 +78,7 @@ struct AppleImportView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
             .navigationTitle("Import from Apple")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -90,10 +92,10 @@ struct AppleImportView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    SubHelpCancelButton { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
+                    SubHelpDoneButton(title: LocalizedStringKey("Add \(selected.count > 0 ? "\(selected.count)" : "")")) {
                         let subs = services
                             .filter { selected.contains($0.id) }
                             .enumerated()
@@ -104,14 +106,12 @@ struct AppleImportView: View {
                                     price: service.price,
                                     color: service.color,
                                     frequency: service.frequency,
+                                    category: service.category,
                                     addedAt: Date().addingTimeInterval(TimeInterval(index) * 0.001)
                                 )
                             }
                         onImport(subs)
                         dismiss()
-                    } label: {
-                        Text("Add \(selected.count > 0 ? "\(selected.count)" : "")")
-                            .font(.system(.body, design: .default, weight: .semibold))
                     }
                     .disabled(selected.isEmpty)
                 }
@@ -125,10 +125,7 @@ struct AppleImportView: View {
 
         VStack(spacing: 0) {
             HStack(spacing: 14) {
-                // Colour dot
-                Circle()
-                    .fill(service.color)
-                    .frame(width: 12, height: 12)
+                SubscriptionCategoryMark(category: service.category, size: 32, onColorCard: false)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(service.displayName)
@@ -143,7 +140,9 @@ struct AppleImportView: View {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(isSelected ? .blue : Color(.tertiaryLabel))
-                    .animation(.spring(response: 0.25), value: isSelected)
+                    .symbolEffect(.bounce, value: isSelected)
+                    .contentTransition(.symbolEffect(.replace))
+                    .animation(SubHelpTheme.snappy, value: isSelected)
             }
             .contentShape(Rectangle())
             .onTapGesture {

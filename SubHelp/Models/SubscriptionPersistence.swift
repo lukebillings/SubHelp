@@ -21,8 +21,18 @@ private struct PersistedSubscription: Codable {
     var colorB: Double
     var frequency: String
     var category: String?
+    /// Older app versions did not store this; missing values decode as `nil`.
+    var notes: String?
     /// Older app versions did not store this; see `loadSubscriptions` migration.
     var addedAt: Date?
+    /// Older app versions did not store this; missing values stay in Keep.
+    var stage: String?
+    /// Older app versions did not store this; missing values use the saved list index.
+    var boardOrder: Int?
+    /// Older app versions did not store this; missing values are not trials.
+    var isTrial: Bool?
+    /// Older app versions did not store this.
+    var trialEndDate: Date?
 
     init(from sub: Subscription) {
         self.id = sub.id
@@ -35,11 +45,18 @@ private struct PersistedSubscription: Codable {
         self.colorB = b
         self.frequency = sub.frequency.rawValue
         self.category = sub.category
+        let trimmedNotes = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.notes = trimmedNotes.isEmpty ? nil : sub.notes
         self.addedAt = sub.addedAt
+        self.stage = sub.stage.rawValue
+        self.boardOrder = sub.boardOrder
+        self.isTrial = sub.isTrial
+        self.trialEndDate = sub.isTrial ? sub.trialEndDate : nil
     }
 
-    func toSubscription(legacyListIndex: Int?) -> Subscription {
-        let resolvedAddedAt = addedAt ?? Date(timeIntervalSince1970: TimeInterval(legacyListIndex ?? 0))
+    func toSubscription(listIndex: Int) -> Subscription {
+        let resolvedAddedAt = addedAt ?? Date(timeIntervalSince1970: TimeInterval(listIndex))
+        let trial = (isTrial ?? false) && trialEndDate != nil
         return Subscription(
             id: id,
             name: name,
@@ -48,7 +65,12 @@ private struct PersistedSubscription: Codable {
             color: Color(red: colorR, green: colorG, blue: colorB),
             frequency: BillingFrequency(rawValue: frequency) ?? .monthly,
             category: category,
-            addedAt: resolvedAddedAt
+            notes: notes ?? "",
+            addedAt: resolvedAddedAt,
+            stage: SubscriptionStage(rawValue: stage ?? "") ?? .keep,
+            boardOrder: boardOrder ?? listIndex,
+            isTrial: trial,
+            trialEndDate: trial ? trialEndDate : nil
         )
     }
 }
@@ -72,6 +94,14 @@ private extension Color {
 enum SubHelpAppStorageKey {
     /// Set when the user finishes the current onboarding (benefits → currency → reminders). Used to migrate pre–onboarding-v2 installs once.
     static let hasCompletedOnboardingV2 = "subhelp.hasCompletedOnboardingV2"
+    /// Return-visit paywall has been shown once for this install.
+    static let didShowSessionPaywall = "subhelp.didShowSessionPaywall"
+    /// Soft “used your free slots” sheet has been shown after hitting the free limit.
+    static let didShowFreeLimitNudge = "subhelp.didShowFreeLimitNudge"
+    /// Home banner under the free-plan limit was dismissed.
+    static let didDismissFreeLimitBanner = "subhelp.didDismissFreeLimitBanner"
+    /// System App Store review was requested after the user added their first subscriptions.
+    static let didRequestReviewAfterFirstSubscriptions = "subhelp.didRequestReviewAfterFirstSubscriptions"
 }
 
 enum SubscriptionStorage {
@@ -110,8 +140,7 @@ enum SubscriptionStorage {
             return []
         }
         return decoded.enumerated().map { index, p in
-            let legacyIndex = p.addedAt == nil ? index : nil
-            return p.toSubscription(legacyListIndex: legacyIndex)
+            p.toSubscription(listIndex: index)
         }
     }
 
@@ -121,8 +150,7 @@ enum SubscriptionStorage {
             return []
         }
         return decoded.enumerated().map { index, p in
-            let legacyIndex = p.addedAt == nil ? index : nil
-            return p.toSubscription(legacyListIndex: legacyIndex)
+            p.toSubscription(listIndex: index)
         }
     }
 
@@ -139,6 +167,7 @@ enum SubscriptionStorage {
         }
         bumpRevision()
         ubiquitous.synchronize()
+        WidgetSnapshotPublisher.refreshFromStorage()
     }
 
     private static func applyIncomingCloudChangesIfNeeded() {
@@ -165,6 +194,7 @@ enum SubscriptionStorage {
         }
 
         NotificationCenter.default.post(name: .subhelpSubscriptionsDidChangeExternally, object: nil)
+        WidgetSnapshotPublisher.refreshFromStorage()
     }
 
     /// Clears subscription data, iCloud copies, and common user defaults (full reset from Settings).
@@ -188,5 +218,10 @@ enum SubscriptionStorage {
         UserDefaults.standard.removeObject(forKey: SubHelpHaptics.userDefaultsKey)
         UserDefaults.standard.set(SubscriptionTier.free.rawValue, forKey: "subscriptionTier")
         UserDefaults.standard.removeObject(forKey: "subhelp.sessionPaywallActivateCount")
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.didShowSessionPaywall)
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.didShowFreeLimitNudge)
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.didDismissFreeLimitBanner)
+        UserDefaults.standard.removeObject(forKey: SubHelpAppStorageKey.didRequestReviewAfterFirstSubscriptions)
+        WidgetSnapshotPublisher.refreshFromStorage()
     }
 }

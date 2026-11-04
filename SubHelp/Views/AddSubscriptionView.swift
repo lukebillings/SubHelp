@@ -7,11 +7,14 @@ struct AddSubscriptionView: View {
     var onAdd: (Subscription) -> Void
 
     @State private var name: String = ""
-    @State private var category: String? = nil
+    @State private var category: String = SubscriptionCategory.other.rawValue
     @State private var price: Decimal? = nil
     @State private var frequency: BillingFrequency = .monthly
     @State private var nextPaymentDate = Date()
+    @State private var isTrial = false
+    @State private var trialEndDate = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
     @State private var selectedColor = Color(red: 0.0, green: 0.48, blue: 0.9)
+    @State private var notes = ""
 
     // 3 rows of colours (5 per row)
     private let colorOptions: [(String, Color)] = [
@@ -47,13 +50,9 @@ struct AddSubscriptionView: View {
                 }
 
                 Section("Category") {
-                    Picker("Category", selection: Binding(
-                        get: { category ?? "" },
-                        set: { category = $0.isEmpty ? nil : $0 }
-                    )) {
-                        Text("None").tag("")
+                    Picker("Category", selection: $category) {
                         ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
-                            Text(cat).tag(cat)
+                            Label(cat, systemImage: SubscriptionCategory.symbolName(for: cat)).tag(cat)
                         }
                     }
                 }
@@ -62,9 +61,7 @@ struct AddSubscriptionView: View {
                     HStack {
                         Text("Amount")
                         Spacer()
-                        TextField("0.00", value: $price, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
+                        CurrencyAmountField(placeholder: "0.00", amount: $price, currencyCode: currencyCode)
                     }
 
                     Picker("Frequency", selection: $frequency) {
@@ -74,8 +71,24 @@ struct AddSubscriptionView: View {
                     }
                 }
 
-                Section("Renewal date") {
-                    DatePicker("Next payment", selection: $nextPaymentDate, displayedComponents: .date)
+                Section {
+                    Toggle("Currently on free trial", isOn: $isTrial)
+                        .onChange(of: isTrial) { _, on in
+                            guard on else { return }
+                            let today = Calendar.current.startOfDay(for: Date())
+                            if nextPaymentDate > today {
+                                trialEndDate = nextPaymentDate
+                            }
+                        }
+                    if isTrial {
+                        DatePicker("Trial ends", selection: $trialEndDate, displayedComponents: .date)
+                    } else {
+                        DatePicker("Next payment", selection: $nextPaymentDate, displayedComponents: .date)
+                    }
+                } footer: {
+                    if isTrial {
+                        Text("You'll get a reminder before this date. On the day, SubHelp asks if you cancelled or kept it.")
+                    }
                 }
 
                 Section("Colour") {
@@ -89,6 +102,8 @@ struct AddSubscriptionView: View {
                                         .strokeBorder(.white, lineWidth: selectedColor == color ? 3 : 0)
                                 )
                                 .shadow(color: selectedColor == color ? color.opacity(0.5) : .clear, radius: 4)
+                                .scaleEffect(selectedColor == color ? 1.14 : 1)
+                                .animation(SubHelpTheme.bouncy, value: selectedColor)
                                 .onTapGesture {
                                     selectedColor = color
                                 }
@@ -96,14 +111,22 @@ struct AddSubscriptionView: View {
                     }
                 }
 
+                Section("Notes") {
+                    TextField("e.g. Look into cancelling", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
+                }
+
                 if !name.isEmpty {
                     Section("Preview") {
-                        HStack {
+                        HStack(alignment: .center, spacing: 12) {
+                            SubscriptionCategoryMark(category: category)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(name)
                                     .font(.system(.headline, design: .default, weight: .bold))
                                     .foregroundStyle(.white)
-                                Text("Next payment: \(nextPaymentDate.formatted(.dateTime.day().month(.wide)))")
+                                Text(isTrial
+                                     ? "Trial ends: \(trialEndDate.formatted(.dateTime.day().month(.wide)))"
+                                     : "Next payment: \(nextPaymentDate.formatted(.dateTime.day().month(.wide)))")
                                     .font(.system(.subheadline, design: .default, weight: .regular))
                                     .foregroundStyle(.white.opacity(0.9))
                             }
@@ -117,37 +140,41 @@ struct AddSubscriptionView: View {
                                     .foregroundStyle(.white.opacity(0.8))
                             }
                         }
-                        .padding(16)
-                        .background(selectedColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .padding(18)
+                        .subHelpColorCard(selectedColor)
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
                     }
                 }
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
+            .animation(SubHelpTheme.smooth, value: name.isEmpty)
             .navigationTitle("Add Subscription")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    SubHelpCancelButton { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    SubHelpDoneButton(title: "Save") {
                         guard let price = price else { return }
+                        let chargeDate = isTrial ? trialEndDate : nextPaymentDate
                         let sub = Subscription(
                             name: name,
-                            nextPaymentDate: nextPaymentDate,
+                            nextPaymentDate: chargeDate,
                             price: price,
                             color: selectedColor,
                             frequency: frequency,
-                            category: category
+                            category: category,
+                            notes: notes,
+                            isTrial: isTrial,
+                            trialEndDate: isTrial ? trialEndDate : nil
                         )
                         onAdd(sub)
                         dismiss()
                     }
                     .disabled(!canSave)
-                    .fontWeight(.semibold)
                 }
             }
         }

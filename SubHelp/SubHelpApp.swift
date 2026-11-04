@@ -6,7 +6,7 @@ private enum MainTab: Hashable {
 }
 
 private enum SubHelpLaunchStorageKey {
-    /// After onboarding, increments on each `didBecomeActive`; paywall shows when count ≥ 2 while still on free tier.
+    /// After onboarding, increments on each `didBecomeActive`; used so the first return visit can show a paywall.
     static let sessionPaywallActivateCount = "subhelp.sessionPaywallActivateCount"
     static let appOpenCount = "subhelp.appOpenCount"
     static let feedbackPromptShown = "subhelp.feedbackPromptShown"
@@ -23,6 +23,7 @@ struct SubHelpApp: App {
     @AppStorage(SubHelpLaunchStorageKey.appOpenCount) private var appOpenCount = 0
     @AppStorage(SubHelpLaunchStorageKey.feedbackPromptShown) private var feedbackPromptShown = false
     @AppStorage(SubHelpLaunchStorageKey.didShowPostPaywallTutorial) private var didShowPostPaywallTutorial = false
+    @AppStorage(SubHelpAppStorageKey.didShowSessionPaywall) private var didShowSessionPaywall = false
     @State private var showCurrencyOnboarding = false
     @State private var showSessionPaywall = false
     @State private var showRetentionCheckAlert = false
@@ -32,10 +33,21 @@ struct SubHelpApp: App {
     /// Skips one `didBecomeActive` bump so finishing onboarding doesn’t immediately show the session paywall.
     @State private var skipNextSessionPaywallActivateBump = false
     @State private var selectedTab: MainTab = .subscriptions
+    @State private var trialPrompt: Subscription?
+    @State private var deferredTrialIDs: Set<UUID> = []
 
     init() {
         SubscriptionStorage.registerForCloudUpdates()
         SubscriptionStorage.mergeFromCloudOnLaunch()
+        #if DEBUG
+        // Simulator launches with this argument replace saved subscriptions with the board sample set.
+        if ProcessInfo.processInfo.arguments.contains("-SubHelpSeedSampleData") {
+            SubscriptionStorage.saveAll(
+                subscriptions: HomeViewModel.sampleSubscriptions,
+                unsubscribed: HomeViewModel.sampleCancelledSubscriptions
+            )
+        }
+        #endif
         let defaults = UserDefaults.standard
         // One-time after this release: show the new onboarding for everyone who is not already on a paid tier.
         // Subscriptions stay in UserDefaults / iCloud; only flags change. Subscribed users skip the sheet.
@@ -58,6 +70,7 @@ struct SubHelpApp: App {
             defaults.set(1, forKey: SubHelpLaunchStorageKey.sessionPaywallActivateCount)
         }
         _homeViewModel = StateObject(wrappedValue: HomeViewModel())
+        WidgetSnapshotPublisher.refreshFromStorage()
     }
 
     private var subscriptionTier: SubscriptionTier {
@@ -69,7 +82,7 @@ struct SubHelpApp: App {
         WindowGroup {
             ZStack {
                 TabView(selection: $selectedTab) {
-                    Tab("Subscriptions", systemImage: "creditcard.fill", value: MainTab.subscriptions) {
+                    Tab("Subscriptions", systemImage: "creditcard", value: MainTab.subscriptions) {
                         HomeView(
                             viewModel: homeViewModel,
                             subscriptionTier: subscriptionTier,
@@ -81,19 +94,22 @@ struct SubHelpApp: App {
                     Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90", value: MainTab.history) {
                         HistoryView(viewModel: homeViewModel)
                     }
-                    Tab("Help", systemImage: "questionmark.circle.fill", value: MainTab.help) {
+                    Tab("Help", systemImage: "questionmark.circle", value: MainTab.help) {
                         HelpView(viewModel: homeViewModel)
                     }
-                    Tab("Settings", systemImage: "gearshape.fill", value: MainTab.settings) {
+                    Tab("Settings", systemImage: "gearshape", value: MainTab.settings) {
                         SettingsView()
                     }
                 }
                 .tint(.blue)
+                .subHelpTabBarBehavior()
                 .onChange(of: selectedTab) { _, _ in
                     SubHelpHaptics.impact(.light)
                 }
                 .onAppear {
                     RenewalNotificationScheduler.scheduleRenewalReminders()
+                    applyPendingTrialDecision()
+                    presentTrialPromptIfNeeded()
                     Task {
                         await premiumSubscriptionProducts.syncEntitlementsFromStore()
                         await MainActor.run {
@@ -104,7 +120,10 @@ struct SubHelpApp: App {
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                     SubscriptionStorage.mergeFromCloudOnLaunch()
+                    WidgetSnapshotPublisher.refreshFromStorage()
                     RenewalNotificationScheduler.scheduleRenewalReminders()
+                    applyPendingTrialDecision()
+                    presentTrialPromptIfNeeded()
                     Task {
                         await premiumSubscriptionProducts.syncEntitlementsFromStore()
                         await MainActor.run {
@@ -117,30 +136,25 @@ struct SubHelpApp: App {
                         appOpenCount += 1
                     }
                     guard hasCompletedCurrencyOnboarding else { return }
-                    guard subscriptionTier == .free else {
-                        showSessionPaywall = false
-                        maybePresentRetentionCheck()
-                        return
-                    }
                     guard !showCurrencyOnboarding else { return }
+                    applyPendingTrialDecision()
+                    presentTrialPromptIfNeeded()
                     if skipNextSessionPaywallActivateBump {
                         skipNextSessionPaywallActivateBump = false
                         return
                     }
-                    let key = SubHelpLaunchStorageKey.sessionPaywallActivateCount
-                    var n = UserDefaults.standard.integer(forKey: key)
-                    n += 1
-                    UserDefaults.standard.set(n, forKey: key)
-                    if n >= 2 {
-                        showSessionPaywall = true
-                    }
+                    maybePresentSessionPaywall()
                     maybePresentRetentionCheck()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: TrialPromptCenter.notification)) { _ in
+                    applyPendingTrialDecision()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .subhelpResetAllData)) { _ in
                     SubscriptionStorage.resetAllAppDataToFreshInstall()
                     homeViewModel.resetToFreshInstallState()
                     selectedTab = .subscriptions
                     showSessionPaywall = false
+                    didShowSessionPaywall = false
                     showCurrencyOnboarding = true
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .subhelpTriggerRetentionCheck)) { _ in
@@ -163,6 +177,10 @@ struct SubHelpApp: App {
                             get: { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free },
                             set: { subscriptionTierRaw = $0.rawValue }
                         ),
+                        showsOnboardingProgress: false,
+                        allowsDismiss: true,
+                        headline: sessionPaywallHeadline,
+                        subheadline: String(localized: "Unlock unlimited subscriptions."),
                         onSelect: { tier in
                             UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
                             presentPostPaywallTutorialIfNeeded()
@@ -218,6 +236,35 @@ struct SubHelpApp: App {
                     }
                 )
             }
+            .alert(
+                "Free trial",
+                isPresented: Binding(
+                    get: { trialPrompt != nil },
+                    set: { if !$0 { trialPrompt = nil } }
+                ),
+                presenting: trialPrompt
+            ) { sub in
+                Button("I kept it") {
+                    homeViewModel.keepTrial(id: sub.id)
+                    trialPrompt = nil
+                    presentTrialPromptIfNeeded()
+                }
+                Button("I cancelled", role: .destructive) {
+                    homeViewModel.removeSubscription(sub)
+                    trialPrompt = nil
+                    presentTrialPromptIfNeeded()
+                }
+                Button("Decide later") {
+                    deferredTrialIDs.insert(sub.id)
+                    trialPrompt = nil
+                }
+            } message: { sub in
+                let end = sub.trialEndDate ?? sub.nextPaymentDate
+                let ended = Calendar.current.startOfDay(for: end) <= Calendar.current.startOfDay(for: Date())
+                Text(ended
+                     ? "\(sub.name) trial has ended. Keep it on your list, or mark it cancelled?"
+                     : "\(sub.name) trial is still running. Keep it on your list, or mark it cancelled?")
+            }
             .alert("Is SubHelp going good?", isPresented: $showRetentionCheckAlert) {
                 Button("Yes") {
                     feedbackPromptShown = true
@@ -256,7 +303,6 @@ struct SubHelpApp: App {
                     showSessionPaywall = false
                 }
             }
-            .preferredColorScheme(.light)
         }
     }
 
@@ -268,6 +314,36 @@ struct SubHelpApp: App {
         UserDefaults.standard.set(true, forKey: SubHelpAppStorageKey.hasCompletedOnboardingV2)
         UserDefaults.standard.set(true, forKey: "hasCompletedCurrencyOnboarding")
         showCurrencyOnboarding = false
+    }
+
+    /// First return visit after onboarding, once the user has actually tracked something.
+    private func maybePresentSessionPaywall() {
+        guard subscriptionTier == .free else { return }
+        guard hasCompletedCurrencyOnboarding else { return }
+        guard !didShowSessionPaywall else { return }
+        guard appOpenCount >= 2 else { return }
+        let trackedCount = homeViewModel.subscriptions.count
+        guard (1...FreePlanLimits.subscriptionCount).contains(trackedCount) else { return }
+        guard trialPrompt == nil else { return }
+        guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil && !showRetentionCheckAlert else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            guard subscriptionTier == .free else { return }
+            guard !didShowSessionPaywall else { return }
+            guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil && !showRetentionCheckAlert else { return }
+            guard trialPrompt == nil else { return }
+            guard (1...FreePlanLimits.subscriptionCount).contains(homeViewModel.subscriptions.count) else { return }
+            didShowSessionPaywall = true
+            showSessionPaywall = true
+        }
+    }
+
+    private var sessionPaywallHeadline: String {
+        let count = homeViewModel.subscriptions.count
+        if count == 1 {
+            return String(localized: "You're tracking 1 subscription")
+        }
+        return String(format: String(localized: "You're tracking %d"), count)
     }
 
     private func presentPostPaywallTutorialIfNeeded() {
@@ -282,8 +358,46 @@ struct SubHelpApp: App {
         guard hasCompletedCurrencyOnboarding else { return }
         guard appOpenCount >= 3 else { return }
         guard !feedbackPromptShown else { return }
+        guard trialPrompt == nil else { return }
+        let dueTrials = homeViewModel.trialsNeedingDecision()
+        guard dueTrials.allSatisfy({ deferredTrialIDs.contains($0.id) }) else { return }
         guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil else { return }
+        if subscriptionTier == .free,
+           !didShowSessionPaywall,
+           (1...FreePlanLimits.subscriptionCount).contains(homeViewModel.subscriptions.count) {
+            return
+        }
         showRetentionCheckAlert = true
+    }
+
+    private func presentTrialPromptIfNeeded() {
+        guard hasCompletedCurrencyOnboarding else { return }
+        guard trialPrompt == nil else { return }
+        guard !showCurrencyOnboarding && !showSessionPaywall && activeTutorialFlow == nil && !showRetentionCheckAlert else { return }
+        guard let due = homeViewModel.trialsNeedingDecision().first(where: { !deferredTrialIDs.contains($0.id) }) else { return }
+        trialPrompt = due
+    }
+
+    private func applyPendingTrialDecision() {
+        guard let pending = TrialPromptCenter.pending else { return }
+        TrialPromptCenter.pending = nil
+        switch pending.decision {
+        case .keep:
+            homeViewModel.keepTrial(id: pending.id)
+            if trialPrompt?.id == pending.id { trialPrompt = nil }
+        case .cancel:
+            if let sub = homeViewModel.subscriptions.first(where: { $0.id == pending.id }) {
+                homeViewModel.removeSubscription(sub)
+            }
+            if trialPrompt?.id == pending.id { trialPrompt = nil }
+        case .ask:
+            if let sub = homeViewModel.subscriptions.first(where: { $0.id == pending.id && $0.isTrial }) {
+                deferredTrialIDs.remove(sub.id)
+                trialPrompt = sub
+                return
+            }
+        }
+        presentTrialPromptIfNeeded()
     }
 }
 
@@ -387,15 +501,16 @@ private struct InAppTutorialOverlay: View {
                     HStack {
                         if flow != .postPaywall {
                             Button("Skip") { onSkip() }
+                                .buttonStyle(.subHelp(.glass, tint: .secondary, compact: true))
                         }
                         Spacer()
                         Button(safeIndex == steps.count - 1 ? "Done" : "Next") { onNext() }
-                            .fontWeight(.bold)
+                            .buttonStyle(.subHelp(compact: true))
                     }
                 }
-                .padding(14)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(18)
                 .frame(width: min(geo.size.width - 32, 360))
+                .subHelpPanel(cornerRadius: 26)
                 .position(x: geo.size.width / 2, y: min(max(target.maxY + 84, 190), geo.size.height - 170))
             }
             .onAppear { selectedTab = step.tab }
@@ -441,7 +556,7 @@ private struct RetentionHelpChooserView: View {
             .navigationTitle("Help us help you")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { onDismiss() }
+                    SubHelpDoneButton(action: onDismiss)
                 }
             }
         }

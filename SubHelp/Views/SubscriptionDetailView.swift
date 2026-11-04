@@ -73,30 +73,26 @@ struct SubscriptionDetailView: View {
     private var savingsText: String {
         let amount = subscription.price
         let formatted = CurrencyOptions.formatPresentation(amount: amount, currencyCode: currencyCode)
-        switch subscription.frequency {
-        case .weekly: return "\(formatted) per week"
-        case .monthly: return "\(formatted) per month"
-        case .yearly: return "\(formatted) per year"
-        }
+        return "\(formatted) \(subscription.frequency.periodPhrase)"
     }
 
     var body: some View {
         ZStack {
             List {
                 subDetailsSection
+                markSection
                 cancellationHelpSection
                 unsubscribeSection
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
             .navigationTitle(subscription.name)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .font(.system(.body, design: .default, weight: .semibold))
+                    SubHelpDoneButton { dismiss() }
                 }
             }
-
             if showCelebration {
                 celebrationOverlay
             }
@@ -108,16 +104,19 @@ struct SubscriptionDetailView: View {
     private var subDetailsSection: some View {
         Section("Sub details") {
             Picker("Category", selection: Binding(
-                get: { subscription.category ?? "" },
+                get: {
+                    SubscriptionCategory(rawValue: subscription.category ?? "")?.rawValue
+                },
                 set: { newVal in
                     var s = subscription
-                    s.category = newVal.isEmpty ? nil : newVal
+                    s.category = newVal
                     subscription = s
                 }
             )) {
-                Text("None").tag("")
+                Label("None", systemImage: SubscriptionCategory.uncategorizedSymbolName)
+                    .tag(String?.none)
                 ForEach(SubscriptionCategory.allNames, id: \.self) { cat in
-                    Text(cat).tag(cat)
+                    Label(cat, systemImage: SubscriptionCategory.symbolName(for: cat)).tag(String?.some(cat))
                 }
             }
 
@@ -130,12 +129,38 @@ struct SubscriptionDetailView: View {
             HStack {
                 Text("Amount")
                 Spacer()
-                TextField("Price", value: $subscription.price, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
+                CurrencyAmountField(placeholder: "Price", amount: $subscription.price, currencyCode: currencyCode)
             }
 
-            DatePicker("When it renews", selection: $subscription.nextPaymentDate, displayedComponents: .date)
+            Toggle("Currently on free trial", isOn: Binding(
+                get: { subscription.isTrial },
+                set: { on in
+                    var updated = subscription
+                    updated.isTrial = on
+                    if on {
+                        let end = updated.trialEndDate ?? updated.nextPaymentDate
+                        updated.trialEndDate = end
+                        updated.nextPaymentDate = end
+                    } else {
+                        updated.trialEndDate = nil
+                    }
+                    subscription = updated
+                }
+            ))
+
+            if subscription.isTrial {
+                DatePicker("Trial ends", selection: Binding(
+                    get: { subscription.trialEndDate ?? subscription.nextPaymentDate },
+                    set: { date in
+                        var updated = subscription
+                        updated.trialEndDate = date
+                        updated.nextPaymentDate = date
+                        subscription = updated
+                    }
+                ), displayedComponents: .date)
+            } else {
+                DatePicker("When it renews", selection: $subscription.nextPaymentDate, displayedComponents: .date)
+            }
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Background colour")
@@ -149,12 +174,52 @@ struct SubscriptionDetailView: View {
                                     .strokeBorder(.white, lineWidth: subscription.color == color ? 3 : 0)
                             )
                             .shadow(color: subscription.color == color ? color.opacity(0.5) : .clear, radius: 4)
+                            .scaleEffect(subscription.color == color ? 1.14 : 1)
+                            .animation(SubHelpTheme.bouncy, value: subscription.color)
                             .onTapGesture {
                                 subscription.color = color
                             }
                     }
                 }
             }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Notes")
+                TextField("e.g. Look into cancelling", text: $subscription.notes, axis: .vertical)
+                    .lineLimit(3...6)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    // MARK: - Mark
+
+    private var markSection: some View {
+        Section {
+            VStack(spacing: 10) {
+                ForEach(SubscriptionStage.markChoices) { stage in
+                    let isSelected = subscription.stage == stage
+                    Button {
+                        withAnimation(SubHelpTheme.snappy) {
+                            subscription.stage = isSelected ? .keep : stage
+                        }
+                        SubHelpHaptics.impact(.light)
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label(stage.rawValue, systemImage: isSelected ? "checkmark.circle.fill" : stage.symbolName)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.subHelp(isSelected ? .prominent : .glass, tint: stage.tint, fullWidth: true))
+                }
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+        } header: {
+            Text("Mark this subscription")
+        } footer: {
+            Text("Tap a mark again to clear it.")
         }
     }
 
@@ -234,14 +299,10 @@ struct SubscriptionDetailView: View {
                 HStack {
                     Spacer()
                     Label("Mark as Unsubscribed", systemImage: "checkmark.circle.fill")
-                        .font(.system(.body, design: .default, weight: .bold))
-                        .foregroundStyle(.white)
                     Spacer()
                 }
-                .padding(.vertical, 16)
-                .background(.green)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
+            .buttonStyle(.subHelp(tint: .green, fullWidth: true))
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
         }
@@ -327,9 +388,8 @@ struct SubscriptionDetailView: View {
                     .padding(.top, 4)
             }
             .padding(32)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
+            .subHelpPanel(cornerRadius: 36)
+            .shadow(color: .black.opacity(0.18), radius: 24, y: 10)
             .padding(.horizontal, 40)
             .transition(.scale.combined(with: .opacity))
         }

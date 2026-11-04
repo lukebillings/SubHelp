@@ -1,37 +1,150 @@
 import SwiftUI
+import StoreKit
+import UIKit
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
     var subscriptionTier: SubscriptionTier
     var onTierChange: (SubscriptionTier) -> Void
 
+    @Environment(\.requestReview) private var requestReview
     @AppStorage("currencyCode") private var currencyCode: String = "GBP"
     @State private var selectedSubscription: Subscription?
     @State private var showAddSheet = false
     @State private var showQuickStartGuide = false
     @State private var showSavingsCard = false
     @State private var showUpgradePaywall = false
+    @State private var showLimitNudge = false
+    /// True after this session’s first successful add, so existing installs are not prompted on launch.
+    @State private var addedSubscriptionThisSession = false
+    @AppStorage(SubHelpAppStorageKey.didShowFreeLimitNudge) private var didShowFreeLimitNudge = false
+    @AppStorage(SubHelpAppStorageKey.didDismissFreeLimitBanner) private var didDismissFreeLimitBanner = false
+    @AppStorage(SubHelpAppStorageKey.didRequestReviewAfterFirstSubscriptions) private var didRequestReviewAfterFirstSubscriptions = false
+    @Namespace private var cardTransition
 
+    /// Free accounts can track up to three subscriptions. The paywall appears when they try to add a fourth.
     private var subscriptionLimit: Int {
-        subscriptionTier == .free ? 3 : .max
+        subscriptionTier == .free ? FreePlanLimits.subscriptionCount : .max
     }
 
     private var canAddMore: Bool {
         viewModel.subscriptions.count < subscriptionLimit
     }
 
+    private var isAtFreeLimit: Bool {
+        subscriptionTier == .free && viewModel.subscriptions.count >= FreePlanLimits.subscriptionCount
+    }
+
+    private var shouldShowLimitBanner: Bool {
+        isAtFreeLimit && !didDismissFreeLimitBanner
+    }
+
+    private func addTrackedSubscriptionOrPaywall(_ newSub: Subscription, dismissing: () -> Void) {
+        if canAddMore {
+            viewModel.addSubscription(newSub)
+            addedSubscriptionThisSession = true
+        } else {
+            dismissing()
+            requestHardPaywall()
+        }
+    }
+
+    private var isBlockingReviewPrompt: Bool {
+        showAddSheet
+            || showQuickStartGuide
+            || showLimitNudge
+            || showUpgradePaywall
+            || showSavingsCard
+            || selectedSubscription != nil
+    }
+
+    /// Asks for an App Store rating once the add flow is gone and the new list is on screen.
+    private func presentReviewAfterFirstSubscriptionsIfNeeded() {
+        guard !didRequestReviewAfterFirstSubscriptions else { return }
+        guard addedSubscriptionThisSession else { return }
+        guard viewModel.subscriptions.count >= 1 else { return }
+        guard !isBlockingReviewPrompt else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            guard !didRequestReviewAfterFirstSubscriptions else { return }
+            guard addedSubscriptionThisSession else { return }
+            guard viewModel.subscriptions.count >= 1 else { return }
+            guard !isBlockingReviewPrompt else { return }
+            didRequestReviewAfterFirstSubscriptions = true
+            requestReview()
+        }
+    }
+
+    private func requestHardPaywall() {
+        didShowFreeLimitNudge = true
+        showLimitNudge = false
+        showUpgradePaywall = true
+    }
+
+    private func presentLimitNudgeWhenReady() {
+        guard subscriptionTier == .free else { return }
+        guard viewModel.subscriptions.count >= FreePlanLimits.subscriptionCount else { return }
+        guard !didShowFreeLimitNudge else { return }
+        guard !showAddSheet, !showQuickStartGuide, !showUpgradePaywall else { return }
+        didShowFreeLimitNudge = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            guard subscriptionTier == .free else { return }
+            guard !showAddSheet, !showQuickStartGuide, !showUpgradePaywall else { return }
+            showLimitNudge = true
+        }
+    }
+
+    private func presentUpgradePaywallAfterNudge() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            showUpgradePaywall = true
+        }
+    }
+
+    /// Clear band kept empty so nothing is drawn across the Duo’s horizontal hinge.
+    private let laptopHingeGutter: CGFloat = 44
+
+    /// The Duo folded as a laptop: taller than wide, and wider than any iPhone portrait.
+    private func isLaptopFold(_ size: CGSize) -> Bool {
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return false }
+        return size.height > size.width && size.width >= 560
+    }
+
     var body: some View {
+        GeometryReader { geo in
+            let laptop = isLaptopFold(geo.size)
+            let fullHeight = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
+            let hingeY = fullHeight / 2 - geo.safeAreaInsets.top
+            let rawTop = hingeY - laptopHingeGutter / 2
+            let laptopTopHeight = min(max(160, rawTop), max(160, geo.size.height - laptopHingeGutter - 160))
+            screen(
+                landscape: geo.size.width > geo.size.height && !laptop,
+                laptop: laptop,
+                laptopTopHeight: laptopTopHeight
+            )
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+        }
+    }
+
+    private func screen(landscape: Bool, laptop: Bool, laptopTopHeight: CGFloat) -> some View {
         Group {
             if viewModel.subscriptions.isEmpty {
                 welcomeState
+            } else if laptop {
+                laptopScreen(topHeight: laptopTopHeight)
             } else {
                 VStack(spacing: 0) {
-                    summarySection
-                    segmentControl
+                    if landscape {
+                        landscapeSummary
+                    } else {
+                        summarySection
+                        segmentControl
+                    }
 
                     switch viewModel.viewMode {
                     case .list:
-                        sortBar
+                        if !landscape {
+                            sortBar
+                        }
                         // Always keep a ScrollView here so this region fills remaining height; a bare Text
                         // made the VStack shrink and the tab vertically centered content (huge gap on top).
                         ScrollView {
@@ -42,42 +155,92 @@ struct HomeView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.top, 24)
                             } else {
-                                cardsList
+                                cardsList(landscape: landscape)
                             }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     case .calendar:
-                        calendarFilterBar
-                        calendarSection
+                        if !landscape {
+                            calendarFilterBar
+                        }
+                        calendarSection(landscape: landscape)
+                    case .board:
+                        if !landscape {
+                            calendarFilterBar
+                        }
+                        SubscriptionBoardView(
+                            viewModel: viewModel,
+                            currencyCode: currencyCode,
+                            selectedSubscription: $selectedSubscription,
+                            cardTransition: cardTransition
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(Color(.systemGroupedBackground))
+                .background { SubHelpBackdrop() }
             }
         }
         .sheet(isPresented: $showAddSheet) {
             AddSubscriptionView { newSub in
-                if canAddMore {
-                    viewModel.addSubscription(newSub)
-                } else {
-                    showAddSheet = false
-                    showUpgradePaywall = true
-                }
+                addTrackedSubscriptionOrPaywall(newSub, dismissing: { showAddSheet = false })
             }
         }
         .sheet(isPresented: $showQuickStartGuide) {
             QuickStartGuideView { newSub in
-                if canAddMore {
-                    viewModel.addSubscription(newSub)
-                } else {
-                    showQuickStartGuide = false
-                    showUpgradePaywall = true
-                }
+                addTrackedSubscriptionOrPaywall(newSub, dismissing: { showQuickStartGuide = false })
             }
         }
+        .sheet(isPresented: $showLimitNudge) {
+            FreePlanLimitNudgeView(
+                onUpgrade: {
+                    showLimitNudge = false
+                    presentUpgradePaywallAfterNudge()
+                },
+                onDismiss: {
+                    showLimitNudge = false
+                }
+            )
+        }
         .sheet(isPresented: $showUpgradePaywall) {
-            UpgradePaywallView { tier in
-                onTierChange(tier)
+            PaywallView(
+                hasCompletedPaywall: Binding(
+                    get: { !showUpgradePaywall },
+                    set: { if $0 { showUpgradePaywall = false } }
+                ),
+                selectedTier: Binding(
+                    get: { subscriptionTier },
+                    set: { onTierChange($0) }
+                ),
+                showsOnboardingProgress: false,
+                allowsDismiss: true,
+                onSelect: { tier in
+                    onTierChange(tier)
+                }
+            )
+        }
+        .onChange(of: showAddSheet) { _, showing in
+            if !showing {
+                presentLimitNudgeWhenReady()
+                presentReviewAfterFirstSubscriptionsIfNeeded()
+            }
+        }
+        .onChange(of: showQuickStartGuide) { _, showing in
+            if !showing {
+                presentLimitNudgeWhenReady()
+                presentReviewAfterFirstSubscriptionsIfNeeded()
+            }
+        }
+        .onChange(of: showLimitNudge) { _, showing in
+            if !showing { presentReviewAfterFirstSubscriptionsIfNeeded() }
+        }
+        .onChange(of: showUpgradePaywall) { _, showing in
+            if !showing { presentReviewAfterFirstSubscriptionsIfNeeded() }
+        }
+        .onChange(of: subscriptionTier) { _, tier in
+            if tier != .free {
+                showLimitNudge = false
+                showUpgradePaywall = false
             }
         }
         .sheet(isPresented: $showSavingsCard) {
@@ -94,7 +257,7 @@ struct HomeView: View {
                             viewModel.subscriptions.first(where: { $0.id == sub.id }) ?? sub
                         },
                         set: { updated in
-                            viewModel.updateSubscription(updated)
+                            viewModel.saveSubscriptionEdits(updated)
                         }
                     ),
                     onUnsubscribe: { cancelled in
@@ -102,14 +265,84 @@ struct HomeView: View {
                     }
                 )
             }
+            .navigationTransition(.zoom(sourceID: sub.id, in: cardTransition))
         }
+    }
+
+    /// Laptop fold. The spend summary and the selected subscription stay on the top screen. List, Calendar, and Board sit on the flat half, under the mode switch.
+    private func laptopScreen(topHeight: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 0) {
+                summarySection
+                switch viewModel.viewMode {
+                case .list:
+                    sortBar
+                case .calendar:
+                    calendarFilterBar
+                    ScrollView {
+                        calendarPortraitDueCards
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                case .board:
+                    calendarFilterBar
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .frame(height: topHeight, alignment: .top)
+            .clipped()
+
+            Color.clear
+                .frame(height: laptopHingeGutter)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 0) {
+                segmentControl
+                Group {
+                    switch viewModel.viewMode {
+                    case .list:
+                        ScrollView {
+                            if viewModel.subscriptionsForDisplay.isEmpty, !viewModel.subscriptions.isEmpty {
+                                Text("No subscriptions in this category.")
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.top, 24)
+                            } else {
+                                cardsList(landscape: false)
+                            }
+                        }
+                    case .calendar:
+                        ScrollView {
+                            VStack(spacing: 8) {
+                                calendarMonthNavigation
+                                calendarWeekdayHeader
+                                calendarDayGrid
+                            }
+                            .padding(.bottom, 12)
+                        }
+                    case .board:
+                        SubscriptionBoardView(
+                            viewModel: viewModel,
+                            currencyCode: currencyCode,
+                            selectedSubscription: $selectedSubscription,
+                            cardTransition: cardTransition
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .clipped()
+        }
+        .background { SubHelpBackdrop() }
     }
 
     // MARK: - Welcome / Empty State
 
     private var welcomeState: some View {
         ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
+            SubHelpBackdrop()
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -137,17 +370,12 @@ struct HomeView: View {
                         if canAddMore {
                             showAddSheet = true
                         } else {
-                            showUpgradePaywall = true
+                            requestHardPaywall()
                         }
                     } label: {
                         Label("Add Subscription", systemImage: "plus")
-                            .font(.system(.body, design: .default, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
+                    .buttonStyle(.subHelp(fullWidth: true))
                     .padding(.horizontal, 32)
                     .padding(.bottom, 28)
 
@@ -160,14 +388,12 @@ struct HomeView: View {
                         if canAddMore {
                             showQuickStartGuide = true
                         } else {
-                            showUpgradePaywall = true
+                            requestHardPaywall()
                         }
                     } label: {
                         Text("Help Find Subscriptions")
-                            .font(.system(.body, design: .default, weight: .semibold))
-                            .foregroundStyle(.blue)
-                            .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.subHelp(.glass, fullWidth: true))
                     .padding(.horizontal, 32)
                     .padding(.bottom, 40)
                 }
@@ -179,101 +405,235 @@ struct HomeView: View {
     // MARK: - Summary
 
     private var summarySection: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Subscription Spend")
-                    .font(.system(.title3, design: .default, weight: .bold))
-                    .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .bottom, spacing: 12) {
+                spendStats(
+                    titleFont: .system(.title3, design: .default, weight: .bold),
+                    amountFont: .system(.title, design: .rounded, weight: .bold),
+                    suffixFont: .system(.title3, design: .default, weight: .medium),
+                    spacing: 4
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerMonth, currencyCode: currencyCode)) ")
-                    .font(.system(.title, design: .default, weight: .bold))
-                 + Text("/month")
-                    .font(.system(.title3, design: .default, weight: .medium))
-                    .foregroundStyle(.secondary))
-
-                (Text("\(CurrencyOptions.formatPresentation(amount: viewModel.totalPerYear, currencyCode: currencyCode)) ")
-                    .font(.system(.title, design: .default, weight: .bold))
-                 + Text("/year")
-                    .font(.system(.title3, design: .default, weight: .medium))
-                    .foregroundStyle(.secondary))
-
-                Button("+ Add Subscription") {
-                    if canAddMore {
-                        showAddSheet = true
-                    } else {
-                        showUpgradePaywall = true
-                    }
-                }
-                    .font(.system(.subheadline, design: .default, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(.blue)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .padding(.top, 4)
-
-                Button {
-                    if canAddMore {
-                        showQuickStartGuide = true
-                    } else {
-                        showUpgradePaywall = true
-                    }
-                } label: {
-                    Text("Help Find Subscriptions")
-                        .font(.system(.subheadline, design: .default, weight: .semibold))
-                        .foregroundStyle(.blue)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                }
-                .padding(.top, 4)
+                savingsButton(compact: false)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button {
-                showSavingsCard = true
-            } label: {
+            if shouldShowLimitBanner {
+                freeLimitBanner
+            }
+
+            HStack(spacing: 8) {
+                addSubscriptionButton(fullWidth: true)
+                helpFindButton(fullWidth: true)
+            }
+        }
+        .padding(20)
+        .padding(.bottom, 8)
+        .subHelpPanel()
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
+
+    /// Landscape: stats on the left. The mode switch and filters sit on the right. The two actions span the full panel so their labels fit.
+    private var landscapeSummary: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 16) {
+                spendStats(
+                    titleFont: .system(.headline, design: .default, weight: .bold),
+                    amountFont: .system(.title3, design: .rounded, weight: .bold),
+                    suffixFont: .system(.subheadline, design: .default, weight: .medium),
+                    spacing: 2
+                )
+                .frame(maxWidth: 220, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    viewModePicker
+                        .frame(maxWidth: .infinity)
+
+                    HStack(spacing: 8) {
+                        savingsButton(compact: true)
+                        Spacer(minLength: 8)
+                        categoryFilterMenu
+                        if viewModel.viewMode == .list {
+                            sortMenu
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            HStack(spacing: 8) {
+                addSubscriptionButton(fullWidth: true)
+                helpFindButton(fullWidth: true)
+            }
+
+            if shouldShowLimitBanner {
+                freeLimitBanner
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .subHelpPanel()
+        .padding(.horizontal, 12)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
+    }
+
+    private func spendStats(titleFont: Font, amountFont: Font, suffixFont: Font, spacing: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: spacing) {
+            Text("Subscription Spend")
+                .font(titleFont)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            spendFigure(viewModel.totalPerMonth, suffix: "/month", amountFont: amountFont, suffixFont: suffixFont)
+            spendFigure(viewModel.totalPerYear, suffix: "/year", amountFont: amountFont, suffixFont: suffixFont)
+        }
+    }
+
+    private func spendFigure(_ amount: Decimal, suffix: String, amountFont: Font, suffixFont: Font) -> some View {
+        (Text("\(CurrencyOptions.formatPresentation(amount: amount, currencyCode: currencyCode)) ")
+            .font(amountFont)
+         + Text(suffix)
+            .font(suffixFont)
+            .foregroundStyle(.secondary))
+            .subHelpNumeric(value: amount)
+            .minimumScaleFactor(0.7)
+            .lineLimit(1)
+    }
+
+    private func savingsButton(compact: Bool) -> some View {
+        Button {
+            showSavingsCard = true
+        } label: {
+            if compact {
+                HStack(spacing: 6) {
+                    Image("ShibaMascot")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 28, height: 28)
+                        .clipShape(Circle())
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(CurrencyOptions.formatPresentation(amount: viewModel.savedAmount * 12, currencyCode: currencyCode))
+                            .font(.system(.caption, design: .rounded, weight: .bold))
+                            .subHelpNumeric(value: viewModel.savedAmount)
+                        Text("Yearly Savings")
+                            .font(.system(.caption2, design: .default, weight: .bold))
+                    }
+                    .foregroundStyle(.black)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .subHelpGlass(in: RoundedRectangle(cornerRadius: 14, style: .continuous), tint: SubHelpTheme.savingsGold)
+                .fixedSize(horizontal: true, vertical: false)
+            } else {
                 ZStack(alignment: .bottom) {
                     Image("ShibaMascot")
                         .resizable()
                         .scaledToFill()
-                        .frame(width: 100, height: 100)
+                        .frame(width: 72, height: 72)
                         .clipShape(Circle())
+                        .offset(y: -22)
 
-                    VStack(spacing: 2) {
+                    VStack(spacing: 1) {
                         Text(CurrencyOptions.formatPresentation(amount: viewModel.savedAmount * 12, currencyCode: currencyCode))
-                            .font(.system(.subheadline, design: .default, weight: .bold))
+                            .font(.system(.caption, design: .rounded, weight: .bold))
+                            .subHelpNumeric(value: viewModel.savedAmount)
                         Text("Yearly Savings")
                             .font(.system(.caption2, design: .default, weight: .bold))
                     }
                     .foregroundStyle(.black)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color(red: 1.0, green: 0.84, blue: 0.0))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .padding(.bottom, 2)
-                    .offset(y: 20)
+                    .subHelpGlass(in: RoundedRectangle(cornerRadius: 14, style: .continuous), tint: SubHelpTheme.savingsGold)
                 }
             }
-            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
+        .buttonStyle(.subHelpPressable)
+    }
+
+    private func addSubscriptionButton(fullWidth: Bool) -> some View {
+        Button {
+            if canAddMore {
+                showAddSheet = true
+            } else {
+                requestHardPaywall()
+            }
+        } label: {
+            Label("Add Subscription", systemImage: "plus")
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .buttonStyle(.subHelp(compact: true, fullWidth: fullWidth))
+        .frame(maxWidth: fullWidth ? .infinity : nil)
+    }
+
+    private func helpFindButton(fullWidth: Bool) -> some View {
+        Button {
+            showQuickStartGuide = true
+        } label: {
+            Text("Help Find Subscriptions")
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .buttonStyle(.subHelp(.glass, compact: true, fullWidth: fullWidth))
+        .frame(maxWidth: fullWidth ? .infinity : nil)
+    }
+
+    private var freeLimitBanner: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Button {
+                SubHelpHaptics.impact(.light)
+                requestHardPaywall()
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(String(format: String(localized: "You've used your %d free slots"), FreePlanLimits.subscriptionCount))
+                        .font(.system(.subheadline, design: .default, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("Upgrade to add more.")
+                        .font(.system(.caption, design: .default, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                SubHelpHaptics.impact(.light)
+                didDismissFreeLimitBanner = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(.caption, design: .default, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss")
+        }
+        .padding(12)
+        .background {
+            PaywallGlassPanel(cornerRadius: 16, borderEmphasized: true)
+        }
     }
 
     // MARK: - Segment
 
-    private var segmentControl: some View {
+    private var viewModePicker: some View {
         Picker("View", selection: $viewModel.viewMode) {
             ForEach(SubscriptionViewMode.allCases, id: \.self) { mode in
                 Text(mode.rawValue).tag(mode)
             }
         }
         .pickerStyle(.segmented)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+    }
+
+    private var segmentControl: some View {
+        viewModePicker
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
     }
 
     // MARK: - Category filter (same row as sort in list; calendar uses filter only)
@@ -302,8 +662,10 @@ struct HomeView: View {
             }
             .font(.system(.subheadline, design: .default, weight: .medium))
             .foregroundStyle(.blue)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .subHelpGlass(in: Capsule(), interactive: true)
+            .contentShape(Capsule())
         }
     }
 
@@ -331,8 +693,10 @@ struct HomeView: View {
             }
             .font(.system(.subheadline, design: .default, weight: .medium))
             .foregroundStyle(.blue)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .contentShape(Rectangle())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .subHelpGlass(in: Capsule(), interactive: true)
+            .contentShape(Capsule())
         }
     }
 
@@ -360,44 +724,99 @@ struct HomeView: View {
 
     // MARK: - List
 
-    private var cardsList: some View {
-        LazyVStack(spacing: 12) {
-            ForEach(viewModel.subscriptionsForDisplay) { sub in
-                subscriptionCard(sub)
-                    .onTapGesture { selectedSubscription = sub }
+    private func cardsList(landscape: Bool) -> some View {
+        Group {
+            if landscape {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 12, alignment: .top),
+                        GridItem(.flexible(), spacing: 12, alignment: .top)
+                    ],
+                    spacing: 12
+                ) {
+                    subscriptionCardButtons(pinToTop: true)
+                }
+            } else {
+                LazyVStack(spacing: 14) {
+                    subscriptionCardButtons(pinToTop: false)
+                }
             }
-
         }
-        .padding(.horizontal, 20)
+        .animation(SubHelpTheme.smooth, value: viewModel.subscriptionsForDisplay.map(\.id))
+        .padding(.horizontal, landscape ? 12 : 20)
         .padding(.top, 8)
         .padding(.bottom, 20)
     }
 
-    private func subscriptionCard(_ sub: Subscription) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sub.name)
-                    .font(.system(.headline, design: .default, weight: .bold))
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
+    @ViewBuilder
+    private func subscriptionCardButtons(pinToTop: Bool) -> some View {
+        ForEach(viewModel.subscriptionsForDisplay) { sub in
+            Button { selectedSubscription = sub } label: {
+                subscriptionCard(sub, reservesLabelRow: pinToTop)
+            }
+            .buttonStyle(.subHelpPressable)
+            .matchedTransitionSource(id: sub.id, in: cardTransition)
+            .subHelpScrollFade()
+            .transition(.scale(scale: 0.94).combined(with: .opacity))
+            .frame(maxWidth: .infinity, maxHeight: pinToTop ? .infinity : nil, alignment: .top)
+        }
+    }
+
+    private func subscriptionCard(_ sub: Subscription, reservesLabelRow: Bool = false) -> some View {
+        let note = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasStage = sub.stage != .keep
+        let showLabels = hasStage || !note.isEmpty || sub.isTrial
+        return HStack(alignment: .center, spacing: 12) {
+            SubscriptionCategoryMark(category: sub.category)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(sub.name)
+                        .font(.system(.headline, design: .default, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Spacer(minLength: 8)
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
+                            .font(.system(.headline, design: .default, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text(sub.frequency.shortLabel)
+                            .font(.system(.subheadline, design: .default, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+                Text(sub.isTrial
+                     ? "Trial ends: \(viewModel.nextPaymentString(for: sub.trialEndDate ?? sub.nextPaymentDate))"
+                     : "Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
-                    .font(.system(.headline, design: .default, weight: .bold))
-                    .foregroundStyle(.white)
-                Text(sub.frequency.shortLabel)
-                    .font(.system(.caption, design: .default, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if showLabels || reservesLabelRow {
+                    HStack(spacing: 6) {
+                        if sub.isTrial {
+                            SubscriptionLabelPill(text: "On free trial", kind: .trial)
+                        }
+                        if hasStage {
+                            SubscriptionLabelPill(text: sub.stage.rawValue, kind: .stage(sub.stage))
+                        }
+                        if !note.isEmpty {
+                            SubscriptionLabelPill(text: note, kind: .note)
+                        }
+                        if !showLabels {
+                            SubscriptionLabelPill(text: "Label", kind: .note)
+                                .hidden()
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
             }
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(sub.color)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .subHelpColorCard(sub.color)
     }
 
     // MARK: - Calendar
@@ -425,124 +844,215 @@ struct HomeView: View {
         }
     }
 
-    private var calendarSection: some View {
+    private func calendarSection(landscape: Bool) -> some View {
+        Group {
+            if landscape {
+                landscapeCalendar
+            } else {
+                portraitCalendar
+            }
+        }
+    }
+
+    private var portraitCalendar: some View {
         ScrollView {
             VStack(spacing: 8) {
-                // Month navigation
-                HStack {
-                    Button { viewModel.changeMonth(by: -1) } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(.body, design: .default, weight: .semibold))
-                    }
-                    Spacer()
-                    Text(viewModel.monthYearString)
-                        .font(.system(.headline, design: .default, weight: .bold))
-                    Spacer()
-                    Button { viewModel.changeMonth(by: 1) } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(.body, design: .default, weight: .semibold))
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-                // Weekday headers
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
-                    ForEach(weekdays, id: \.self) { day in
-                        Text(day)
-                            .font(.system(.caption, design: .default, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .padding(.horizontal, 12)
-
-                // Day grid
-                let totalDays = viewModel.daysInMonth(viewModel.selectedDate)
-                let offset = viewModel.firstWeekdayOfMonth(viewModel.selectedDate)
-                let selectedDay = Calendar.current.component(.day, from: viewModel.selectedDate)
-
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 4) {
-                    ForEach(0..<(offset + totalDays), id: \.self) { index in
-                        if index < offset {
-                            Color.clear.frame(height: 40)
-                        } else {
-                            let day = index - offset + 1
-                            let colors = viewModel.subscriptionColors(forDay: day, inMonth: viewModel.selectedDate)
-                            let isSelected = day == selectedDay
-                            let isToday = calendarDayIsToday(day: day, inMonthContaining: viewModel.selectedDate)
-
-                            Button {
-                                let cal = Calendar.current
-                                var comps = cal.dateComponents([.year, .month], from: viewModel.selectedDate)
-                                comps.day = day
-                                if let newDate = cal.date(from: comps) {
-                                    viewModel.selectedDate = newDate
-                                }
-                            } label: {
-                                VStack(spacing: 2) {
-                                    Text("\(day)")
-                                        .font(.system(.body, design: .default, weight: (isSelected || isToday) ? .bold : .regular))
-                                        .foregroundStyle(
-                                            isSelected
-                                                ? Color.white
-                                                : (isToday ? Color(red: 0.2, green: 0.14, blue: 0.02) : Color.primary)
-                                        )
-                                        .frame(width: 28, height: 28)
-                                        .background(calendarDayNumberBackground(isSelected: isSelected, isToday: isToday))
-                                        .clipShape(Circle())
-
-                                    // Colored dots for subscriptions
-                                    HStack(spacing: 2) {
-                                        ForEach(Array(colors.prefix(3).enumerated()), id: \.offset) { _, color in
-                                            Circle()
-                                                .fill(color)
-                                                .frame(width: 5, height: 5)
-                                        }
-                                    }
-                                    .frame(height: 5)
-                                }
-                                .frame(height: 40)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding(.horizontal, 12)
-
-                // Subscriptions for selected date
-                let subsForDate = viewModel.subscriptions(for: viewModel.selectedDate)
-
-                if subsForDate.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "calendar.badge.checkmark")
-                            .font(.system(size: 36))
-                            .foregroundStyle(.secondary)
-                        Text("No subscriptions due")
-                            .font(.system(.subheadline, design: .default, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                } else {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 12),
-                        GridItem(.flexible(), spacing: 12)
-                    ], spacing: 12) {
-                        ForEach(subsForDate) { sub in
-                            calendarCard(sub)
-                                .onTapGesture { selectedSubscription = sub }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                }
+                calendarMonthNavigation
+                calendarWeekdayHeader
+                calendarDayGrid
+                calendarPortraitDueCards
             }
             .padding(.bottom, 20)
         }
     }
 
+    /// Month stays on the left; the selected day’s subscriptions stay on the right.
+    private var landscapeCalendar: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ScrollView {
+                VStack(spacing: 8) {
+                    calendarMonthNavigation
+                    calendarWeekdayHeader
+                    calendarDayGrid
+                }
+                .padding(.bottom, 12)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Divider()
+
+            ScrollView {
+                calendarSelectedDayList
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var calendarMonthNavigation: some View {
+        HStack {
+            Button { withAnimation(SubHelpTheme.smooth) { viewModel.changeMonth(by: -1) } } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(.body, design: .default, weight: .semibold))
+                    .frame(width: 40, height: 40)
+                    .subHelpGlass(in: Circle(), interactive: true)
+            }
+            .buttonStyle(.plain)
+            Spacer()
+            Text(viewModel.monthYearString)
+                .font(.system(.headline, design: .default, weight: .bold))
+                .contentTransition(.numericText())
+                .animation(SubHelpTheme.smooth, value: viewModel.monthYearString)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer()
+            Button { withAnimation(SubHelpTheme.smooth) { viewModel.changeMonth(by: 1) } } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(.body, design: .default, weight: .semibold))
+                    .frame(width: 40, height: 40)
+                    .subHelpGlass(in: Circle(), interactive: true)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+    }
+
+    private var calendarWeekdayHeader: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 0) {
+            ForEach(weekdays, id: \.self) { day in
+                Text(day)
+                    .font(.system(.caption, design: .default, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 12)
+    }
+
+    private var calendarDayGrid: some View {
+        let totalDays = viewModel.daysInMonth(viewModel.selectedDate)
+        let offset = viewModel.firstWeekdayOfMonth(viewModel.selectedDate)
+        let selectedDay = Calendar.current.component(.day, from: viewModel.selectedDate)
+
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 4) {
+            ForEach(0..<(offset + totalDays), id: \.self) { index in
+                if index < offset {
+                    Color.clear.frame(height: 40)
+                } else {
+                    let day = index - offset + 1
+                    let colors = viewModel.subscriptionColors(forDay: day, inMonth: viewModel.selectedDate)
+                    let isSelected = day == selectedDay
+                    let isToday = calendarDayIsToday(day: day, inMonthContaining: viewModel.selectedDate)
+
+                    Button {
+                        let cal = Calendar.current
+                        var comps = cal.dateComponents([.year, .month], from: viewModel.selectedDate)
+                        comps.day = day
+                        if let newDate = cal.date(from: comps) {
+                            viewModel.selectedDate = newDate
+                        }
+                    } label: {
+                        VStack(spacing: 2) {
+                            Text("\(day)")
+                                .font(.system(.body, design: .default, weight: (isSelected || isToday) ? .bold : .regular))
+                                .foregroundStyle(
+                                    isSelected
+                                        ? Color.white
+                                        : (isToday ? Color(red: 0.2, green: 0.14, blue: 0.02) : Color.primary)
+                                )
+                                .frame(width: 28, height: 28)
+                                .background(calendarDayNumberBackground(isSelected: isSelected, isToday: isToday))
+                                .clipShape(Circle())
+
+                            HStack(spacing: 2) {
+                                ForEach(Array(colors.prefix(3).enumerated()), id: \.offset) { _, color in
+                                    Circle()
+                                        .fill(color)
+                                        .frame(width: 5, height: 5)
+                                }
+                            }
+                            .frame(height: 5)
+                        }
+                        .frame(height: 40)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+    }
+
+    @ViewBuilder
+    private var calendarPortraitDueCards: some View {
+        let subsForDate = viewModel.subscriptions(for: viewModel.selectedDate)
+
+        if subsForDate.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "calendar.badge.checkmark")
+                    .font(.system(size: 36))
+                    .foregroundStyle(.secondary)
+                Text("No subscriptions due")
+                    .font(.system(.subheadline, design: .default, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+        } else {
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 12),
+                GridItem(.flexible(), spacing: 12)
+            ], spacing: 12) {
+                ForEach(subsForDate) { sub in
+                    Button { selectedSubscription = sub } label: {
+                        calendarCard(sub)
+                    }
+                    .buttonStyle(.subHelpPressable)
+                    .matchedTransitionSource(id: sub.id, in: cardTransition)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    private var calendarSelectedDayList: some View {
+        let subsForDate = viewModel.subscriptions(for: viewModel.selectedDate)
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(viewModel.selectedDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)))
+                .font(.system(.headline, design: .default, weight: .bold))
+                .padding(.horizontal, 4)
+
+            if subsForDate.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "calendar.badge.checkmark")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                    Text("No subscriptions due")
+                        .font(.system(.subheadline, design: .default, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
+            } else {
+                ForEach(subsForDate) { sub in
+                    Button { selectedSubscription = sub } label: {
+                        subscriptionCard(sub)
+                    }
+                    .buttonStyle(.subHelpPressable)
+                    .matchedTransitionSource(id: sub.id, in: cardTransition)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 16)
+    }
+
     private func calendarCard(_ sub: Subscription) -> some View {
         VStack(spacing: 6) {
+            SubscriptionCategoryMark(category: sub.category, size: 32)
             Text(sub.name)
                 .font(.system(.subheadline, design: .default, weight: .bold))
                 .foregroundStyle(.white)
@@ -551,14 +1061,21 @@ struct HomeView: View {
             Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
                 .font(.system(.headline, design: .default, weight: .bold))
                 .foregroundStyle(.white)
-            Text(sub.frequency.rawValue)
-                .font(.system(.caption, design: .default, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
+            Text(sub.isTrial ? "On free trial" : sub.frequency.rawValue)
+                .font(.system(.caption, design: .default, weight: .semibold))
+                .foregroundStyle(sub.isTrial ? Color(red: 0.55, green: 0.28, blue: 0.95) : .white.opacity(0.8))
+                .padding(.horizontal, sub.isTrial ? 8 : 0)
+                .padding(.vertical, sub.isTrial ? 3 : 0)
+                .background {
+                    if sub.isTrial {
+                        Capsule().fill(.white)
+                    }
+                }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(sub.color)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.vertical, 16)
+        .padding(.horizontal, 8)
+        .subHelpColorCard(sub.color)
     }
 }
 
@@ -596,23 +1113,24 @@ private struct SavingsHologramCardView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(white: 0.08).ignoresSafeArea()
-
                 VStack(spacing: 28) {
                     tradingCard
                         .frame(width: cardWidth, height: cardHeight)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(cardBackground.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                    SubHelpDoneButton { dismiss() }
                 }
             }
         }
+        .presentationBackground(cardBackground)
     }
+
+    private var cardBackground: Color { Color(white: 0.08) }
 
     // MARK: - Trading Card
 
@@ -771,25 +1289,32 @@ private struct SavingsHologramCardView: View {
 }
 
 private struct MainTabsPreview: View {
-    @StateObject private var homeViewModel = HomeViewModel(subscriptions: HomeViewModel.sampleSubscriptions)
+    @StateObject private var homeViewModel: HomeViewModel = {
+        let model = HomeViewModel(
+            subscriptions: HomeViewModel.sampleSubscriptions,
+            unsubscribed: HomeViewModel.sampleCancelledSubscriptions
+        )
+        model.viewMode = .board
+        return model
+    }()
     @StateObject private var premiumProducts = PremiumSubscriptionProducts()
 
     var body: some View {
         TabView {
-            Tab("Subscriptions", systemImage: "creditcard.fill") {
+            Tab("Subscriptions", systemImage: "creditcard") {
                 HomeView(
                     viewModel: homeViewModel,
-                    subscriptionTier: .free,
+                    subscriptionTier: .yearly,
                     onTierChange: { _ in }
                 )
             }
             Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
                 HistoryView(viewModel: homeViewModel)
             }
-            Tab("Help", systemImage: "questionmark.circle.fill") {
+            Tab("Help", systemImage: "questionmark.circle") {
                 HelpView(viewModel: homeViewModel)
             }
-            Tab("Settings", systemImage: "gearshape.fill") {
+            Tab("Settings", systemImage: "gearshape") {
                 SettingsView()
             }
         }

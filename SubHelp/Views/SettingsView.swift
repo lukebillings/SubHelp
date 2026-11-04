@@ -37,8 +37,20 @@ struct SettingsView: View {
                     .font(.system(.body, design: .default, weight: .regular))
                     .onChange(of: currencyCode) { _, _ in
                         RenewalNotificationScheduler.scheduleRenewalReminders()
+                        WidgetSnapshotPublisher.refreshFromStorage()
                     }
                 }
+
+                Section("Widgets") {
+                    NavigationLink {
+                        WidgetShowcaseView(showsTitle: false, embedsBackdrop: true)
+                            .navigationTitle("Widgets")
+                            .navigationBarTitleDisplayMode(.inline)
+                    } label: {
+                        Label("Upcoming payments", systemImage: "apps.iphone")
+                    }
+                }
+                .font(.system(.body, design: .default, weight: .regular))
 
                 Section {
                     Toggle("App notifications", isOn: $notificationsEnabled)
@@ -75,7 +87,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Notifications")
                 } footer: {
-                    Text("Turn off App notifications to stop all SubHelp alerts. Reminder timing controls how early you get subscription renewal reminders; choose Never to keep notifications on without renewal alerts.")
+                    Text("Turn off App notifications to stop all SubHelp alerts. Reminder timing controls how early you get renewal and free-trial reminders; choose Never to keep notifications on without those alerts.")
                         .font(.system(.caption, design: .default, weight: .regular))
                 }
 
@@ -163,6 +175,7 @@ struct SettingsView: View {
                 .font(.system(.body, design: .default, weight: .regular))
             }
             .listStyle(.insetGrouped)
+            .symbolRenderingMode(.hierarchical)
             .onAppear {
                 migrateLegacyNotificationNeverIfNeeded()
             }

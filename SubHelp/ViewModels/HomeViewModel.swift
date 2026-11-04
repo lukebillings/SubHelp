@@ -3,6 +3,7 @@ import SwiftUI
 enum SubscriptionViewMode: String, CaseIterable {
     case list = "List"
     case calendar = "Calendar"
+    case board = "Board"
 }
 
 enum SortOption: String, CaseIterable {
@@ -55,32 +56,20 @@ final class HomeViewModel: ObservableObject {
 
     var totalPerMonth: Decimal {
         subscriptions.reduce(Decimal.zero) { total, sub in
-            switch sub.frequency {
-            case .weekly: return total + (sub.price * 52 / 12)
-            case .monthly: return total + sub.price
-            case .yearly: return total + (sub.price / 12)
-            }
+            sub.isTrial ? total : total + sub.frequency.monthlyAmount(for: sub.price)
         }
     }
 
     var totalPerYear: Decimal {
         subscriptions.reduce(Decimal.zero) { total, sub in
-            switch sub.frequency {
-            case .weekly: return total + (sub.price * 52)
-            case .monthly: return total + (sub.price * 12)
-            case .yearly: return total + sub.price
-            }
+            sub.isTrial ? total : total + sub.frequency.yearlyAmount(for: sub.price)
         }
     }
 
     /// Yearly amount saved from cancelled (unsubscribed) subscriptions.
     var unsubscribedSavedPerYear: Decimal {
         unsubscribed.reduce(Decimal.zero) { total, sub in
-            switch sub.frequency {
-            case .weekly: return total + (sub.price * 52)
-            case .monthly: return total + (sub.price * 12)
-            case .yearly: return total + sub.price
-            }
+            total + sub.frequency.yearlyAmount(for: sub.price)
         }
     }
 
@@ -88,43 +77,40 @@ final class HomeViewModel: ObservableObject {
 
     /// Subscriptions included in the current category filter (same order as `subscriptions`).
     var subscriptionsForDisplay: [Subscription] {
+        filtered(subscriptions)
+    }
+
+    /// Cancelled subscriptions included in the current category filter.
+    var unsubscribedForDisplay: [Subscription] {
+        filtered(unsubscribed)
+    }
+
+    private func filtered(_ subs: [Subscription]) -> [Subscription] {
         switch categoryFilter {
         case .all:
-            return subscriptions
+            return subs
         case .uncategorized:
-            return subscriptions.filter { ($0.category ?? "").isEmpty }
+            return subs.filter { ($0.category ?? "").isEmpty }
         case .category(let name):
-            return subscriptions.filter { $0.category == name }
+            return subs.filter { $0.category == name }
         }
     }
 
     func subscriptions(for date: Date) -> [Subscription] {
         let cal = Calendar.current
         return subscriptionsForDisplay.filter { sub in
-            let subDay = cal.component(.day, from: sub.nextPaymentDate)
-            let dateDay = cal.component(.day, from: date)
-            if sub.frequency == .monthly {
-                return subDay == dateDay
-            } else {
-                return cal.isDate(sub.nextPaymentDate, equalTo: date, toGranularity: .day)
-            }
+            sub.fallsOn(date, calendar: cal)
         }
     }
 
     func subscriptionColors(forDay day: Int, inMonth month: Date) -> [Color] {
         let cal = Calendar.current
-        let monthComp = cal.component(.month, from: month)
-        let yearComp = cal.component(.year, from: month)
+        var parts = cal.dateComponents([.year, .month], from: month)
+        parts.day = day
+        guard let date = cal.date(from: parts) else { return [] }
 
         return subscriptionsForDisplay.compactMap { sub in
-            let subDay = cal.component(.day, from: sub.nextPaymentDate)
-            if sub.frequency == .monthly {
-                return subDay == day ? sub.color : nil
-            } else {
-                let subMonth = cal.component(.month, from: sub.nextPaymentDate)
-                let subYear = cal.component(.year, from: sub.nextPaymentDate)
-                return (subDay == day && subMonth == monthComp && subYear == yearComp) ? sub.color : nil
-            }
+            sub.fallsOn(date, calendar: cal) ? sub.color : nil
         }
     }
 
@@ -151,11 +137,11 @@ final class HomeViewModel: ObservableObject {
         return f.string(from: selectedDate)
     }
 
-    init(subscriptions: [Subscription]? = nil) {
+    init(subscriptions: [Subscription]? = nil, unsubscribed explicitUnsubscribed: [Subscription]? = nil) {
         if let subs = subscriptions {
             self.subscriptions = subs
-            self.unsubscribed = []
-            self.savedAmount = 0
+            self.unsubscribed = explicitUnsubscribed ?? []
+            self.savedAmount = Self.calculateSavedAmount(from: self.unsubscribed)
         } else {
             self.subscriptions = SubscriptionStorage.loadSubscriptions()
             self.unsubscribed = SubscriptionStorage.loadUnsubscribed()
@@ -198,11 +184,7 @@ final class HomeViewModel: ObservableObject {
 
     private static func calculateSavedAmount(from unsubscribed: [Subscription]) -> Decimal {
         unsubscribed.reduce(Decimal.zero) { total, sub in
-            switch sub.frequency {
-            case .weekly: return total + (sub.price * 52 / 12)
-            case .monthly: return total + sub.price
-            case .yearly: return total + (sub.price / 12)
-            }
+            total + sub.frequency.monthlyAmount(for: sub.price)
         }
     }
 
@@ -215,61 +197,246 @@ final class HomeViewModel: ObservableObject {
         Calendar.current.date(from: DateComponents(year: year, month: month, day: day)) ?? Date()
     }
 
+    /// Preview data. Every category has at least three subscriptions, and every board column has at least three.
     static var sampleSubscriptions: [Subscription] {
-        let rows: [(String, Date, Decimal, Color, BillingFrequency?)] = [
-            ("Spotify", date(2025, 6, 3), 9.99, Color(red: 0.11, green: 0.84, blue: 0.38), nil),
-            ("Netflix", date(2025, 6, 12), 15.99, Color(red: 0.89, green: 0.15, blue: 0.21), nil),
-            ("Disney+", date(2025, 6, 18), 7.99, Color(red: 0.0, green: 0.48, blue: 0.9), nil),
-            ("Prime", date(2025, 9, 22), 95.00, Color(red: 0.24, green: 0.6, blue: 0.87), .yearly),
-            ("YouTube Premium", date(2025, 6, 7), 12.99, Color(red: 0.93, green: 0.11, blue: 0.14), nil),
-            ("iCloud+", date(2025, 6, 1), 2.99, Color(red: 0.35, green: 0.78, blue: 0.98), nil),
-            ("Gym", date(2025, 6, 15), 29.99, Color(red: 0.6, green: 0.35, blue: 0.71), nil),
-            ("ChatGPT Plus", date(2025, 6, 24), 19.99, Color(red: 0.29, green: 0.65, blue: 0.55), nil),
-            ("Xbox Game Pass", date(2025, 6, 10), 14.99, Color(red: 0.07, green: 0.49, blue: 0.17), nil)
-        ]
+        makeSamples(sampleRows)
+    }
+
+    /// Cancelled column on the board. Kept separate so they stay off the active list.
+    static var sampleCancelledSubscriptions: [Subscription] {
+        makeSamples(sampleCancelledRows)
+    }
+
+    private struct SampleRow {
+        var name: String
+        var day: Date
+        var price: Decimal
+        var color: Color
+        var frequency: BillingFrequency = .monthly
+        var category: SubscriptionCategory
+        var stage: SubscriptionStage
+        var notes: String = ""
+        var isTrial: Bool = false
+    }
+
+    private static let sampleRows: [SampleRow] = [
+        SampleRow(name: "Spotify", day: date(2026, 11, 3), price: 10.99, color: Color(red: 0.11, green: 0.84, blue: 0.38), category: .streaming, stage: .keep),
+        SampleRow(name: "Netflix", day: date(2026, 11, 12), price: 15.99, color: Color(red: 0.89, green: 0.15, blue: 0.21), category: .streaming, stage: .needsCancel),
+        SampleRow(name: "Disney+", day: date(2026, 11, 18), price: 7.99, color: Color(red: 0.0, green: 0.48, blue: 0.9), category: .streaming, stage: .switchProvider),
+        SampleRow(name: "YouTube Premium", day: date(2026, 11, 7), price: 12.99, color: Color(red: 0.93, green: 0.11, blue: 0.14), category: .streaming, stage: .discount),
+
+        SampleRow(name: "ChatGPT Plus", day: date(2026, 11, 24), price: 19.99, color: Color(red: 0.0, green: 0.68, blue: 0.58), category: .ai, stage: .keep),
+        SampleRow(name: "Claude Pro", day: date(2026, 11, 8), price: 19.99, color: Color(red: 0.4, green: 0.2, blue: 0.6), category: .ai, stage: .needsCancel, isTrial: true),
+        SampleRow(name: "Gemini Advanced", day: date(2026, 11, 16), price: 19.99, color: Color(red: 0.26, green: 0.52, blue: 0.96), category: .ai, stage: .switchProvider),
+
+        SampleRow(name: "PlayStation Plus", day: date(2026, 11, 4), price: 6.99, color: Color(red: 0.0, green: 0.32, blue: 0.65), category: .gaming, stage: .keep),
+        SampleRow(name: "Nintendo Switch Online", day: date(2026, 11, 19), price: 3.49, color: Color(red: 0.89, green: 0.15, blue: 0.15), category: .gaming, stage: .needsCancel),
+        SampleRow(name: "Xbox Game Pass", day: date(2026, 11, 10), price: 14.99, color: Color(red: 0.13, green: 0.69, blue: 0.30), category: .gaming, stage: .discount),
+
+        SampleRow(name: "Instacart+", day: date(2026, 11, 21), price: 9.99, color: Color(red: 0.0, green: 0.62, blue: 0.38), category: .ecommerce, stage: .keep),
+        SampleRow(name: "Amazon Prime", day: date(2026, 9, 22), price: 95.00, color: Color(red: 0.24, green: 0.6, blue: 0.87), frequency: .yearly, category: .ecommerce, stage: .switchProvider),
+        SampleRow(name: "Uber One", day: date(2026, 11, 6), price: 5.99, color: Color(red: 0.12, green: 0.12, blue: 0.12), category: .ecommerce, stage: .discount),
+
+        SampleRow(name: "Ring Protect", day: date(2026, 11, 2), price: 3.99, color: Color(red: 0.0, green: 0.48, blue: 0.9), category: .home, stage: .needsCancel),
+        SampleRow(name: "Nest Aware", day: date(2026, 11, 14), price: 6.00, color: Color(red: 0.26, green: 0.52, blue: 0.96), category: .home, stage: .switchProvider),
+        SampleRow(name: "SimpliSafe", day: date(2026, 11, 27), price: 17.99, color: Color(red: 0.85, green: 0.22, blue: 0.28), category: .home, stage: .discount),
+
+        SampleRow(name: "OneDrive", day: date(2026, 11, 1), price: 1.99, color: Color(red: 0.0, green: 0.47, blue: 0.84), category: .cloudStorage, stage: .keep),
+        SampleRow(name: "Google One", day: date(2026, 11, 9), price: 1.99, color: Color(red: 0.26, green: 0.52, blue: 0.96), category: .cloudStorage, stage: .needsCancel),
+        SampleRow(name: "Dropbox", day: date(2026, 11, 23), price: 9.99, color: Color(red: 0.0, green: 0.47, blue: 0.95), category: .cloudStorage, stage: .switchProvider),
+
+        SampleRow(name: "Notion", day: date(2026, 11, 5), price: 8.99, color: Color(red: 0.15, green: 0.15, blue: 0.15), category: .productivity, stage: .keep),
+        SampleRow(name: "Adobe Creative Cloud", day: date(2026, 11, 11), price: 54.99, color: Color(red: 0.95, green: 0.33, blue: 0.13), category: .productivity, stage: .needsCancel, notes: "Only using Photoshop"),
+        SampleRow(name: "Microsoft 365", day: date(2026, 11, 17), price: 5.99, color: Color(red: 0.0, green: 0.47, blue: 0.84), category: .productivity, stage: .discount),
+
+        SampleRow(name: "Strava", day: date(2026, 11, 13), price: 5.99, color: Color(red: 0.94, green: 0.33, blue: 0.13), category: .health, stage: .keep),
+        SampleRow(name: "Gym", day: date(2026, 11, 15), price: 29.99, color: Color(red: 0.6, green: 0.35, blue: 0.71), category: .health, stage: .switchProvider, notes: "Haven't been in months"),
+        SampleRow(name: "Headspace", day: date(2026, 11, 20), price: 9.99, color: Color(red: 0.96, green: 0.6, blue: 0.2), category: .health, stage: .discount),
+
+        SampleRow(name: "Duolingo Plus", day: date(2026, 11, 25), price: 6.99, color: Color(red: 0.0, green: 0.82, blue: 0.52), category: .learning, stage: .needsCancel),
+        SampleRow(name: "Coursera Plus", day: date(2026, 3, 4), price: 399.00, color: Color(red: 0.0, green: 0.45, blue: 0.74), frequency: .yearly, category: .learning, stage: .switchProvider),
+        SampleRow(name: "Kindle Unlimited", day: date(2026, 11, 28), price: 9.99, color: Color(red: 0.0, green: 0.48, blue: 0.0), category: .learning, stage: .discount),
+
+        SampleRow(name: "1Password", day: date(2026, 11, 2), price: 2.99, color: Color(red: 0.05, green: 0.45, blue: 0.95), category: .other, stage: .keep),
+        SampleRow(name: "New York Times", day: date(2026, 11, 26), price: 17.00, color: Color(red: 0.12, green: 0.12, blue: 0.12), category: .other, stage: .needsCancel),
+        SampleRow(name: "Patreon", day: date(2026, 11, 22), price: 5.00, color: Color(red: 0.98, green: 0.32, blue: 0.27), category: .other, stage: .switchProvider)
+    ]
+
+    private static let sampleCancelledRows: [SampleRow] = [
+        SampleRow(name: "Hulu", day: date(2026, 8, 14), price: 7.99, color: Color(red: 0.11, green: 0.78, blue: 0.35), category: .streaming, stage: .needsCancel),
+        SampleRow(name: "EA Play", day: date(2026, 7, 2), price: 4.99, color: Color(red: 0.12, green: 0.12, blue: 0.12), category: .gaming, stage: .keep),
+        SampleRow(name: "Calm", day: date(2026, 5, 19), price: 9.99, color: Color(red: 0.15, green: 0.32, blue: 0.55), category: .health, stage: .discount)
+    ]
+
+    private static func makeSamples(_ rows: [SampleRow]) -> [Subscription] {
+        var orderByStage: [SubscriptionStage: Int] = [:]
         return rows.enumerated().map { index, row in
-            Subscription(
-                name: row.0,
-                nextPaymentDate: row.1,
-                price: row.2,
-                color: row.3,
-                frequency: row.4 ?? .monthly,
-                addedAt: Date(timeIntervalSince1970: TimeInterval(index))
+            let order = orderByStage[row.stage, default: 0]
+            orderByStage[row.stage] = order + 1
+            return Subscription(
+                name: row.name,
+                nextPaymentDate: row.day,
+                price: row.price,
+                color: row.color,
+                frequency: row.frequency,
+                category: row.category.rawValue,
+                notes: row.notes,
+                addedAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                stage: row.stage,
+                boardOrder: order,
+                isTrial: row.isTrial,
+                trialEndDate: row.isTrial ? row.day : nil
             )
         }
     }
 
     func addSubscription(_ sub: Subscription) {
+        var sub = sub
+        let nextOrder = (subscriptions.filter { $0.stage == sub.stage }.map(\.boardOrder).max() ?? -1) + 1
+        sub.boardOrder = nextOrder
         subscriptions.append(sub)
         applySorting()
         persist()
         syncCategoryFilterWithSubscriptions()
     }
 
+    /// Subscriptions in one board column, respecting the category filter.
+    func subscriptions(in stage: SubscriptionStage) -> [Subscription] {
+        subscriptionsForDisplay
+            .filter { $0.stage == stage }
+            .sorted { lhs, rhs in
+                if lhs.boardOrder != rhs.boardOrder { return lhs.boardOrder < rhs.boardOrder }
+                return lhs.addedAt < rhs.addedAt
+            }
+    }
+
+    /// Moves a subscription into `stage`, inserting it before `beforeID` or at the end of that column.
+    @discardableResult
+    func moveSubscription(_ id: UUID, to stage: SubscriptionStage, before beforeID: UUID?) -> Bool {
+        guard subscriptions.contains(where: { $0.id == id }) else { return false }
+        if beforeID == id { return false }
+
+        var updated = subscriptions
+        guard let movingIndex = updated.firstIndex(where: { $0.id == id }) else { return false }
+        updated[movingIndex].stage = stage
+
+        var columnIDs = updated
+            .filter { $0.stage == stage && $0.id != id }
+            .sorted { lhs, rhs in
+                if lhs.boardOrder != rhs.boardOrder { return lhs.boardOrder < rhs.boardOrder }
+                return lhs.addedAt < rhs.addedAt
+            }
+            .map(\.id)
+
+        if let beforeID, let insertAt = columnIDs.firstIndex(of: beforeID) {
+            columnIDs.insert(id, at: insertAt)
+        } else {
+            columnIDs.append(id)
+        }
+
+        for (order, columnID) in columnIDs.enumerated() {
+            guard let index = updated.firstIndex(where: { $0.id == columnID }) else { continue }
+            updated[index].boardOrder = order
+        }
+
+        let before = subscriptions.map { "\($0.id.uuidString)|\($0.stage.rawValue)|\($0.boardOrder)" }
+        let after = updated.map { "\($0.id.uuidString)|\($0.stage.rawValue)|\($0.boardOrder)" }
+        guard before != after else { return false }
+
+        subscriptions = updated
+        persist()
+        return true
+    }
+
     func updateSubscription(_ updated: Subscription) {
-        if let index = subscriptions.firstIndex(where: { $0.id == updated.id }) {
-            var merged = updated
-            merged.addedAt = subscriptions[index].addedAt
-            subscriptions[index] = merged
-            applySorting()
-            persist()
-            syncCategoryFilterWithSubscriptions()
+        guard let index = subscriptions.firstIndex(where: { $0.id == updated.id }) else { return }
+        let previous = subscriptions[index]
+        var merged = updated
+        merged.addedAt = previous.addedAt
+        if merged.stage != previous.stage {
+            let nextOrder = (subscriptions.filter { $0.stage == merged.stage && $0.id != merged.id }.map(\.boardOrder).max() ?? -1) + 1
+            merged.boardOrder = nextOrder
+        } else {
+            merged.boardOrder = previous.boardOrder
+        }
+        subscriptions[index] = merged
+        applySorting()
+        persist()
+        syncCategoryFilterWithSubscriptions()
+    }
+
+    /// Trials whose end date is today or earlier, still waiting for keep or cancel.
+    func trialsNeedingDecision(on day: Date = Date()) -> [Subscription] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: day)
+        return subscriptions.filter { sub in
+            guard sub.isTrial, let end = sub.trialEndDate else { return false }
+            return calendar.startOfDay(for: end) <= today
         }
     }
 
+    /// Clears the trial and leaves the subscription on the list, with the next charge on or after today.
+    func keepTrial(id: UUID) {
+        guard let current = subscriptions.first(where: { $0.id == id }), current.isTrial else { return }
+        var updated = current
+        let end = updated.trialEndDate ?? updated.nextPaymentDate
+        updated.isTrial = false
+        updated.trialEndDate = nil
+        updated.nextPaymentDate = updated.frequency.nextChargeDate(onOrAfter: Date(), anchoredTo: end)
+        updateSubscription(updated)
+    }
+
     func removeSubscription(_ sub: Subscription) {
-        switch sub.frequency {
-        case .weekly: savedAmount += (sub.price * 52 / 12)
-        case .monthly: savedAmount += sub.price
-        case .yearly: savedAmount += (sub.price / 12)
-        }
+        let alreadyCancelled = unsubscribed.contains(where: { $0.id == sub.id })
         subscriptions.removeAll { $0.id == sub.id }
-        if !unsubscribed.contains(where: { $0.id == sub.id }) {
+        if !alreadyCancelled {
+            savedAmount += sub.frequency.monthlyAmount(for: sub.price)
             unsubscribed.append(sub)
         }
         applySorting()
         persist()
         syncCategoryFilterWithSubscriptions()
+    }
+
+    /// Puts a cancelled subscription back on the board in `stage`.
+    @discardableResult
+    func restoreSubscription(_ id: UUID, to stage: SubscriptionStage, before beforeID: UUID?) -> Bool {
+        guard let index = unsubscribed.firstIndex(where: { $0.id == id }) else { return false }
+        if beforeID == id { return false }
+        var sub = unsubscribed.remove(at: index)
+        savedAmount = Self.calculateSavedAmount(from: unsubscribed)
+        sub.stage = stage
+        sub.boardOrder = -1
+        subscriptions.append(sub)
+        if !moveSubscription(id, to: stage, before: beforeID) {
+            persist()
+        }
+        syncCategoryFilterWithSubscriptions()
+        return true
+    }
+
+    func updateUnsubscribed(_ updated: Subscription) {
+        guard let index = unsubscribed.firstIndex(where: { $0.id == updated.id }) else { return }
+        var merged = updated
+        merged.addedAt = unsubscribed[index].addedAt
+        unsubscribed[index] = merged
+        savedAmount = Self.calculateSavedAmount(from: unsubscribed)
+        persist()
+    }
+
+    /// Saves edits to an active subscription, or to a cancelled one. Changing a cancelled subscription’s stage puts it back on the board.
+    func saveSubscriptionEdits(_ updated: Subscription) {
+        if subscriptions.contains(where: { $0.id == updated.id }) {
+            updateSubscription(updated)
+            return
+        }
+        guard let previous = unsubscribed.first(where: { $0.id == updated.id }) else { return }
+        if updated.stage != previous.stage {
+            updateUnsubscribed(updated)
+            restoreSubscription(updated.id, to: updated.stage, before: nil)
+        } else {
+            updateUnsubscribed(updated)
+        }
     }
 
     func applySorting() {

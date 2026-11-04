@@ -8,16 +8,22 @@ private enum Save100Phase {
     case results
 }
 
+private enum CategorySavingsPhase {
+    case pickCategory
+    case thinking
+    case results
+}
+
 private enum HelpGoal: CaseIterable {
     case save100
     case discount
-    case removeEntertainment
+    case categorySavings
 
     func title(currencyCode: String) -> String {
         switch self {
         case .save100: return "Save a target amount over the next year"
         case .discount: return "Get a discount on the subscriptions I already have"
-        case .removeEntertainment: return "See how much I'd save if I got rid of my streaming services"
+        case .categorySavings: return "See how much I'd save if I got rid of a category"
         }
     }
 }
@@ -35,6 +41,10 @@ struct HelpView: View {
     @State private var saveTargetApplied: Decimal = 100
     @State private var save100Phase: Save100Phase = .enterTarget
     @State private var helpSelectedSubscription: Subscription?
+    /// Step for “see how much I’d save”: pick one of their categories, then show the yearly total.
+    @State private var categorySavingsPhase: CategorySavingsPhase = .pickCategory
+    /// Category name chosen from the ones they actually have.
+    @State private var savingsCategoryName: String?
 
     private static let streamingServiceNames: Set<String> = [
         "netflix", "disney+", "spotify", "youtube premium", "max", "hbo", "audible",
@@ -42,10 +52,30 @@ struct HelpView: View {
         "deezer", "tidal", "soundcloud", "prime video", "hulu", "espn+"
     ]
 
-    /// Streaming savings include manually added subs with category **Streaming**, plus known services by name when category is unset (e.g. older data).
-    private static func isStreamingSubscription(_ sub: Subscription) -> Bool {
-        if sub.category == SubscriptionCategory.streaming.rawValue { return true }
+    /// Streaming still matches known service names when category is unset (older data). Other categories match the stored category only.
+    private static func matchesSavingsCategory(_ sub: Subscription, category: SubscriptionCategory) -> Bool {
+        if sub.category == category.rawValue { return true }
+        guard category == .streaming, (sub.category ?? "").isEmpty else { return false }
         return streamingServiceNames.contains(sub.name.lowercased())
+    }
+
+    private static func matchesSavingsCategoryName(_ sub: Subscription, name: String) -> Bool {
+        if let category = SubscriptionCategory(rawValue: name) {
+            return matchesSavingsCategory(sub, category: category)
+        }
+        return sub.category == name
+    }
+
+    /// Categories that currently have at least one subscription, in the app’s category order.
+    private var ownedSavingsCategories: [String] {
+        let subs = viewModel.subscriptions
+        var names = SubscriptionCategory.allCases
+            .filter { category in subs.contains { Self.matchesSavingsCategory($0, category: category) } }
+            .map(\.rawValue)
+        let known = Set(SubscriptionCategory.allNames)
+        let extras = Set(subs.compactMap(\.category).filter { !$0.isEmpty && !known.contains($0) })
+        names.append(contentsOf: extras.sorted())
+        return names
     }
 
     var body: some View {
@@ -87,6 +117,10 @@ struct HelpView: View {
                                     if goal == .save100 {
                                         save100Phase = .enterTarget
                                         isThinking = false
+                                    } else if goal == .categorySavings {
+                                        categorySavingsPhase = .pickCategory
+                                        savingsCategoryName = nil
+                                        isThinking = false
                                     } else {
                                         isThinking = true
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
@@ -104,15 +138,16 @@ struct HelpView: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 14)
-                                    .background(Color(.secondarySystemGroupedBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    .padding(.horizontal, 18)
+                                    .padding(.vertical, 16)
+                                    .subHelpPanel(cornerRadius: 24)
+                                    .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.subHelpPressable)
                             }
                         }
                         .padding(.horizontal, 20)
+                        .transition(.scale(scale: 0.96).combined(with: .opacity))
                     }
 
                     // Pulsing "Thinking..." (contained) or result below
@@ -126,7 +161,12 @@ struct HelpView: View {
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .background { SubHelpBackdrop() }
+            .scrollContentBackground(.hidden)
+            .animation(SubHelpTheme.smooth, value: selectedGoal)
+            .animation(SubHelpTheme.smooth, value: isThinking)
+            .animation(SubHelpTheme.smooth, value: save100Phase)
+            .animation(SubHelpTheme.smooth, value: categorySavingsPhase)
             .navigationTitle("Help")
             .sheet(item: $helpSelectedSubscription) { sub in
                 NavigationStack {
@@ -185,6 +225,8 @@ struct HelpView: View {
             Button {
                 selectedGoal = nil
                 save100Phase = .enterTarget
+                categorySavingsPhase = .pickCategory
+                savingsCategoryName = nil
             } label: {
                 Text("Choose another goal")
                     .font(.system(.subheadline, design: .default, weight: .medium))
@@ -205,8 +247,16 @@ struct HelpView: View {
                 }
             case .discount:
                 discountContent
-            case .removeEntertainment:
-                removeEntertainmentContent
+            case .categorySavings:
+                switch categorySavingsPhase {
+                case .pickCategory:
+                    categoryPickerContent
+                case .thinking:
+                    thinkingView
+                        .padding(.vertical, 24)
+                case .results:
+                    categorySavingsContent
+                }
             }
         }
     }
@@ -231,24 +281,20 @@ struct HelpView: View {
                 Text("Target amount")
                     .font(.system(.subheadline, design: .default, weight: .medium))
                 Spacer()
-                TextField("Amount", value: $saveTargetInput, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 120)
+                CurrencyAmountField(placeholder: "Amount", amount: $saveTargetInput, currencyCode: currencyCode)
+                    .frame(width: 140)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .subHelpRow()
             .padding(.horizontal, 20)
 
             Button(action: runSave100Calculation) {
                 Text("OK")
                     .font(.system(.body, design: .default, weight: .semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.subHelp(fullWidth: true))
             .padding(.horizontal, 20)
         }
     }
@@ -265,24 +311,20 @@ struct HelpView: View {
                 Text("Target amount")
                     .font(.system(.subheadline, design: .default, weight: .medium))
                 Spacer()
-                TextField("Amount", value: $saveTargetInput, format: Decimal.FormatStyle.Currency.appDisplay(code: currencyCode))
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 120)
+                CurrencyAmountField(placeholder: "Amount", amount: $saveTargetInput, currencyCode: currencyCode)
+                    .frame(width: 140)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .subHelpRow()
             .padding(.horizontal, 20)
 
             Button(action: runSave100Calculation) {
                 Text("OK")
                     .font(.system(.body, design: .default, weight: .semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.subHelp(fullWidth: true))
             .padding(.horizontal, 20)
 
             // Only `saveTargetApplied` drives options below — editing the field does not recalculate until OK.
@@ -349,37 +391,104 @@ struct HelpView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .subHelpRow()
     }
 
-    // MARK: - Remove entertainment (streaming savings)
+    // MARK: - Savings by category
 
-    private var removeEntertainmentContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Remove entertainment subscriptions")
+    private func selectSavingsCategory(_ name: String) {
+        savingsCategoryName = name
+        categorySavingsPhase = .thinking
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+            guard selectedGoal == .categorySavings, savingsCategoryName == name else { return }
+            categorySavingsPhase = .results
+        }
+    }
+
+    private var categoryPickerContent: some View {
+        let categories = ownedSavingsCategories
+
+        return VStack(alignment: .leading, spacing: 16) {
+            Text("Which category?")
                 .font(.system(.title3, design: .default, weight: .bold))
                 .padding(.horizontal, 20)
 
-            let streaming = viewModel.subscriptions.filter { Self.isStreamingSubscription($0) }
-            let yearlySavings = streaming.reduce(Decimal.zero) { total, sub in
-                total + yearlyAmount(for: sub)
-            }
-
-            if streaming.isEmpty {
-                Text("You don’t have any entertainment (streaming) subscriptions listed yet. Add them on the Subscriptions tab to see how much you’d save by cancelling them.")
+            if categories.isEmpty {
+                Text("You don’t have any categorised subscriptions yet. Add them on the Subscriptions tab, then come back to see how much you’d save.")
                     .font(.system(.footnote, design: .default, weight: .regular))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 20)
             } else {
-                (Text("If you remove your streaming services below, you’d save ")
+                VStack(spacing: 12) {
+                    ForEach(categories, id: \.self) { name in
+                        Button {
+                            selectSavingsCategory(name)
+                        } label: {
+                            HStack(spacing: 12) {
+                                SubscriptionCategoryMark(category: name, size: 32, onColorCard: false)
+                                Text(name)
+                                    .font(.system(.subheadline, design: .default, weight: .medium))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                            .subHelpPanel(cornerRadius: 24)
+                            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        }
+                        .buttonStyle(.subHelpPressable)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+    }
+
+    private var categorySavingsContent: some View {
+        let categoryName = savingsCategoryName ?? ""
+        let matching = viewModel.subscriptions.filter { Self.matchesSavingsCategoryName($0, name: categoryName) }
+        let yearlySavings = matching.reduce(Decimal.zero) { total, sub in
+            total + yearlyAmount(for: sub)
+        }
+
+        return VStack(alignment: .leading, spacing: 16) {
+            Text("See how much you’d save")
+                .font(.system(.title3, design: .default, weight: .bold))
+                .padding(.horizontal, 20)
+
+            HStack(spacing: 12) {
+                SubscriptionCategoryMark(category: categoryName, size: 32, onColorCard: false)
+                Text(categoryName)
+                    .font(.system(.subheadline, design: .default, weight: .semibold))
+                Spacer()
+                Button("Change") {
+                    categorySavingsPhase = .pickCategory
+                    savingsCategoryName = nil
+                }
+                .font(.system(.subheadline, design: .default, weight: .medium))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .subHelpRow()
+            .padding(.horizontal, 20)
+
+            if matching.isEmpty {
+                Text("You don’t have any \(categoryName) subscriptions listed yet. Add them on the Subscriptions tab to see how much you’d save by cancelling them.")
+                    .font(.system(.footnote, design: .default, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 20)
+            } else {
+                (Text("If you remove your \(categoryName) subscriptions below, you’d save ")
                     + Text(CurrencyOptions.formatPresentation(amount: yearlySavings, currencyCode: currencyCode)).fontWeight(.semibold)
                     + Text(" per year."))
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .padding(.horizontal, 20)
 
                 VStack(spacing: 12) {
-                    ForEach(streaming) { sub in
+                    ForEach(matching) { sub in
                         Button {
                             helpSelectedSubscription = sub
                         } label: {
@@ -396,40 +505,62 @@ struct HelpView: View {
     // MARK: - Subscription card (same style as Subscriptions page)
 
     private func subscriptionCard(_ sub: Subscription) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sub.name)
-                    .font(.system(.headline, design: .default, weight: .bold))
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
+        let note = sub.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasStage = sub.stage != .keep
+        let showLabels = hasStage || !note.isEmpty || sub.isTrial
+        return HStack(alignment: .center, spacing: 12) {
+            SubscriptionCategoryMark(category: sub.category)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(sub.name)
+                        .font(.system(.headline, design: .default, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Spacer(minLength: 8)
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
+                            .font(.system(.headline, design: .default, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text(sub.frequency.shortLabel)
+                            .font(.system(.subheadline, design: .default, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+                Text(sub.isTrial
+                     ? "Trial ends: \(viewModel.nextPaymentString(for: sub.trialEndDate ?? sub.nextPaymentDate))"
+                     : "Next payment: \(viewModel.nextPaymentString(for: sub.nextPaymentDate))")
                     .font(.system(.subheadline, design: .default, weight: .regular))
                     .foregroundStyle(.white.opacity(0.9))
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(CurrencyOptions.formatPresentation(amount: sub.price, currencyCode: currencyCode))
-                    .font(.system(.headline, design: .default, weight: .bold))
-                    .foregroundStyle(.white)
-                Text(sub.frequency.shortLabel)
-                    .font(.system(.caption, design: .default, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if showLabels {
+                    HStack(spacing: 6) {
+                        if sub.isTrial {
+                            SubscriptionLabelPill(text: "On free trial", kind: .trial)
+                        }
+                        if hasStage {
+                            SubscriptionLabelPill(text: sub.stage.rawValue, kind: .stage(sub.stage))
+                        }
+                        if !note.isEmpty {
+                            SubscriptionLabelPill(text: note, kind: .note)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
             }
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(sub.color)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .subHelpColorCard(sub.color)
     }
 
     // MARK: - Helpers
 
     private func yearlyAmount(for sub: Subscription) -> Decimal {
-        switch sub.frequency {
-        case .weekly: return sub.price * 52
-        case .monthly: return sub.price * 12
-        case .yearly: return sub.price
-        }
+        sub.frequency.yearlyAmount(for: sub.price)
     }
 
     private func yearlyTotal(for subs: [Subscription]) -> Decimal {

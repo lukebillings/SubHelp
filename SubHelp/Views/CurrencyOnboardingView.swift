@@ -11,8 +11,8 @@ struct CurrencyOnboardingView: View {
     /// Called after the user finishes the walkthrough (notifications on or not now).
     var onComplete: () -> Void = {}
 
-    /// 0 goals → 1 paywall → 2 currency → 3 notifications
     @State private var step = 0
+    @State private var selectedGoals: Set<String> = []
 
     private let brandGold = Color(red: 0.96, green: 0.78, blue: 0.22)
     private let skipRowHeight: CGFloat = 22
@@ -22,24 +22,25 @@ struct CurrencyOnboardingView: View {
         "Avoid surprise renewals",
         "Track all subscriptions in one place",
         "Find subscriptions I forgot about",
-        "Cancel subscriptions faster",
-        "None of the above"
+        "Cancel subscriptions faster"
     ]
 
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            SubHelpBackdrop()
 
             NavigationStack {
                 Group {
                     if step == 0 {
                         benefitsStep
                     } else if step == 1 {
-                        paywallStep
-                    } else if step == 2 {
                         currencyStep
-                    } else {
+                    } else if step == 2 {
                         notificationStep
+                    } else if step == 3 {
+                        WidgetShowcaseView()
+                    } else {
+                        paywallStep
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -47,37 +48,35 @@ struct CurrencyOnboardingView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        if step == 1 {
+                        if step >= 1 && step <= 4 {
                             Button("Back") {
                                 SubHelpHaptics.impact(.light)
-                                step = 0
+                                step -= 1
                             }
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.primary)
                         }
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if step >= 2 {
+                    if step < 4 {
                         onboardingBottomChrome
                     }
                 }
             }
-            .tint(.black)
+            .tint(.primary)
             .scrollContentBackground(.hidden)
             .background(Color.clear)
-            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// Dot-style progress for post-paywall steps only (currency, notifications).
+    /// Dot-style progress shown above the primary CTA.
     private var onboardingProgressBar: some View {
-        let pageCount = 2
-        let current = max(0, step - 2)
+        let pageCount = 5
         return HStack(spacing: 8) {
             ForEach(0..<pageCount, id: \.self) { index in
                 Circle()
-                    .fill(index == current ? brandGold : Color.black.opacity(0.14))
+                    .fill(index == step ? brandGold : Color.primary.opacity(0.14))
                     .frame(width: 8, height: 8)
             }
         }
@@ -86,21 +85,21 @@ struct CurrencyOnboardingView: View {
         .animation(.easeInOut(duration: 0.25), value: step)
     }
 
-    /// Bottom layout for currency + notifications: optional Skip + primary CTA.
+    /// Same bottom layout on every step: optional "Skip" text row + primary CTA pinned to identical Y.
     private var onboardingBottomChrome: some View {
         VStack(spacing: 12) {
             onboardingProgressBar
 
-            if step == 3 {
+            if step == 2 {
                 Button(role: .none) {
                     SubHelpHaptics.impact(.medium)
                     UserDefaults.standard.set(false, forKey: RenewalNotificationScheduler.notificationsEnabledKey)
                     UserDefaults.standard.set(1, forKey: "notificationDaysBefore")
-                    completeOnboarding()
+                    continueToWidgetStep()
                 } label: {
                     Text("Skip")
                         .font(.system(.subheadline, design: .default, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.72))
+                        .foregroundStyle(.primary.opacity(0.72))
                         .frame(maxWidth: .infinity)
                         .frame(height: skipRowHeight)
                 }
@@ -117,7 +116,7 @@ struct CurrencyOnboardingView: View {
 
             Button(action: primaryOnboardingBottomAction) {
                 Group {
-                    if step == 3 {
+                    if step == 2 {
                         Text("Turn on notifications")
                             .font(.system(.title3, design: .default, weight: .bold))
                     } else {
@@ -145,45 +144,54 @@ struct CurrencyOnboardingView: View {
 
     private func primaryOnboardingBottomAction() {
         SubHelpHaptics.impact(.light)
-        if step == 2 {
-            step = 3
-        } else {
+        if step == 0 {
+            if onboardingPrimaryGoal.isEmpty, let fallbackGoal = selectedGoals.first {
+                onboardingPrimaryGoal = fallbackGoal
+            }
+            step = 1
+        } else if step == 1 {
+            step = 2
+        } else if step == 2 {
             Task {
                 _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
                 UserDefaults.standard.set(true, forKey: RenewalNotificationScheduler.notificationsEnabledKey)
                 await MainActor.run {
-                    completeOnboarding()
+                    continueToWidgetStep()
                 }
             }
+        } else if step == 3 {
+            step = 4
         }
     }
 
-    private func onboardingHeader(title: String, subtitle: String?) -> some View {
+    private func continueToWidgetStep() {
+        step = 3
+    }
+
+    private func onboardingHeader(title: String, subtitle: String) -> some View {
         VStack(spacing: 12) {
             Text(title)
                 .font(.system(.title, design: .default, weight: .bold))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.black)
-            if let subtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(.system(.body, design: .default, weight: .regular))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.black.opacity(0.85))
-                    .frame(maxWidth: .infinity)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 12)
-            }
+                .foregroundStyle(.primary)
+            Text(subtitle)
+                .font(.system(.body, design: .default, weight: .regular))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.primary.opacity(0.85))
+                .frame(maxWidth: .infinity)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12)
         }
         .frame(maxWidth: .infinity, alignment: .top)
-        .frame(height: subtitle == nil ? 96 : 128, alignment: .top)
+        .frame(height: 128, alignment: .top)
         .padding(.top, 4)
     }
 
     private var benefitsStep: some View {
-        VStack(spacing: 28) {
+        return VStack(spacing: 28) {
             onboardingHeader(
-                title: "What's your number 1 goal with SubHelp.",
-                subtitle: nil
+                title: "What do you most want to achieve with SubHelp?",
+                subtitle: "Select one or more goals."
             )
             .padding(.top, 54)
 
@@ -191,22 +199,38 @@ struct CurrencyOnboardingView: View {
                 ForEach(goalOptions, id: \.self) { goal in
                     Button {
                         SubHelpHaptics.impact(.light)
-                        onboardingPrimaryGoal = goal
-                        step = 1
+                        if selectedGoals.contains(goal) {
+                            selectedGoals.remove(goal)
+                            if onboardingPrimaryGoal == goal {
+                                onboardingPrimaryGoal = ""
+                            }
+                        } else {
+                            selectedGoals.insert(goal)
+                            if onboardingPrimaryGoal.isEmpty {
+                                onboardingPrimaryGoal = goal
+                            }
+                        }
                     } label: {
                         HStack(spacing: 10) {
                             Text(goal)
                                 .font(.system(.subheadline, design: .default, weight: .semibold))
-                                .foregroundStyle(.black.opacity(0.9))
+                                .foregroundStyle(.primary.opacity(0.9))
                                 .multilineTextAlignment(.leading)
                             Spacer(minLength: 0)
+                            if selectedGoals.contains(goal) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.blue)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
                         }
                         .padding(.vertical, 14)
                         .padding(.horizontal, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.white.opacity(0.9))
+                        .subHelpGlass(
+                            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+                            tint: selectedGoals.contains(goal) ? Color.blue.opacity(0.4) : nil,
+                            interactive: true
                         )
+                        .animation(SubHelpTheme.bouncy, value: selectedGoals)
                     }
                     .buttonStyle(.plain)
                 }
@@ -238,7 +262,7 @@ struct CurrencyOnboardingView: View {
                                 HStack(spacing: 10) {
                                     Text(currency.label)
                                         .font(.system(.subheadline, design: .default, weight: .medium))
-                                        .foregroundStyle(.black.opacity(0.85))
+                                        .foregroundStyle(.primary.opacity(0.85))
                                     Spacer(minLength: 0)
                                     if currencyCode == currency.code {
                                         Image(systemName: "checkmark.circle.fill")
@@ -261,8 +285,7 @@ struct CurrencyOnboardingView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .subHelpPanel(cornerRadius: 28)
         }
         .padding(.horizontal, 22)
     }
@@ -278,10 +301,9 @@ struct CurrencyOnboardingView: View {
 
             Image(systemName: "bell.badge.fill")
                 .font(.system(size: 72, weight: .semibold))
-                .foregroundStyle(.black.opacity(0.8))
+                .foregroundStyle(.primary.opacity(0.8))
                 .frame(width: 130, height: 130)
-                .background(.white.opacity(0.35))
-                .clipShape(Circle())
+                .subHelpGlass(in: Circle(), tint: SubHelpTheme.brandGold.opacity(0.35))
 
             Spacer(minLength: 0)
         }
@@ -293,13 +315,14 @@ struct CurrencyOnboardingView: View {
             hasCompletedPaywall: Binding(
                 get: { false },
                 set: { finished in
-                    if finished { step = 2 }
+                    if finished { completeOnboarding() }
                 }
             ),
             selectedTier: Binding(
                 get: { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free },
                 set: { subscriptionTierRaw = $0.rawValue }
             ),
+            allowsDismiss: true,
             onSelect: { tier in
                 subscriptionTierRaw = tier.rawValue
             }
