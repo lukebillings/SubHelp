@@ -173,12 +173,10 @@ struct PaywallView: View {
         }
     }
 
-    /// Features the app actually offers. Goals such as spending less are not promised here.
+    /// Premium is the unlimited subscription count. Reminders and widgets stay free.
     private var paywallFeatures: [(icon: String, text: String)] {
         [
-            ("infinity", String(localized: "Track unlimited subscriptions")),
-            ("bell.badge", String(localized: "Subscription renewal reminders")),
-            ("apps.iphone", String(localized: "Upcoming payments widget"))
+            ("infinity", String(localized: "Track unlimited subscriptions"))
         ]
     }
 
@@ -538,7 +536,7 @@ struct FreePlanLimitNudgeView: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Upgrade to add more subscriptions, plus renewal reminders and the upcoming payments widget.")
+            Text("Upgrade to add more subscriptions.")
                 .font(.system(.body, design: .default, weight: .regular))
                 .foregroundStyle(.primary.opacity(0.85))
                 .multilineTextAlignment(.center)

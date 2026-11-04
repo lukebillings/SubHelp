@@ -180,7 +180,7 @@ struct SubHelpApp: App {
                         showsOnboardingProgress: false,
                         allowsDismiss: true,
                         headline: sessionPaywallHeadline,
-                        subheadline: String(localized: "Unlock unlimited plus reminders."),
+                        subheadline: String(localized: "Unlock unlimited subscriptions."),
                         onSelect: { tier in
                             UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
                             presentPostPaywallTutorialIfNeeded()
